@@ -5,8 +5,15 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <title>Gradus — A Fitness RPG</title>
+<!-- PWA -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gradus">
+<meta name="theme-color" content="#0c0a07">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
   :root {
     /* Dark medieval palette — aged parchment, tarnished bronze, ember, blood */
@@ -30,7 +37,10 @@
     font-weight: bold;
     image-rendering: pixelated;
     min-height: 100vh;
-    padding-bottom: 40px;
+    min-height: 100dvh;
+    padding-bottom: calc(64px + env(safe-area-inset-bottom));
+    overscroll-behavior: none;
+    -webkit-text-size-adjust: 100%;
   }
   /* ---------- pixel panel ---------- */
   .panel {
@@ -77,6 +87,9 @@
     border-radius: 6px;
     box-shadow: 2px 2px 0 #000;
     padding: 8px 14px; cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 44px;
   }
   button:hover:not(:disabled) { background: #2c2216; border-color: var(--gold); color: var(--gold); }
   button:active:not(:disabled) { transform: translate(2px,2px); box-shadow: 1px 1px 0 #000; }
@@ -120,18 +133,19 @@
   .stat-row button { padding:2px 10px; font-size:13px; }
   /* ---- new equip slots ---- */
   .equip-grid { display:grid; grid-template-columns:repeat(4,68px); gap:8px; }
-  input[type=number], input[type=text] {
-    font-family: inherit; font-weight: bold; font-size: 14px;
+  input[type=number], input[type=text], input[type=email], input[type=password] {
+    font-family: inherit; font-weight: bold; font-size: 16px; /* 16px prevents iOS zoom */
     background: #000; color: var(--text);
-    border: 3px solid var(--border); padding: 8px; width: 110px;
+    border: 3px solid var(--border); padding: 10px 8px; width: 110px;
+    -webkit-appearance: none; border-radius: 0;
   }
-  input[type=text] { width: 100%; }
+  input[type=text], input[type=email], input[type=password] { width: 100%; }
   .synced { color: var(--green); }
   .toast {
-    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    position: fixed; bottom: calc(72px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%);
     background: var(--panel-dark); border: 4px solid var(--gold); color: var(--gold);
     padding: 12px 20px; font-size: 14px; z-index: 100; display: none;
-    box-shadow: 4px 4px 0 #000;
+    box-shadow: 4px 4px 0 #000; white-space: nowrap;
   }
   .center { text-align: center; }
   .mt { margin-top: 14px; }
@@ -191,6 +205,52 @@
   }
   .modal-box { max-width: 440px; margin: 20px; }
   .modal-box h2 { border-bottom: none; }
+
+  /* ===== BOTTOM NAV BAR ===== */
+  #bottom-nav {
+    display: none; /* shown only after login */
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+    background: var(--panel-dark);
+    border-top: 3px solid var(--border);
+    padding-bottom: env(safe-area-inset-bottom);
+    display: flex; justify-content: space-around; align-items: stretch;
+  }
+  #bottom-nav.hidden { display: none !important; }
+  .bnav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 8px 4px; font-size: 10px; color: var(--dim); background: none;
+    border: none; border-radius: 0; box-shadow: none; min-height: 56px;
+    gap: 3px; cursor: pointer; touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bnav-btn .bnav-icon { font-size: 22px; line-height: 1; }
+  .bnav-btn.active { color: var(--gold); }
+  .bnav-btn.active .bnav-icon { filter: drop-shadow(0 0 4px rgba(201,162,39,.6)); }
+
+  /* ===== MOBILE BREAKPOINT ===== */
+  @media (max-width: 600px) {
+    .panel { margin: 8px; padding: 12px 10px; max-width: 100%; border-radius: 2px; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 15px; }
+    #hud { font-size: 12px; padding: 6px 10px; }
+    #hud .hud-row { gap: 8px; }
+    /* Hide verbose HUD items on mobile — bottom nav replaces them */
+    #hud .hud-btn-group { display: none; }
+    .inv-grid { grid-template-columns: repeat(5, 1fr); }
+    .equip-grid { grid-template-columns: repeat(4, 56px); }
+    .eq-slot { width: 56px; height: 56px; font-size: 20px; }
+    .btn-big { font-size: 15px; padding: 13px 12px; }
+    #battle-log { height: 140px; }
+    table { font-size: 13px; }
+    th, td { padding: 7px 4px; }
+    .zone-tabs { flex-wrap: wrap; }
+    .zone-tab { font-size: 12px; padding: 8px 6px; }
+    .equip-slots { flex-wrap: wrap; gap: 8px; }
+    .auth-form { max-width: 100%; }
+    .modal-box { margin: 10px; }
+    /* hot-spots: show label on tap via JS */
+    .hot span { font-size: 10px; }
+  }
 </style>
 </head>
 <body>
@@ -206,7 +266,7 @@
     <span class="hud-item" id="hud-goal-badge" style="display:none" title="Today's step goal"></span>
     <span class="hud-item">⚔️ <span id="hud-weapon"></span></span>
     <span class="hud-item">🛡️ <span id="hud-armor"></span></span>
-    <span class="hud-item">
+    <span class="hud-item hud-btn-group">
       <button onclick="showScreen('stats')" style="padding:3px 8px;font-size:12px">📊 Stats</button>
       <button onclick="showScreen('skills')" style="padding:3px 8px;font-size:12px">✨ Skills</button>
       <button onclick="showScreen('inv')" style="padding:3px 8px;font-size:12px">🎒 Inventory</button>
@@ -217,6 +277,15 @@
     </span>
   </div>
 </div>
+
+<!-- ================= BOTTOM NAV ================= -->
+<nav id="bottom-nav" class="hidden">
+  <button class="bnav-btn active" id="bnav-town" onclick="showScreen('town')"><span class="bnav-icon">🏰</span>Town</button>
+  <button class="bnav-btn" id="bnav-tavern" onclick="showScreen('tavern')"><span class="bnav-icon">⚔️</span>Fight</button>
+  <button class="bnav-btn" id="bnav-inv" onclick="showScreen('inv')"><span class="bnav-icon">🎒</span>Bag</button>
+  <button class="bnav-btn" id="bnav-stats" onclick="showScreen('stats')"><span class="bnav-icon">📊</span>Me</button>
+  <button class="bnav-btn" id="bnav-sync" onclick="showScreen('sync')"><span class="bnav-icon">📜</span>Sync</button>
+</nav>
 
 <!-- ================= TITLE / LOGIN / REGISTER ================= -->
 <div id="screen-title" class="screen active">
@@ -331,21 +400,45 @@
           <div class="dim" style="font-size:11px;margin-bottom:4px">YOUR SYNC ID</div>
           <code id="sync-id-display" style="font-size:12px;word-break:break-all"></code>
           <button style="margin-left:8px;font-size:11px" onclick="copySyncId()">Copy</button>
-          <div class="dim" style="font-size:11px;margin-top:6px">
-            <b>iPhone Shortcut setup (one time):</b><br>
-            1. Open Shortcuts app → tap <b>+</b> → Add Action<br>
-            2. Add <b>"Get Health Sample"</b> → type: Step Count, last 1 day<br>
-            3. Add <b>"Get Health Sample"</b> → type: Active Energy, last 1 day<br>
-            4. Add <b>"Get Current Date"</b><br>
-            5. Add <b>"Format Date"</b> → format: <code>yyyy-MM-dd</code><br>
-            6. Add <b>"Get Contents of URL"</b> →<br>
-            &nbsp;&nbsp;URL: <code id="push-url-display"></code><br>
-            &nbsp;&nbsp;Method: POST · JSON body:<br>
-            &nbsp;&nbsp;<code>uid</code> = <i>[your Sync ID]</i><br>
-            &nbsp;&nbsp;<code>date</code> = <i>[formatted date]</i><br>
-            &nbsp;&nbsp;<code>steps</code> = <i>[step count sum]</i><br>
-            &nbsp;&nbsp;<code>calories</code> = <i>[active energy sum]</i><br>
-            7. Run the shortcut once a day (or automate via <b>Automations</b>)
+          <div class="dim" style="font-size:12px;margin-top:8px;line-height:1.7">
+            <b style="color:var(--gold);font-size:13px">📱 iPhone Shortcut — one-time setup</b><br>
+            <br>
+            <b>Step 1.</b> Copy your Sync ID above.<br>
+            <b>Step 2.</b> Open the <b>Shortcuts</b> app → tap <b>+</b> (top right) → name it <i>"Gradus Sync"</i>.<br>
+            <b>Step 3.</b> Add these actions in order:<br>
+            <br>
+            &nbsp;🔹 <b>Get Health Sample</b><br>
+            &nbsp;&nbsp;&nbsp;• Sample: <b>Step Count</b> · Period: <b>Today</b><br>
+            &nbsp;&nbsp;&nbsp;• Aggregate: <b>Sum</b> → rename variable: <code>Steps</code><br>
+            <br>
+            &nbsp;🔹 <b>Get Health Sample</b><br>
+            &nbsp;&nbsp;&nbsp;• Sample: <b>Active Energy Burned</b> · Period: <b>Today</b><br>
+            &nbsp;&nbsp;&nbsp;• Aggregate: <b>Sum</b> → rename variable: <code>Calories</code><br>
+            <br>
+            &nbsp;🔹 <b>Format Date</b><br>
+            &nbsp;&nbsp;&nbsp;• Date: <b>Current Date</b><br>
+            &nbsp;&nbsp;&nbsp;• Format: <b>Custom</b> → <code>yyyy-MM-dd</code><br>
+            &nbsp;&nbsp;&nbsp;• Rename output variable: <code>Today</code><br>
+            <br>
+            &nbsp;🔹 <b>Get Contents of URL</b><br>
+            &nbsp;&nbsp;&nbsp;• URL: <code id="push-url-display" style="word-break:break-all"></code><br>
+            &nbsp;&nbsp;&nbsp;• Method: <b>POST</b><br>
+            &nbsp;&nbsp;&nbsp;• Request Body: <b>JSON</b><br>
+            &nbsp;&nbsp;&nbsp;• Add 4 fields:<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;• <code>uid</code> → paste your Sync ID<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;• <code>date</code> → variable <b>Today</b><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;• <code>steps</code> → variable <b>Steps</b><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;• <code>calories</code> → variable <b>Calories</b><br>
+            <br>
+            <b>Step 4.</b> Run it once to test — tap <b>▶ Run</b> at the bottom.<br>
+            Then come back here and tap <b>⬇️ Pull from device</b>.<br>
+            <br>
+            <b>Step 5.</b> Automate it: Shortcuts → <b>Automation</b> tab →<br>
+            &nbsp;+ New → <b>Time of Day</b> → pick 9 PM daily →<br>
+            &nbsp;Add Action → <b>Run Shortcut</b> → Gradus Sync.<br>
+            <br>
+            Works with: <b>Apple Watch</b> · <b>Oura Ring</b> · <b>Garmin</b> · <b>Fitbit</b><br>
+            (anything that syncs steps/calories to Apple Health)
           </div>
         </div>
         <button onclick="pullDevice()">⬇️ Pull from device</button>
@@ -1605,6 +1698,15 @@ function showScreen(name) {
   if (name === 'expedition') renderExpedition();
   if (name === 'death') renderDeathScreen();
   renderHUD();
+  // highlight bottom nav
+  const navMap = { town:'bnav-town', tavern:'bnav-tavern', hunt:'bnav-tavern',
+    inv:'bnav-inv', stats:'bnav-stats', skills:'bnav-stats',
+    sync:'bnav-sync', class:'bnav-stats' };
+  document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
+  const activeId = navMap[name];
+  if (activeId && $(activeId)) $(activeId).classList.add('active');
+  // scroll to top on screen change
+  window.scrollTo(0, 0);
 }
 
 /* ---------------- HUD ---------------- */
@@ -1624,6 +1726,8 @@ updateClock();
 function renderHUD() {
   if (!S) return;
   $('hud').style.display = 'block';
+  const bnav = $('bottom-nav');
+  if (bnav) { bnav.classList.remove('hidden'); bnav.style.display = 'flex'; }
   $('hud-name').textContent = S.name + (S.title ? ' ' + S.title : '');
   $('hud-sound').textContent = S.sound === false ? '🔇' : '🔊';
   $('hud-music').textContent = S.music === false ? '🎵̸' : '🎵';
@@ -1684,6 +1788,11 @@ function initTownMap() {
       d.className = 'hot';
       d.style.cssText = `left:${h.l}%;top:${h.t}%;width:${h.w}%;height:${h.h}%`;
       d.innerHTML = `<span>${h.label}</span>`;
+      // Touch: first tap shows label, second tap navigates (same as hover→click on desktop)
+      d.addEventListener('touchstart', (e) => {
+        const lbl = d.querySelector('span');
+        if (lbl.style.display !== 'block') { lbl.style.display = 'block'; e.preventDefault(); return; }
+      }, { passive: false });
       d.onclick = () => TOWN_HOTSPOTS[i].act();
       $('town-map').appendChild(d);
     });
