@@ -320,13 +320,36 @@
       <tbody id="sync-rows"></tbody>
     </table>
     <details class="mt" style="border:1px solid var(--border);border-radius:3px;padding:8px 12px">
-      <summary class="dim" style="cursor:pointer;font-size:12px">⚙️ Device link (Garmin, Oura, Strava via Terra)</summary>
+      <summary class="dim" style="cursor:pointer;font-size:12px">⚙️ Device sync (Apple Watch, Oura, Garmin via iPhone Shortcut)</summary>
       <div class="mt" style="font-size:13px">
-        <input type="text" id="backend-url" placeholder="https://your-worker.workers.dev" style="width:260px">
-        <button onclick="saveBackend()">Save</button>
-        <button onclick="connectDevice()">🔗 Connect device</button>
+        <div style="margin-bottom:6px">
+          <label class="dim">Worker URL:</label><br>
+          <input type="text" id="backend-url" placeholder="https://gradus-worker.gradus-game.workers.dev" value="https://gradus-worker.gradus-game.workers.dev" style="width:260px">
+          <button onclick="saveBackend()">Save</button>
+        </div>
+        <div id="sync-id-panel" style="display:none;margin-bottom:8px;background:var(--panel2,#1a1a2e);padding:6px 10px;border-radius:3px">
+          <div class="dim" style="font-size:11px;margin-bottom:4px">YOUR SYNC ID</div>
+          <code id="sync-id-display" style="font-size:12px;word-break:break-all"></code>
+          <button style="margin-left:8px;font-size:11px" onclick="copySyncId()">Copy</button>
+          <div class="dim" style="font-size:11px;margin-top:6px">
+            <b>iPhone Shortcut setup (one time):</b><br>
+            1. Open Shortcuts app → tap <b>+</b> → Add Action<br>
+            2. Add <b>"Get Health Sample"</b> → type: Step Count, last 1 day<br>
+            3. Add <b>"Get Health Sample"</b> → type: Active Energy, last 1 day<br>
+            4. Add <b>"Get Current Date"</b><br>
+            5. Add <b>"Format Date"</b> → format: <code>yyyy-MM-dd</code><br>
+            6. Add <b>"Get Contents of URL"</b> →<br>
+            &nbsp;&nbsp;URL: <code id="push-url-display"></code><br>
+            &nbsp;&nbsp;Method: POST · JSON body:<br>
+            &nbsp;&nbsp;<code>uid</code> = <i>[your Sync ID]</i><br>
+            &nbsp;&nbsp;<code>date</code> = <i>[formatted date]</i><br>
+            &nbsp;&nbsp;<code>steps</code> = <i>[step count sum]</i><br>
+            &nbsp;&nbsp;<code>calories</code> = <i>[active energy sum]</i><br>
+            7. Run the shortcut once a day (or automate via <b>Automations</b>)
+          </div>
+        </div>
         <button onclick="pullDevice()">⬇️ Pull from device</button>
-        <p class="dim footer-note" style="margin-top:6px">See INTEGRATION.md for one-time setup.</p>
+        <p class="dim footer-note" style="margin-top:6px">Supports Apple Watch, Oura, Garmin — anything that syncs to Apple Health.</p>
       </div>
     </details>
     <button class="mt" onclick="showScreen('town')">← Back to town</button>
@@ -1363,6 +1386,7 @@ function migrate(s) {
   if (!s.rumors) s.rumors = {};
   if (s.music === undefined) s.music = true;
   if (s.backend === undefined) s.backend = '';
+  if (!s.syncId) s.syncId = crypto.randomUUID();
   if (!s.lifeSkills) s.lifeSkills = { fishing:{lvl:1,xp:0}, cooking:{lvl:1,xp:0}, woodcutting:{lvl:1,xp:0}, thieving:{lvl:1,xp:0}, gathering:{lvl:1,xp:0} };
   if (!s.lifeSkills.gathering) s.lifeSkills.gathering = {lvl:1,xp:0};
   if (!s.materials) s.materials = { fish:0, wood:0, meal:0 };
@@ -1821,6 +1845,7 @@ function showDeathScreen(monsterName, lostGradus, xpGained) {
 
 function renderSync() {
   $('backend-url').value = S.backend || '';
+  updateSyncIdPanel();
   const rows = lastNDays(BACK_DAYS).map((date, i) => {
     const logged = S.syncLog[date];
     if (logged) {
@@ -1909,21 +1934,36 @@ async function syncDay(date) {
   renderSync(); renderHUD();
 }
 
-/* ---- device link (Terra via the Cloudflare worker, see INTEGRATION.md) ---- */
+/* ---- device sync (push-based via iPhone Shortcut) ---- */
 function saveBackend() {
   S.backend = $('backend-url').value.trim().replace(/\/+$/, '');
   save();
-  toast(S.backend ? 'Device link saved.' : 'Device link cleared.');
+  updateSyncIdPanel();
+  toast(S.backend ? 'Worker URL saved.' : 'Worker URL cleared.');
 }
-function connectDevice() {
-  if (!S.backend) { toast('Save your device-link URL first.'); return; }
-  window.open(S.backend + '/connect', '_blank');
+function updateSyncIdPanel() {
+  const panel = $('sync-id-panel');
+  if (!panel) return;
+  if (S.backend && S.syncId) {
+    panel.style.display = 'block';
+    const disp = $('sync-id-display');
+    if (disp) disp.textContent = S.syncId;
+    const pushUrl = $('push-url-display');
+    if (pushUrl) pushUrl.textContent = S.backend + '/push';
+  } else {
+    panel.style.display = 'none';
+  }
+}
+function copySyncId() {
+  if (!S.syncId) return;
+  navigator.clipboard.writeText(S.syncId).then(() => toast('Sync ID copied!'));
 }
 async function pullDevice() {
-  if (!S.backend) { toast('Save your device-link URL first.'); return; }
+  if (!S.backend) { toast('Save your worker URL first.'); return; }
+  if (!S.syncId) { toast('No sync ID found — re-open the device panel.'); return; }
   toast('📡 Reaching across the realms…');
   try {
-    const r = await fetch(S.backend + '/activity?days=' + BACK_DAYS);
+    const r = await fetch(`${S.backend}/activity?uid=${S.syncId}&days=${BACK_DAYS}`);
     const days = await r.json();
     let credited = 0, totG = 0, totR = 0;
     days.forEach(d => {
@@ -1932,10 +1972,10 @@ async function pullDevice() {
     });
     save(); checkAch();
     renderSync(); renderHUD();
-    if (credited) { sfx('coin'); toast(`📡 ${credited} day(s) from your device: +${fmt(totG)} Gradus · +${fmt(totR)} Ries`); }
-    else toast('Nothing new from the device.');
+    if (credited) { sfx('coin'); toast(`📡 ${credited} day(s) synced: +${fmt(totG)} Gradus · +${fmt(totR)} Ries`); }
+    else toast('Nothing new from device — run your Shortcut first.');
   } catch (e) {
-    toast('Device link failed. Check the URL and worker.');
+    toast('Sync failed. Check the worker URL.');
   }
 }
 

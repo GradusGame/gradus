@@ -5,14 +5,11 @@
 name            = "gradus-worker"
 main            = "worker.js"
 compatibility_date = "2024-06-01"
-account_id      = ""   # fill in from https://dash.cloudflare.com → right sidebar
 
-# KV namespace: stores activity data + cloud saves
-# Create it: wrangler kv namespace create GRADUS_KV
-# Then paste the id below
+# KV namespace added automatically by connect-device.command
 [[kv_namespaces]]
 binding = "KV"
-id      = ""   # paste KV namespace id here
+id      = "e0601eeaf09c46849ae537dac6ccb26f"
 
 # Secrets (set via CLI, never in this file):
 #   wrangler secret put TERRA_DEV_ID
