@@ -1,0 +1,3374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gradus — A Fitness RPG</title>
+<style>
+  :root {
+    /* Dark medieval palette — aged parchment, tarnished bronze, ember, blood */
+    --bg: #0c0a07;
+    --panel: #1a1410;
+    --panel-dark: #0f0c08;
+    --border: #6b5a36;
+    --gold: #c9a227;
+    --ries: #c4502c;
+    --text: #d8c9a3;
+    --dim: #8a7b5e;
+    --green: #7a9145;
+    --red: #9b2a23;
+    --blue: #5a7a9a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    image-rendering: pixelated;
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+  /* ---------- pixel panel ---------- */
+  .panel {
+    /* worn leather and tarnished bronze framing */
+    background: linear-gradient(160deg, #1e1712 0%, #161009 55%, #120d07 100%);
+    border: 3px double var(--border);
+    border-radius: 4px;
+    box-shadow: 0 0 0 2px #000, 0 4px 18px rgba(0,0,0,.7), inset 0 0 28px rgba(0,0,0,.55);
+    padding: 16px;
+    margin: 16px auto;
+    max-width: 760px;
+  }
+  h1, h2, h3 {
+    letter-spacing: 3px; text-transform: uppercase;
+    font-family: Georgia, 'Times New Roman', serif;
+  }
+  h1 { color: var(--gold); text-shadow: 0 0 14px rgba(201,162,39,.35), 2px 2px 0 #000; font-size: 30px; }
+  h2 { color: var(--gold); font-size: 18px; margin-bottom: 12px; border-bottom: 1px solid #3a2f1c; padding-bottom: 6px; }
+  .pix { image-rendering: pixelated; vertical-align: middle; margin-right: 6px; }
+  .dim { color: var(--dim); font-weight: normal; font-size: 13px; }
+  /* ---------- HUD ---------- */
+  #hud {
+    display: none;
+    background: var(--panel-dark);
+    border-bottom: 4px solid var(--border);
+    padding: 10px 16px;
+    font-size: 14px;
+    position: sticky; top: 0; z-index: 10;
+  }
+  #hud .hud-row { display: flex; flex-wrap: wrap; gap: 16px; max-width: 760px; margin: 0 auto; align-items: center; }
+  .hud-item { white-space: nowrap; }
+  .gold { color: var(--gold); }
+  .riescol { color: var(--ries); }
+  .greencol { color: var(--green); }
+  #xpbar { display: inline-block; width: 80px; height: 10px; background: #000; border: 2px solid var(--border); vertical-align: middle; }
+  .minibar { display: inline-block; width: 54px; height: 10px; background: #000; border: 2px solid var(--border); vertical-align: middle; }
+  .minibar > span { display: block; height: 100%; width: 100%; }
+  #xpfill { height: 100%; background: var(--blue); width: 0%; }
+  /* ---------- buttons ---------- */
+  button {
+    font-family: inherit; font-weight: bold; font-size: 14px;
+    background: var(--panel); color: var(--text);
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 2px 2px 0 #000;
+    padding: 8px 14px; cursor: pointer;
+  }
+  button:hover:not(:disabled) { background: #2c2216; border-color: var(--gold); color: var(--gold); }
+  button:active:not(:disabled) { transform: translate(2px,2px); box-shadow: 1px 1px 0 #000; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-big { font-size: 16px; padding: 14px 18px; width: 100%; text-align: left; margin: 6px 0; }
+  .btn-g { border-color: var(--gold); color: var(--gold); }
+  .btn-r { border-color: var(--ries); color: var(--ries); }
+  .btn-eq { border-color: var(--green); color: var(--green); }
+  /* ---------- screens ---------- */
+  .screen { display: none; }
+  .screen.active { display: block; }
+  /* ---------- tables ---------- */
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 8px 6px; text-align: left; border-bottom: 2px solid var(--panel-dark); }
+  th { color: var(--dim); text-transform: uppercase; font-size: 11px; }
+  td.r { text-align: right; }
+  /* ---------- sync ---------- */
+  /* ---- account/login form ---- */
+  .link-btn{background:none;border:none;cursor:pointer;color:var(--gold);font-family:inherit;font-size:inherit;padding:0;text-decoration:underline}
+
+  .sex-select{display:flex;gap:12px;margin-top:12px}
+  .btn-sex{flex:1;padding:10px;background:var(--panel-alt);border:1px solid var(--border);cursor:pointer;color:var(--fg);font-family:inherit;font-size:14px}
+  .btn-sex-active,.btn-sex.active{background:var(--gold);color:#000;border-color:var(--gold)}
+  .zone-tabs{display:flex;gap:8px;margin-bottom:10px}
+  .zone-tab{flex:1;padding:7px;background:var(--panel-alt);border:1px solid var(--border);cursor:pointer;color:var(--fg);font-family:inherit;font-size:13px}
+  .zone-tab.zt-active{border-color:var(--gold);font-weight:bold}
+  .zone-tab:disabled{opacity:0.4;cursor:not-allowed}
+  tr.shop-section td{background:var(--panel-alt);color:var(--gold);font-size:11px;padding:3px 8px;letter-spacing:.07em;text-transform:uppercase;border-bottom:1px solid var(--border)}
+  .vendor-card{display:flex;align-items:center;gap:12px;background:var(--panel-alt);border:1px solid var(--border);border-radius:4px;padding:10px 14px;margin-bottom:10px}
+  .vicon{font-size:28px;line-height:1}.vname{font-weight:bold;font-size:14px}
+  .vquote{font-style:italic;font-size:12px;color:var(--dim);margin-top:3px}
+  .npc-card{display:flex;gap:10px;align-items:flex-start;background:var(--panel-alt);border:1px solid var(--border);border-radius:4px;padding:10px 14px;margin-bottom:8px}
+  .npc-icon{font-size:22px;line-height:1.2}
+  .auth-form { max-width:360px; margin:18px auto 0; }
+  .auth-form p { color:var(--dim); font-size:13px; margin-bottom:4px; }
+  .auth-form input { width:100%; margin-bottom:8px; }
+  .auth-divider { border:none; border-top:1px solid var(--border); margin:16px 0; }
+  #account-list button { margin:4px 0; width:100%; text-align:left; }
+  /* ---- stat allocation ---- */
+  .stat-row { display:flex; align-items:center; gap:8px; margin:4px 0; }
+  .stat-row button { padding:2px 10px; font-size:13px; }
+  /* ---- new equip slots ---- */
+  .equip-grid { display:grid; grid-template-columns:repeat(4,68px); gap:8px; }
+  input[type=number], input[type=text] {
+    font-family: inherit; font-weight: bold; font-size: 14px;
+    background: #000; color: var(--text);
+    border: 3px solid var(--border); padding: 8px; width: 110px;
+  }
+  input[type=text] { width: 100%; }
+  .synced { color: var(--green); }
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--panel-dark); border: 4px solid var(--gold); color: var(--gold);
+    padding: 12px 20px; font-size: 14px; z-index: 100; display: none;
+    box-shadow: 4px 4px 0 #000;
+  }
+  .center { text-align: center; }
+  .mt { margin-top: 14px; }
+  .owned { color: var(--green); }
+  .footer-note { font-size: 11px; }
+  /* ---------- combat ---------- */
+  .hpbar { height: 14px; background: #000; border: 2px solid var(--border); margin: 4px 0 10px; }
+  .hpfill { height: 100%; background: var(--green); width: 100%; transition: width .25s; }
+  .hpfill.mon { background: var(--red); }
+  .b-row span { display: block; font-size: 14px; }
+  #battle-log { background: #000; border: 3px solid var(--border); padding: 10px; height: 180px; overflow-y: auto; font-size: 13px; margin-top: 10px; }
+  #prep-potions button { display: block; margin: 6px 0; }
+  /* ---------- grid inventory (Mu / Diablo style) ---------- */
+  .equip-slots { display: flex; gap: 12px; }
+  .eq-slot {
+    width: 68px; height: 68px; background: #000;
+    border: 2px solid var(--border); border-radius: 6px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 24px; cursor: pointer; position: relative;
+  }
+  .eq-slot .eq-label { font-size: 9px; color: var(--dim); }
+  .inv-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; max-width: 460px; }
+  .inv-slot {
+    aspect-ratio: 1; background: #000;
+    border: 2px solid var(--panel-dark); border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; position: relative; cursor: pointer; min-width: 0;
+  }
+  .inv-slot.filled { border-color: #4a4a9a; }
+  .inv-slot.filled:hover { border-color: var(--blue); }
+  .inv-slot.sel, .eq-slot.sel { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
+  .inv-count { position: absolute; bottom: 0; right: 3px; font-size: 10px; color: var(--gold); }
+  .inv-grade { position: absolute; top: 0; left: 3px; font-size: 9px; color: var(--gold); }
+  #inv-detail { min-height: 44px; }
+  /* ---------- battle scene ---------- */
+  #battle-scene {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    background: linear-gradient(#070503 0%, #110c07 60%, #1d150c 85%, #261c10 100%);
+    border: 2px solid var(--panel-dark); border-radius: 4px;
+    padding: 14px 30px 8px; margin-top: 8px;
+  }
+  #battle-scene .vs { color: var(--dim); align-self: center; font-size: 18px; }
+  /* ---------- clickable town map ---------- */
+  #town-map { position: relative; border: 3px double var(--border); border-radius: 4px; overflow: hidden; }
+  #town-map img { width: 100%; display: block; }
+  .hot { position: absolute; cursor: pointer; border: 2px solid transparent; border-radius: 8px; }
+  .hot span {
+    position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%);
+    background: rgba(0,0,0,.85); color: var(--gold); padding: 2px 8px; font-size: 11px;
+    border-radius: 4px; border: 1px solid var(--border); display: none; white-space: nowrap; pointer-events: none;
+  }
+  .hot:hover span { display: block; }
+  /* ---------- modal ---------- */
+  .modal-back {
+    position: fixed; inset: 0; background: rgba(0,0,0,.78);
+    z-index: 300; display: flex; align-items: center; justify-content: center;
+  }
+  .modal-box { max-width: 440px; margin: 20px; }
+  .modal-box h2 { border-bottom: none; }
+</style>
+</head>
+<body>
+
+<!-- ================= HUD ================= -->
+<div id="hud">
+  <div class="hud-row">
+    <span class="hud-item">🧍 <span id="hud-name"></span> <span class="dim">Lv.<span id="hud-level"></span> <span id="hud-class"></span></span> <span id="xpbar" title="XP to next level"><span id="xpfill"></span></span> <span id="hud-sp-badge" style="display:none;background:var(--gold);color:#1a1208;border-radius:3px;padding:1px 6px;font-size:11px;cursor:pointer;font-weight:bold" onclick="showScreen('stats')" title="Stat points available!"></span></span>
+    <span class="hud-item gold">🪙 <span id="hud-gradus"></span> Gradus</span>
+    <span class="hud-item" title="Health">❤️<span class="minibar"><span id="hp-mini" style="background:var(--red)"></span></span> <span id="hud-hp"></span></span>
+    <span class="hud-item riescol" title="Ries energy: fuels quests, hunts, crafting, the forge">⚡<span class="minibar"><span id="en-mini" style="background:var(--ries)"></span></span> <span id="hud-ries"></span></span>
+    <span class="hud-item" style="color:#f8a030" title="Sync streak">🔥<span id="hud-streak">0</span>-day</span>
+    <span class="hud-item" id="hud-goal-badge" style="display:none" title="Today's step goal"></span>
+    <span class="hud-item">⚔️ <span id="hud-weapon"></span></span>
+    <span class="hud-item">🛡️ <span id="hud-armor"></span></span>
+    <span class="hud-item">
+      <button onclick="showScreen('stats')" style="padding:3px 8px;font-size:12px">📊 Stats</button>
+      <button onclick="showScreen('skills')" style="padding:3px 8px;font-size:12px">✨ Skills</button>
+      <button onclick="showScreen('inv')" style="padding:3px 8px;font-size:12px">🎒 Inventory</button>
+      <button onclick="showScreen('craft')" style="padding:3px 8px;font-size:12px">🛠 Craft</button>
+      <span class="hud-item dim" id="hud-clock" style="font-size:12px"></span>
+      <button id="hud-sound" onclick="toggleSound()" style="padding:3px 8px;font-size:12px" title="Sound on/off">🔊</button>
+      <button id="hud-music" onclick="toggleMusic()" style="padding:3px 8px;font-size:12px" title="Music on/off">🎵</button>
+    </span>
+  </div>
+</div>
+
+<!-- ================= TITLE / LOGIN / REGISTER ================= -->
+<div id="screen-title" class="screen active">
+  <div class="panel center">
+    <div id="icon-crest" class="mt"></div>
+    <h1>GRADUS</h1>
+    <p class="dim mt" style="max-width:420px;margin:14px auto 0;font-style:italic;">"We should take wandering outdoor walks, so that the mind might be nourished and refreshed by the open air."<br><span style="font-style:normal">— Seneca</span></p>
+    <p class="dim mt footer-note" id="ver-title"></p>
+
+    <!-- Saved accounts quick-select -->
+    <div id="account-list" class="mt" style="display:none;max-width:340px;margin:12px auto 0">
+      <p class="dim" style="font-size:13px">Your wanderers:</p>
+      <div id="acct-list-rows"></div>
+      <hr class="auth-divider">
+    </div>
+
+    <!-- Login form (shown by default; email/pass at top) -->
+    <div id="login-panel" class="auth-form mt">
+      <input type="email" id="login-email" placeholder="Email" autocomplete="email">
+      <input type="password" id="login-pass" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginAccount()">
+      <button class="btn-big" onclick="loginAccount()">⚔️ Continue your journey</button>
+      <p id="login-err" class="dim" style="color:var(--red);font-size:12px;min-height:16px"></p>
+      <p style="font-size:12px;color:var(--dim);text-align:center;margin-top:6px">No account? <button class="link-btn" onclick="switchAuthPanel('register')">Create one →</button></p>
+    </div>
+
+    <!-- Register form (hidden; email + password only — name/sex chosen next) -->
+    <div id="register-panel" class="auth-form mt" style="display:none">
+      <input type="email" id="reg-email" placeholder="Email" autocomplete="email">
+      <input type="password" id="reg-pass" placeholder="Password (min 4 chars)" autocomplete="new-password" onkeydown="if(event.key==='Enter')registerAccount()">
+      <button class="btn-big btn-g" onclick="registerAccount()">⚜️ Create account</button>
+      <p id="reg-err" class="dim" style="color:var(--red);font-size:12px;min-height:16px"></p>
+      <p style="font-size:12px;color:var(--dim);text-align:center;margin-top:6px"><button class="link-btn" onclick="switchAuthPanel('login')">← Back to login</button></p>
+    </div>
+  </div>
+</div>
+
+<!-- ================= CHARACTER CREATION ================= -->
+<div id="screen-create" class="screen">
+  <div class="panel center">
+    <h2>⚔️ Your Wanderer</h2>
+    <p class="dim mt" style="font-style:italic;max-width:340px;margin:8px auto">"Before you set foot in Oppidum, let it know your name."</p>
+    <div class="auth-form mt">
+      <label class="dim" style="font-size:12px;display:block;text-align:left;margin-bottom:4px">Hero name</label>
+      <input type="text" id="hero-name" maxlength="16" placeholder="e.g. Rodolfo" style="font-size:15px">
+      <div class="sex-select">
+        <button id="btn-sex-m" class="btn-sex btn-sex-active" onclick="setSex('m')">Male</button>
+        <button id="btn-sex-f" class="btn-sex" onclick="setSex('f')">Female</button>
+      </div>
+      <button class="btn-big btn-g" onclick="finishCreate()" style="margin-top:18px;width:100%">⚜️ Enter Oppidum →</button>
+      <p id="create-err" class="dim" style="color:var(--red);font-size:12px;min-height:16px"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ================= TOWN HUB (isometric) ================= -->
+<div id="screen-town" class="screen">
+  <div class="panel">
+    <h2>🏰 Oppidum</h2>
+    <div id="town-map" style="display:none"><img id="town-img" alt="Oppidum"></div>
+    <div id="town-menu">
+      <p class="dim" style="font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">⚔️ Adventure</p>
+      <button class="btn-big" onclick="showScreen('sync')">📜 Realm Sync — <span class="dim">sync your steps &amp; calories</span></button>
+      <button class="btn-big" onclick="showScreen('tavern')">🍺 Tavern — <span class="dim">quest board</span></button>
+      <button class="btn-big" onclick="showScreen('inn')">🛏️ Inn — <span class="dim">rest &amp; recover</span></button>
+      <button class="btn-big" onclick="showScreen('hunt')">🌾 Hunting Grounds — <span class="dim">free hunts, no daily limit</span></button>
+      <button class="btn-big" id="town-exped-btn" onclick="showScreen('expedition')">⛺ Expedition — <span class="dim">passive income while away</span></button>
+      <button class="btn-big" onclick="showScreen('lake')">🎣 Lake — <span class="dim">fishing</span></button>
+      <p class="dim" style="font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-top:12px;margin-bottom:6px">🏘️ Town</p>
+      <button class="btn-big" onclick="openShop('general')">🏪 General Store — <span class="dim">supplies, sell loot &amp; backpacks</span></button>
+      <button class="btn-big" onclick="openShop('blacksmith')">⚒️ Blacksmith — <span class="dim">steel, crossbows &amp; forge upgrades</span></button>
+      <button class="btn-big" onclick="openShop('woodsmith')">🏹 Woodsmith — <span class="dim">bows &amp; staffs</span></button>
+      <button class="btn-big" onclick="openShop('armorer')">🛡️ Armorer — <span class="dim">armor</span></button>
+      <button class="btn-big" onclick="openShop('apothecary')">🧪 Apothecary — <span class="dim">potions &amp; magic</span></button>
+      <button class="btn-big" onclick="showScreen('bank')">🏦 Bank — <span class="dim">vault, invest</span></button>
+      <button class="btn-big" onclick="showScreen('commons')">🧺 The Commons — <span class="dim">gathering, thieving</span></button>
+      <button class="btn-big" onclick="showScreen('woodcutting')">🪓 Forest Edge — <span class="dim">woodcutting</span></button>
+      <button class="btn-big" onclick="showScreen('chapel')">⛪ Chapel — <span class="dim">quests &amp; lore</span></button>
+      <button class="btn-big" onclick="showScreen('library')">📚 Library — <span class="dim">glossary &amp; lore</span></button>
+    </div>
+    <p class="dim mt footer-note">
+      Lifetime: <span id="stat-steps">0</span> steps · <span id="stat-cals">0</span> kcal
+      &nbsp;|&nbsp; <a href="#" onclick="exportSave();return false" style="color:var(--blue)">Export save</a>
+      · <a href="#" onclick="resetSave();return false" style="color:var(--red)">Reset</a>
+      · <a href="#" onclick="logoutAccount();return false" style="color:var(--dim)">Log out</a>
+      · <span id="ver-town"></span>
+    </p>
+  </div>
+</div>
+
+<!-- ================= SYNC ================= -->
+<div id="screen-sync" class="screen">
+  <div class="panel">
+    <h2><span id="icon-sync"></span>Realm Sync</h2>
+    <p class="dim footer-note" style="font-style:italic">"Every step in the other realm is recorded here." — Edwin, the Reeve's clerk</p>
+    <p class="dim">Report today and yesterday's travel. 1 step = 1 Gradus · 1 kcal = 1 Ries.<br>
+    Daily limit: 50,000 steps / 4,000 kcal. Each day can only be reported once.<br>
+    Reach <b>7,000 steps</b> for 🎯 streak credit + 2,000G bonus · <b>10,000</b> for ⭐ extra 1,500G.</p>
+    <div id="sync-goal-bar" class="mt"></div>
+    <table class="mt">
+      <thead><tr><th>Day</th><th>Steps</th><th>Calories</th><th></th></tr></thead>
+      <tbody id="sync-rows"></tbody>
+    </table>
+    <details class="mt" style="border:1px solid var(--border);border-radius:3px;padding:8px 12px">
+      <summary class="dim" style="cursor:pointer;font-size:12px">⚙️ Device link (Garmin, Oura, Strava via Terra)</summary>
+      <div class="mt" style="font-size:13px">
+        <input type="text" id="backend-url" placeholder="https://your-worker.workers.dev" style="width:260px">
+        <button onclick="saveBackend()">Save</button>
+        <button onclick="connectDevice()">🔗 Connect device</button>
+        <button onclick="pullDevice()">⬇️ Pull from device</button>
+        <p class="dim footer-note" style="margin-top:6px">See INTEGRATION.md for one-time setup.</p>
+      </div>
+    </details>
+    <button class="mt" onclick="showScreen('town')">← Back to town</button>
+  </div>
+</div>
+
+<!-- ================= SHOP (shared) ================= -->
+<div id="screen-shop" class="screen">
+  <div class="panel">
+    <h2 id="shop-title"></h2>
+    <div id="shop-vendor"></div>
+    <table class="mt">
+      <thead><tr><th>Item</th><th></th><th class="r">🪙 Price</th><th></th></tr></thead>
+      <tbody id="shop-rows"></tbody>
+    </table>
+    <div id="shop-extra"></div>
+    <button class="mt" onclick="showScreen('town')">← Back to town</button>
+  </div>
+</div>
+
+<!-- ================= TAVERN ================= -->
+<div id="screen-tavern" class="screen">
+  <div class="panel">
+    <h2><span id="icon-tavern"></span>The Resting Boar</h2>
+    <p class="dim" id="quest-stamina-row" style="display:none"><button id="btn-stamina" onclick="drinkStamina()"></button></p>
+    <div class="zone-tabs mt">
+      <button id="qtab-0" class="zone-tab zt-active" onclick="setQuestZone(0)">🏘️ Oppidum</button>
+      <button id="qtab-1" class="zone-tab" onclick="setQuestZone(1)">🌲 The Greenwood</button>
+      <button id="qtab-2" class="zone-tab" onclick="setQuestZone(2)" disabled>🏚️ The Ruins</button>
+    </div>
+    <table class="mt">
+      <tbody id="quest-rows"></tbody>
+    </table>
+    <p class="dim mt footer-note">First clear: full XP + Gradus. Repeats: ½ XP only — except the ★ daily bonus quest, which still pays Gradus. Wounded? Rest at the Inn first.</p>
+    <button class="mt" onclick="showScreen('town')">← Back to town</button>
+  </div>
+</div>
+
+<!-- ================= QUEST PREP ================= -->
+<div id="screen-prep" class="screen">
+  <div class="panel">
+    <h2 id="prep-title"></h2>
+    <p id="prep-monster"></p>
+    <p id="prep-hero" class="mt"></p>
+    <p id="prep-boss-warn" class="mt" style="display:none;background:#2a1010;border:1px solid var(--red);border-radius:3px;padding:6px 10px;font-size:13px"></p>
+    <h3 class="dim mt">⚗️ Prepare — potions drunk here are consumed:</h3>
+    <div id="prep-potions" class="mt"></div>
+    <div class="mt">
+      <button class="btn-g" onclick="confirmBattle()">⚔️ Begin battle</button>
+      <button onclick="showScreen('tavern')">← Not yet</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= BATTLE ================= -->
+<div id="screen-battle" class="screen">
+  <div class="panel">
+    <h2 id="battle-title"></h2>
+    <div id="battle-scene"></div>
+    <div class="b-row mt"><span id="b-hero-name"></span><div class="hpbar"><div id="b-hero-hp" class="hpfill"></div></div></div>
+    <div class="b-row"><span id="b-mon-name"></span><div class="hpbar"><div id="b-mon-hp" class="hpfill mon"></div></div></div>
+    <div id="battle-log"></div>
+    <div id="battle-actions" class="mt"></div>
+    <div id="battle-done" style="display:none">
+      <p id="battle-result" class="mt"></p>
+      <button class="mt" onclick="battleContinue()">Continue →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= HOSPITIUM (inn) ================= -->
+<div id="screen-inn" class="screen">
+  <div class="panel">
+    <h2><span id="icon-inn"></span>Inn</h2>
+    <p class="dim" style="font-style:italic">“Beds for the broken, stew for the brave.” — Osgar the keeper</p>
+    <div id="inn-body" class="mt"></div>
+    <div id="inn-folk" class="mt"></div>
+    <button class="mt" onclick="showScreen('town')">← Back to town</button>
+  </div>
+</div>
+
+<!-- ================= ARGENTARIA (bank) ================= -->
+<div id="screen-bank" class="screen">
+  <div class="panel">
+    <h2><span id="icon-bank"></span>Bank</h2>
+    <p class="dim" style="font-style:italic">“What the vault holds, the grave cannot take.” — Master Aurelius, coinkeeper</p>
+    <table class="mt"><tbody id="bank-rows"></tbody></table>
+    <div class="mt">
+      <input type="number" min="1" id="bank-amt" placeholder="amount">
+      <button onclick="bankOp('deposit')">⬇️ Deposit</button>
+      <button onclick="bankOp('withdraw')">⬆️ Withdraw</button>
+      <button onclick="bankOp('depositAll')">Deposit all</button>
+    </div>
+    <p class="dim mt footer-note">Vaulted Gradus is safe if you die in battle. Looters only take what you carry.</p>
+    <h2 class="mt">📜 Letters of Investment</h2>
+    <p class="dim footer-note">Entrust Gradus to the Bank's ventures. Sealed coin is safe from looters. Choose your term:</p>
+    <div class="mt">
+      <input type="number" min="1" id="invest-amt" placeholder="amount">
+      <button onclick="investGradus(7)">📜 7 days (+3%)</button>
+      <button onclick="investGradus(30)">📜 30 days (+5%)</button>
+    </div>
+    <table class="mt"><tbody id="invest-rows"></tbody></table>
+    <button class="mt" onclick="showScreen('town')">← Back to town</button>
+  </div>
+</div>
+
+<!-- ================= COMMONS (gathering) ================= -->
+<div id="screen-commons" class="screen">
+  <div class="panel">
+    <h2>🧺 The Commons</h2>
+    <p class="dim" style="font-style:italic">"Sweat now, sup later." — Tomas the woodward</p>
+    <table class="mt"><tbody id="cm-rows"></tbody></table>
+    <p class="mt" id="ls-materials"></p>
+    <button class="mt" onclick="showScreen('town')">← Back to town</button>
+  </div>
+</div>
+
+<!-- ================= LAKE ================= -->
+<div id="screen-lake" class="screen">
+  <div class="panel">
+    <h2>🎣 The Lake</h2>
+    <p class="dim" style="font-style:italic">"The water keeps no ledger. It pays whoever waits." — Old Hessa</p>
+    <div class="mt" id="lake-body"></div>
+    <button class="mt" onclick="showScreen('town')">← Back to town</button>
+  </div>
+</div>
+
+<!-- ================= FOREST EDGE (woodcutting) ================= -->
+<div id="screen-woodcutting" class="screen">
+  <div class="panel">
+    <h2>🪓 The Forest Edge</h2>
+    <p class="dim" style="font-style:italic">"The tree has no quarrel with the axe. It simply falls." — Tomas the woodward</p>
+    <div id="woodcutting-body" class="mt"></div>
+    <button class="mt" onclick="showScreen('town')">← Back to town</button>
+  </div>
+</div>
+
+<!-- ================= CHAPEL ================= -->
+<div id="screen-chapel" class="screen">
+  <div class="panel">
+    <h2>⛪ Chapel of St. Cedd</h2>
+    <p class="dim" style="font-style:italic">"The road is long. Rest your burdens here." — Father Bede</p>
+    <div id="chapel-body" class="mt"></div>
+    <button class="mt" onclick="showScreen('town')">← Back to town</button>
+  </div>
+</div>
+
+<!-- ================= HUNTING GROUNDS ================= -->
+<div id="screen-hunt" class="screen">
+  <div class="panel">
+    <h2>🌾 Hunting Grounds</h2>
+    <p class="dim" style="font-style:italic">"The wild pays in blood and hide. No contracts out here." — Joss</p>
+    <table class="mt"><tbody id="hunt-rows"></tbody></table>
+    <button class="mt" onclick="showScreen('town')">← Back to town</button>
+  </div>
+</div>
+
+<!-- ================= EXPEDITION ================= -->
+<div id="screen-expedition" class="screen">
+  <div class="panel">
+    <h2>⛺ Expedition</h2>
+    <p class="dim" style="font-style:italic">"The road gives back what you put in." — Senna the Scout</p>
+    <div id="expedition-status" class="mt"></div>
+    <button class="mt" onclick="showScreen('town')">← Back to town</button>
+  </div>
+</div>
+
+<!-- ================= DEATH SCREEN ================= -->
+<div id="screen-death" class="screen">
+  <div class="panel" style="text-align:center">
+    <h2 style="color:var(--red);letter-spacing:2px">💀 YOU HAVE FALLEN</h2>
+    <div id="death-scene" class="mt" style="font-size:40px;line-height:1.4"></div>
+    <div id="death-stats" class="mt" style="text-align:left;background:var(--panel-alt);border:1px solid var(--border);border-radius:4px;padding:12px 16px;line-height:1.9"></div>
+    <p id="death-quote" class="dim mt" style="font-style:italic;font-size:13px"></p>
+    <div class="mt">
+      <button class="btn-r" onclick="showScreen('inn')">🛏️ Rest at the Inn</button>
+      <button class="mt" onclick="showScreen('town')">← Back to Town</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= CRAFTING ================= -->
+<div id="screen-craft" class="screen">
+  <div class="panel">
+    <h2>🛠 Crafting Bench</h2>
+    <p class="dim" style="font-style:italic">"Anything worth carrying was made by somebody." — Wulfric</p>
+    <p class="mt" id="craft-satchel"></p>
+    <table class="mt"><tbody id="craft-rows"></tbody></table>
+    <div class="mt" id="craft-eat"></div>
+    <p class="dim mt footer-note">Crafting trains Cooking. Materials drop from mobs, the Commons, and the Lake.</p>
+    <button class="mt" onclick="showScreen('town')">← Back to town</button>
+  </div>
+</div>
+
+<!-- ================= LIBRARY ================= -->
+<div id="screen-library" class="screen">
+  <div class="panel">
+    <h2>📚 The Library</h2>
+    <p class="dim" style="font-style:italic">"Every road in the realm ends in a book." — Brother Caedmon, archivist</p>
+    <h2 class="mt">Glossary</h2>
+    <table class="mt"><tbody>
+      <tr><td><b>The Two Realms</b><br><span class="dim">There are two realms. The <b>Gradus realm</b> is this one: Oppidum, the Greenwood, the hunts. The <b>real-life realm</b> is the one with sky, where your body walks. Every step taken there becomes Gradus here; every calorie burned becomes Ries. Neither realm prospers without the other.</span></td></tr>
+      <tr><td><b>Gradus</b> 🪙<br><span class="dim">The realm's coin. 1 step in the other realm = 1 Gradus. Spent on gear, rooms, rumors, ventures. Looters take all carried Gradus if you fall in battle; the Bank's vault is safe.</span></td></tr>
+      <tr><td><b>Ries</b> ⚡<br><span class="dim">Your energy. 1 calorie burned = 1 Ries. Fuels quests, free hunts, life skills, crafting, and the Blacksmith's forge upgrades. When it runs dry, work in the other realm or eat a cooked meal.</span></td></tr>
+      <tr><td><b>Realm Sync</b> 📜<br><span class="dim">The Keep's ledger where the other realm's deeds are recorded: by hand, or automatically through a linked device (Garmin, Oura and kin). Daily limits: 50,000 steps, 4,000 kcal. Consecutive days build a streak worth up to +50% earnings.</span></td></tr>
+      <tr><td><b>Gear grades</b><br><span class="dim">No-grade gear is available from the start. D-grade drops in the Greenwood (zone 2). Higher grades (C → B → A → S) will arrive with future zones. The forge can raise any piece to +5.</span></td></tr>
+      <tr><td><b>Monster traits</b><br><span class="dim">⚡Swift strikes first · 🛡️Armored blunts your blade · ☠️Venom bleeds you each turn · 😡Frenzy rages below 30% health · 💚Regen knits its wounds.</span></td></tr>
+      <tr><td><b>Deeds &amp; Titles</b> 🏅<br><span class="dim">Feats of both realms earn deeds; deeds grant titles worn beside your name.</span></td></tr>
+      <tr><td><b>Letters of Investment</b> 📜<br><span class="dim">Seal Gradus with the Bank for 7 days (+3%) or 30 days (+5%). Sealed coin cannot be touched, by you or by looters.</span></td></tr>
+      <tr><td><b>Rumors</b> ❓<br><span class="dim">Some hunts are only learned of in the Inn's common room. Buy a round; listen well.</span></td></tr>
+      <tr><td><b>Free hunts</b> 🌾<br><span class="dim">Each zone keeps open ground where mobs roam. No quest needed, no daily limit: only Ries. The proving grounds of high-level wanderers.</span></td></tr>
+    </tbody></table>
+    <h2 class="mt">FAQ</h2>
+    <table class="mt"><tbody>
+      <tr><td><b>How do I get rich?</b><br><span class="dim">Walk. The realm pays 1 Gradus per step, plus streak bonuses. Quests pay once; the road pays every day.</span></td></tr>
+      <tr><td><b>What is the wanderer's daily minimum?</b><br><span class="dim">7,000 steps — the road's daily toll. Hit it to advance your sync streak (+5% per day, up to +50%) and earn a 🎯 bonus of +2,000G and +200R. Push to 10,000 steps for an extra ⭐ 1,500G. Your daily login reward also scales with yesterday's effort.</span></td></tr>
+      <tr><td><b>I died and lost everything.</b><br><span class="dim">You lost everything you <i>carried</i>. Bank before bosses. The Inn will mend you.</span></td></tr>
+      <tr><td><b>Why can't I take quests?</b><br><span class="dim">You are wounded (rest at the Inn), out of Ries (move in the other realm), or the hunt is still a rumor. Renting a room at the Inn restores Ries and adds a bonus quest slot.</span></td></tr>
+      <tr><td><b>How do I open the Greenwood?</b><br><span class="dim">Fell the Forest Troll at the end of the Oppidum board.</span></td></tr>
+      <tr><td><b>What should I spend Ries on?</b><br><span class="dim">Hunts and the forge, mostly. High-level wanderers live in the free hunts; their Ries is never idle.</span></td></tr>
+    </tbody></table>
+    <button class="mt" onclick="showScreen('town')">← Back to town</button>
+  </div>
+</div>
+
+<!-- ================= STATS ================= -->
+<div id="screen-stats" class="screen">
+  <div class="panel">
+    <h2>📊 <span id="char-name"></span></h2>
+    <table><tbody id="char-stats"></tbody></table>
+  </div>
+  <div class="panel" id="stat-alloc-panel" style="display:none">
+    <h2>⚡ Allocate Stat Points — <span id="stat-points-left" class="gold"></span> remaining</h2>
+    <p class="dim footer-note">Each point is permanent. Choose wisely.</p>
+    <div id="stat-alloc-rows" class="mt"></div>
+  </div>
+  <div class="panel">
+    <h2>🏅 Deeds &amp; Titles</h2>
+    <p class="dim footer-note">Earn deeds to unlock titles. Click a title to wear it (click again to remove).</p>
+    <table class="mt"><tbody id="ach-rows"></tbody></table>
+    <button class="mt" onclick="showScreen('town')">← Back to town</button>
+  </div>
+</div>
+
+<!-- ================= SKILLS ================= -->
+<div id="screen-skills" class="screen">
+  <div class="panel">
+    <h2>✨ Skills</h2>
+    <table><tbody id="skills-rows"></tbody></table>
+    <button class="mt" onclick="showScreen('town')">← Back to town</button>
+  </div>
+</div>
+
+<!-- ================= INVENTORY ================= -->
+<div id="screen-inv" class="screen">
+  <div class="panel">
+    <h2>⚔️ Equipment</h2>
+    <div class="equip-grid" id="char-equip"></div>
+  </div>
+  <div class="panel">
+    <h2>📦 Bag <span id="inv-cap-label" class="dim" style="font-size:12px;font-weight:normal"></span></h2>
+    <div class="inv-grid" id="char-grid"></div>
+    <div id="inv-detail" class="mt dim">Select an item to inspect it…</div>
+    <p class="dim mt footer-note">Potions drunk in battle. Junk can be sold at the General Store.</p>
+    <button class="mt" onclick="showScreen('town')">← Back to town</button>
+  </div>
+</div>
+
+<!-- ================= CLASS CHOICE ================= -->
+<div id="screen-class" class="screen">
+  <div class="panel">
+    <h2>⚜️ Level 10 — Choose your path</h2>
+    <p class="dim">Your wandering days shaped you. This choice is permanent.</p>
+    <div id="class-rows" class="mt"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ================= MODAL ================= -->
+<div id="modal" class="modal-back" style="display:none">
+  <div class="panel modal-box">
+    <div id="modal-body"></div>
+    <div id="modal-actions" class="mt center"></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+const VERSION = 'Alpha V1.18';
+
+/* ---- 8-bit medieval pixel icons (inline SVG, dark palette) ---- */
+function pix(view, w, rects) {
+  return `<svg class="pix" width="${w}" viewBox="0 0 ${view} ${view}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">` +
+    rects.map(([x, y, ww, h, c]) => `<rect x="${x}" y="${y}" width="${ww}" height="${h}" fill="${c}"/>`).join('') + '</svg>';
+}
+const C_BONE = '#cdbb8e', C_RIM = '#6b5a36', C_DARK = '#241a10', C_STEEL = '#9a9aa6',
+      C_EDGE = '#c2c2cc', C_GOLD = '#c9a227', C_WOOD = '#5a4630', C_BLOOD = '#9b2a23',
+      C_MOSS = '#7a9145', C_IRON = '#55555e';
+const PIX = {
+  crest: pix(14, 84, [
+    [3,2,8,1,C_RIM],[2,3,1,7,C_RIM],[11,3,1,7,C_RIM],[3,3,8,7,C_DARK],
+    [3,10,1,1,C_RIM],[10,10,1,1,C_RIM],[4,10,6,1,C_DARK],
+    [4,11,1,1,C_RIM],[9,11,1,1,C_RIM],[5,11,4,1,C_DARK],
+    [5,12,1,1,C_RIM],[8,12,1,1,C_RIM],[6,12,2,1,C_DARK],[6,13,2,1,C_RIM],
+    [6,0,2,7,C_STEEL],[6,0,1,7,C_EDGE],
+    [4,7,6,1,C_GOLD],[6,8,2,2,C_WOOD],[6,10,2,1,C_GOLD],
+  ]),
+  scroll: pix(10, 30, [
+    [1,2,8,6,C_BONE],[0,1,1,8,C_RIM],[9,1,1,8,C_RIM],
+    [2,4,6,1,C_RIM],[2,6,4,1,C_RIM],[6,7,2,2,C_BLOOD],
+  ]),
+  mug: pix(10, 30, [
+    [2,3,6,6,C_WOOD],[2,2,6,1,C_BONE],[8,4,1,3,C_RIM],
+    [3,4,1,4,'#6e5638'],[2,9,6,1,C_DARK],
+  ]),
+  skull: pix(10, 30, [
+    [2,1,6,4,C_BONE],[1,2,1,3,C_BONE],[8,2,1,3,C_BONE],
+    [3,3,1,1,C_DARK],[6,3,1,1,C_DARK],
+    [3,5,4,1,C_BONE],[3,6,1,1,C_BONE],[5,6,1,1,C_BONE],
+  ]),
+  anvil: pix(10, 30, [
+    [1,3,8,2,C_IRON],[0,3,1,1,C_IRON],[9,3,1,1,C_IRON],
+    [3,5,4,1,'#3e3e46'],[2,6,6,1,C_IRON],[1,7,8,1,'#3e3e46'],
+  ]),
+  shield: pix(10, 30, [
+    [2,1,6,1,C_RIM],[1,2,1,4,C_RIM],[8,2,1,4,C_RIM],[2,2,6,4,C_DARK],
+    [2,6,1,1,C_RIM],[7,6,1,1,C_RIM],[3,6,4,1,C_DARK],
+    [4,7,2,1,C_RIM],[4,3,2,3,C_GOLD],
+  ]),
+  flask: pix(10, 30, [
+    [4,0,2,2,C_WOOD],[3,2,4,1,C_RIM],
+    [2,3,6,5,C_DARK],[3,4,4,3,C_MOSS],[3,8,4,1,C_DARK],
+  ]),
+  bed: pix(10, 30, [
+    [0,4,1,5,C_WOOD],[9,4,1,5,C_WOOD],[0,6,10,2,C_WOOD],
+    [1,4,3,2,C_BONE],[4,5,5,1,'#b3a275'],[0,8,10,1,C_DARK],
+  ]),
+  vault: pix(10, 30, [
+    [1,2,8,1,C_RIM],[1,3,8,5,C_WOOD],[1,8,8,1,C_DARK],
+    [2,4,6,1,'#6e5638'],[4,4,2,3,C_GOLD],[4,5,2,1,C_DARK],
+  ]),
+  bowicon: pix(10, 30, [
+    [3,0,1,1,C_WOOD],[2,1,1,2,C_WOOD],[1,3,1,3,C_WOOD],[2,6,1,2,C_WOOD],[3,8,1,1,C_WOOD],
+    [4,1,1,7,C_BONE],
+    [3,4,5,1,C_STEEL],[8,4,1,1,C_EDGE],[7,3,1,1,C_EDGE],[7,5,1,1,C_EDGE],
+  ]),
+};
+
+/* ---- chiptune SFX (WebAudio, no assets) ---- */
+let AC = null;
+function sfx(name) {
+  if (!S || S.sound === false) return;
+  try {
+    if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+    const t = AC.currentTime;
+    const tone = (f, start, dur, type = 'square', vol = 0.05) => {
+      const o = AC.createOscillator(), g = AC.createGain();
+      o.type = type; o.frequency.value = f;
+      g.gain.setValueAtTime(vol, t + start);
+      g.gain.exponentialRampToValueAtTime(0.001, t + start + dur);
+      o.connect(g); g.connect(AC.destination);
+      o.start(t + start); o.stop(t + start + dur + 0.02);
+    };
+    ({
+      hit:     () => { tone(220, 0, .08, 'sawtooth'); tone(110, .03, .1); },
+      hurt:    () => { tone(150, 0, .12, 'sawtooth'); tone(82, .06, .16, 'sawtooth'); },
+      potion:  () => { tone(523, 0, .07, 'triangle'); tone(659, .07, .07, 'triangle'); tone(784, .14, .12, 'triangle'); },
+      coin:    () => { tone(988, 0, .06); tone(1319, .07, .12); },
+      level:   () => { tone(523, 0, .1); tone(659, .1, .1); tone(784, .2, .1); tone(1047, .3, .25); },
+      victory: () => { tone(523, 0, .12); tone(523, .13, .06); tone(659, .2, .12); tone(784, .33, .3); },
+      defeat:  () => { tone(220, 0, .2, 'sawtooth'); tone(196, .22, .2, 'sawtooth'); tone(147, .45, .5, 'sawtooth'); },
+      ability: () => { tone(440, 0, .05, 'triangle'); tone(880, .05, .08, 'triangle'); tone(1760, .13, .1, 'triangle'); },
+    }[name] || (() => {}))();
+  } catch (e) { /* audio unsupported — stay silent */ }
+}
+function toggleSound() { S.sound = S.sound === false; save(); renderHUD(); if (S.sound) sfx('coin'); }
+
+/* ---- modal dialogs ---- */
+let MODAL_ACTS = [];
+function showModal(html, actions) {
+  $('modal-body').innerHTML = html;
+  MODAL_ACTS = actions.map(a => a.fn || (() => {}));
+  $('modal-actions').innerHTML = actions.map((a, i) =>
+    `<button ${a.cls ? `class="${a.cls}"` : ''} onclick="modalAct(${i})">${a.label}</button>`).join(' ');
+  $('modal').style.display = 'flex';
+}
+function modalAct(i) { $('modal').style.display = 'none'; (MODAL_ACTS[i] || (() => {}))(); }
+
+/* ---- minimal medieval music (D dorian, lute-ish triangle + drone) ---- */
+function ensureAC() { if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)(); }
+const MELODY = [294,349,392,440, 392,349,330,294, 349,392,440,523, 440,392,349,294,
+                294,330,349,392, 349,330,294,262, 294,349,440,392, 349,330,294,0];
+const BASSLN = [147,110,131,98];
+const MUSIC = { timer:null, step:0 };
+function mnote(f, dur, type, vol) {
+  try {
+    ensureAC();
+    const t = AC.currentTime, o = AC.createOscillator(), g = AC.createGain();
+    o.type = type; o.frequency.value = f;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g); g.connect(AC.destination);
+    o.start(t); o.stop(t + dur + 0.05);
+  } catch (e) {}
+}
+function musicTick() {
+  if (!S || S.music === false) return;
+  const i = MUSIC.step % MELODY.length;
+  if (MELODY[i]) mnote(MELODY[i], 0.55, 'triangle', 0.02);
+  if (i % 4 === 0) mnote(BASSLN[(MUSIC.step / 4 | 0) % BASSLN.length], 1.8, 'square', 0.011);
+  MUSIC.step++;
+}
+function startMusic() { if (MUSIC.timer) return; musicTick(); MUSIC.timer = setInterval(musicTick, 470); }
+function stopMusic() { clearInterval(MUSIC.timer); MUSIC.timer = null; }
+function toggleMusic() {
+  S.music = S.music === false;
+  save(); renderHUD();
+  if (S.music) startMusic(); else stopMusic();
+}
+
+/* ---- realm-time reminder: every 2 hours, go walk ---- */
+const SESSION_START = Date.now();
+let nextRealmWarnAt = SESSION_START + 2 * 3600000;
+setInterval(() => {
+  if (!S || Date.now() < nextRealmWarnAt) return;
+  nextRealmWarnAt = Date.now() + 2 * 3600000;
+  showModal(
+    `<h2>🕯️ The Candle Burns Low</h2>
+     <p>You have visited this realm for two hours.</p>
+     <p class="dim mt">It\'s time to go earn some Gradus in the other realm — every step out there is gold in here.</p>`,
+    [{ label:'⚜️ Wise words', cls:'btn-g' }]);
+}, 60000);
+
+/* ---- battle duel sprites (16-grid pixel art, hero faces right, monster faces left) ---- */
+const SPR_SKIN = '#e0b080', SPR_BLUE = '#3a5070', SPR_GRAY = '#8a8a96', SPR_FUR = '#7a5f3a';
+function heroSpriteSVG() {
+  const cls = S && S.heroClass;
+  if (cls === 'Mage') return pix(16, 90, [
+    [7,3,3,2,SPR_SKIN],[9,3,1,1,C_DARK],                 // face
+    [6,5,5,5,'#3a3580'],[6,9,5,1,C_GOLD],                // robe (deep blue), belt
+    [6,10,2,4,C_DARK],[9,10,2,4,C_DARK],                 // legs
+    [3,5,2,8,'#3a3580'],                                 // left sleeve
+    [11,6,2,1,SPR_SKIN],[13,1,1,8,'#8a60b0'],            // staff arm, staff
+    [13,0,1,1,C_GOLD],[13,9,1,1,'#9fd8e8'],              // staff top gem
+    [7,0,3,3,'#4a44a0'],                                 // pointed hood
+  ]);
+  if (cls === 'Archer') return pix(16, 90, [
+    [7,1,3,2,C_MOSS],[7,0,3,1,'#4a6030'],                // leather cap
+    [7,3,3,2,SPR_SKIN],[9,3,1,1,C_DARK],                 // face
+    [6,5,5,5,C_MOSS],[6,9,5,1,C_RIM],                   // green tunic, belt
+    [6,10,2,4,C_DARK],[9,10,2,4,C_DARK],                 // legs
+    [3,5,2,8,C_MOSS],                                   // bow arm
+    [4,4,1,10,C_WOOD],[4,3,1,1,C_BONE],                  // bow + nock
+    [11,6,2,1,SPR_SKIN],[12,6,4,1,C_BONE],              // draw arm + arrow
+  ]);
+  if (cls === 'Cleric') return pix(16, 90, [
+    [6,1,5,2,C_BONE],[7,0,3,1,C_BONE],                  // white hood
+    [7,3,3,2,SPR_SKIN],[9,3,1,1,C_DARK],                 // face
+    [6,5,5,5,'#e8e0cc'],[6,9,5,1,C_GOLD],               // white robe, belt
+    [6,10,2,4,C_DARK],[9,10,2,4,C_DARK],                 // legs
+    [4,6,2,4,C_BONE],[4,6,2,1,C_GOLD],                  // shield (white+gold)
+    [11,6,2,1,SPR_SKIN],[12,1,1,10,C_GOLD],             // mace arm, mace staff
+    [11,0,3,2,C_GOLD],                                  // mace head
+  ]);
+  // Knight (default for null/Knight)
+  return pix(16, 90, [
+    [6,1,5,2,C_STEEL],[7,0,3,1,C_STEEL],                 // helm
+    [7,3,3,2,SPR_SKIN],[9,3,1,1,C_DARK],                 // face, eye
+    [6,5,5,5,cls === 'Knight' ? C_BLOOD : SPR_BLUE],[6,9,5,1,C_GOLD], // Knight=red, else default
+    [6,10,2,4,C_DARK],[9,10,2,4,C_DARK],                 // legs
+    [4,6,2,4,C_WOOD],[4,6,2,1,C_RIM],                    // shield
+    [11,6,2,1,SPR_SKIN],                                 // sword arm
+    [13,1,1,6,C_STEEL],[13,0,1,1,C_EDGE],[12,7,3,1,C_GOLD], // blade + guard
+  ]);
+}
+const MON_BUILDERS = {
+  rat: c => [[5,9,8,4,c],[3,10,3,3,c],[3,9,1,1,c],[4,11,1,1,C_BLOOD],[13,10,2,1,c],[15,9,1,1,c],[6,13,1,2,C_DARK],[10,13,1,2,C_DARK]],
+  wolf: c => [[4,8,9,4,c],[2,7,4,3,c],[2,6,1,1,c],[3,8,1,1,C_BLOOD],[13,7,2,2,c],[4,12,1,3,C_DARK],[7,12,1,3,C_DARK],[10,12,1,3,C_DARK],[12,12,1,3,C_DARK]],
+  humanoid: c => [[6,2,5,3,c],[7,4,3,2,'#120d08'],[8,5,1,1,C_BLOOD],[5,6,7,6,c],[6,12,2,3,C_DARK],[9,12,2,3,C_DARK],[3,7,2,1,SPR_SKIN],[2,4,1,4,C_STEEL]],
+  spider: c => [[5,8,7,5,c],[3,9,3,3,c],[4,10,1,1,C_BLOOD],[5,11,1,1,C_BLOOD],[2,8,1,1,C_DARK],[1,9,1,2,C_DARK],[4,13,1,2,C_DARK],[6,13,1,2,C_DARK],[9,13,1,2,C_DARK],[11,13,1,2,C_DARK],[13,9,1,2,C_DARK],[12,8,1,1,C_DARK]],
+  skeleton: () => [[6,2,5,4,C_BONE],[7,3,1,1,C_DARK],[9,3,1,1,C_DARK],[7,5,3,1,C_DARK],[5,6,7,6,C_IRON],[6,12,2,3,C_BONE],[9,12,2,3,C_BONE],[3,4,1,8,C_STEEL],[2,11,2,1,C_STEEL]],
+  brute: (c, c2, crown) => [[4,5,9,7,c],[5,2,6,4,c],[6,3,1,1,C_BLOOD],[9,3,1,1,C_BLOOD],[6,5,1,1,C_BONE],[9,5,1,1,C_BONE],[2,6,2,5,c],[13,6,2,5,c],[5,12,3,3,c2],[9,12,3,3,c2]].concat(crown ? [[5,1,6,1,C_MOSS]] : []),
+  boar: c => [[4,8,9,5,c],[2,9,3,4,c],[1,11,1,1,C_BONE],[3,10,1,1,C_BLOOD],[4,7,9,1,C_DARK],[5,13,1,2,C_DARK],[8,13,1,2,C_DARK],[11,13,1,2,C_DARK]],
+  wisp: () => [[6,6,4,4,'#9fd8e8'],[7,7,2,2,'#e8fbff'],[5,5,1,1,'#5a98b0'],[10,5,1,1,'#5a98b0'],[5,10,1,1,'#5a98b0'],[10,10,1,1,'#5a98b0'],[7,11,2,1,'#5a98b0'],[7,4,2,1,'#5a98b0']],
+  wanderer: () => [[6,1,5,3,C_BONE],[7,3,3,2,'#120d08'],[8,4,1,1,C_GOLD],[5,5,7,7,'#3a3530'],[6,12,2,3,C_DARK],[9,12,2,3,C_DARK],[3,3,1,9,C_WOOD],[2,2,1,1,C_GOLD]],
+};
+// One entry per QUEST (indices 0-16)
+const MON_SCENE = [
+  ['rat', SPR_FUR],                       // 0  Giant Rat
+  ['wolf', '#6a6a74'],                    // 1  Dire Wolf
+  ['humanoid', '#5a4630'],                // 2  Bandit Chief
+  ['spider', '#3a2c40'],                  // 3  Broodmother
+  ['skeleton'],                           // 4  Restless Knight
+  ['humanoid', '#3a4a2a'],               // 5  Venom Cultist
+  ['boar', '#4a3a28'],                    // 6  Giant Iron Boar
+  ['brute', '#5a7a3a', '#46602e'],        // 7  Forest Troll
+  ['brute', '#6e5638', '#54421f', true],  // 8  Sprouting Treant
+  ['boar', '#5f4326'],                    // 9  Dire Boar
+  ['wisp'],                               // 10 Forest Wisp
+  ['spider', '#503050'],                  // 11 Webweaver Queen
+  ['humanoid', '#55555e'],               // 12 Bandit Warlord
+  ['spider', '#6a5020'],                  // 13 Amber Wasp Queen
+  ['humanoid', '#8a8090'],               // 14 Glass Swordsman
+  ['brute', '#4a3a20', '#352a13', true],  // 15 Ancient Treant
+  ['wanderer'],                           // 16 Echo of First Wanderer
+  // Zone 3: The Ruins
+  ['wolf','#6a5c50'],                     // 17 Ash Hound
+  ['skeleton'],                           // 18 Tomb Warden
+  ['humanoid',C_BONE],                    // 19 Bone Archer
+  ['wisp'],                               // 20 Plague Shade
+  ['brute',C_IRON,C_STEEL],               // 21 Iron Sentinel
+  ['humanoid','#4a3a28'],                 // 22 Ruinborn Warlord
+  ['brute','#6a6260','#4a4240',true],     // 23 Cursed Colossus
+  ['skeleton'],                           // 24 The Lich
+];
+function monsterSpriteSVG(qi) {
+  const [kind, ...args] = MON_SCENE[qi] || ['rat', SPR_FUR];
+  return pix(16, 90, MON_BUILDERS[kind](...args));
+}
+/* =====================================================
+   GRADUS v1 skeleton — per DESIGN.md
+   1 step = 1 Gradus · 1 kcal = 1 Ries
+   ===================================================== */
+
+const STEP_CAP = 50000;   // max steps credited per day
+const CAL_CAP  = 4000;    // max kcal credited per day
+const BACK_DAYS = 2;      // back-entry window (today + yesterday)
+const DAILY_STEP_GOAL   = 7000;  // minimum daily steps for streak + tier rewards
+const STRETCH_STEP_GOAL = 10000; // stretch goal for bonus tier
+const RIES_DIVISOR = 5;   // Ries price = Gradus price / 5
+const QUESTS_PER_DAY = 999; // effectively unlimited
+const FOREST_UNLOCK = 8;    // quests cleared to open the Greenwood
+const RUINS_UNLOCK  = 17;   // quests cleared to open The Ruins
+
+/* ---------------- Item catalog (DESIGN.md §3) ---------------- */
+function prices(g) { return { g, r: Math.round(g / RIES_DIVISOR) }; }
+
+const WEAPONS = [
+  { id:'rusty',     name:'Rusty Sword',     atk:3,  ...prices(0) },
+  { id:'dagger',    name:'Iron Dagger',     atk:5,  ...prices(7000) },
+  { id:'ironsword', name:'Iron Sword',      atk:8,  ...prices(15000) },
+  { id:'mace',      name:'Steel Mace',      atk:12, ...prices(37000) },
+  { id:'longsword', name:'Steel Longsword', atk:17, ...prices(65000) },
+  { id:'knight',    name:"Knight\'s Blade",  atk:24, ...prices(125000) },
+  // crossbows (Blacksmith)
+  { id:'lightxbow', name:'Light Crossbow', type:'crossbow', atk:10, ...prices(25000) },
+  { id:'arbalest',  name:'Arbalest',       type:'crossbow', grade:'D', zone:2, atk:38, ...prices(210000) },
+  // bows & staffs (Woodsmith)
+  { id:'shortbow',  name:'Shortbow',        type:'bow',   shop:'wood', atk:7,  ...prices(12500) },
+  { id:'huntbow',   name:'Hunting Bow',     type:'bow',   shop:'wood', atk:14, ...prices(44000) },
+  { id:'recurve',   name:'Greenwood Recurve', type:'bow', shop:'wood', grade:'D', zone:2, atk:32, ...prices(160000) },
+  { id:'oakstaff',  name:'Oak Staff',       type:'staff', shop:'wood', atk:6,  ...prices(11000) },
+  { id:'runestaff', name:'Runed Staff',     type:'staff', shop:'wood', atk:13, ...prices(40000) },
+  { id:'heartstaff',name:'Heartwood Staff', type:'staff', shop:'wood', grade:'D', zone:2, atk:31, ...prices(155000) },
+  // D-grade (the Greenwood) — L2-style grade ladder: D → C → B → A → S
+  { id:'forestblade', name:'Forest Blade',    grade:'D', zone:2, atk:30, ...prices(145000) },
+  { id:'wolfsbane',   name:'Wolfsbane Axe',   grade:'D', zone:2, atk:36, ...prices(195000) },
+  { id:'eldersword',  name:'Elderwood Sword', grade:'D', zone:2, atk:42, ...prices(255000) },
+];
+/* class ↔ weapon-type affinity: +10% ATK with your kind of weapon */
+const AFFINITY = { Knight:['melee'], Mage:['staff'], Archer:['bow','crossbow'], Cleric:['staff','melee'] };
+const wtype = w => w.type || 'melee';
+const ARMOR = [
+  { id:'cloth',     name:'Cloth Tunic',   def:1,  ...prices(0) },
+  { id:'vest',      name:'Leather Vest',  def:3,  ...prices(10000) },
+  { id:'leather',   name:'Leather Set',   def:6,  ...prices(25000) },
+  { id:'chain',     name:'Chainmail',     def:10, ...prices(50000) },
+  { id:'plate',     name:'Plate Cuirass', def:15, ...prices(110000) },
+  // D-grade (the Greenwood)
+  { id:'rangertunic', name:'Ranger Tunic', grade:'D', zone:2, def:20, ...prices(135000) },
+  { id:'barkmail',    name:'Bark Mail',    grade:'D', zone:2, def:26, ...prices(180000) },
+  { id:'treantplate', name:'Treant Plate', grade:'D', zone:2, def:32, ...prices(235000) },
+];
+const POTIONS = [
+  { id:'minor',   name:'Minor Health Potion', qty:1, desc:'Heal 30% HP',          ...prices(350) },
+  { id:'minor5',  name:'Minor Health ×5',     qty:5, gives:'minor', desc:'Pack of five', ...prices(1750) },
+  { id:'health',  name:'Health Potion',       qty:1, desc:'Heal 70% HP',          ...prices(1000) },
+  { id:'stamina', name:'Stamina Draught',     qty:1, desc:'+50 ⚡ Ries energy',   ...prices(700) },
+  { id:'strength',name:'Strength Elixir',     qty:1, desc:'+25% dmg, one battle', ...prices(1500) },
+  { id:'enchant', name:'Weapon Enchantment',  qty:1, desc:'Permanent +10% weapon', ...prices(15000) },
+];
+
+/* ---- New equipment types ---- */
+function defPrices(g) { return { g, r: Math.round(g / RIES_DIVISOR) }; }
+
+const SHIELDS = [
+  { id:'no_shield',    name:'No Shield',        def:0,  slot:'shield', ...defPrices(0) },
+  { id:'woodshield',   name:'Wooden Buckler',   def:2,  slot:'shield', ...defPrices(5000) },
+  { id:'ironshield',   name:'Iron Shield',      def:5,  slot:'shield', ...defPrices(22000) },
+  { id:'kiteshield',   name:'Kite Shield',      def:9,  slot:'shield', ...defPrices(60000) },
+  { id:'towershield',  name:'Tower Shield',     def:14, slot:'shield', ...defPrices(115000) },
+  { id:'greenwood_shield', name:'Greenwood Aegis', def:19, slot:'shield', grade:'D', zone:2, ...defPrices(175000) },
+];
+const HELMS = [
+  { id:'no_helm',      name:'No Helm',          def:0,  slot:'helm', ...defPrices(0) },
+  { id:'leather_cap',  name:'Leather Cap',      def:1,  slot:'helm', ...defPrices(4000) },
+  { id:'chaincoif',    name:'Chain Coif',       def:3,  slot:'helm', ...defPrices(18000) },
+  { id:'iron_helm',    name:'Iron Helm',        def:6,  slot:'helm', ...defPrices(42000) },
+  { id:'great_helm',   name:'Great Helm',       def:10, slot:'helm', ...defPrices(90000) },
+  { id:'greenwood_helm',name:'Bark Helm',       def:14, slot:'helm', grade:'D', zone:2, ...defPrices(160000) },
+];
+const GLOVES = [
+  { id:'no_gloves',    name:'No Gloves',        atk:0,  slot:'gloves', ...defPrices(0) },
+  { id:'leather_gloves',name:'Leather Gloves',  atk:1,  slot:'gloves', ...defPrices(3500) },
+  { id:'chain_gauntlets',name:'Chain Gauntlets',atk:2,  slot:'gloves', ...defPrices(16000) },
+  { id:'iron_gauntlets',name:'Iron Gauntlets',  atk:4,  slot:'gloves', ...defPrices(38000) },
+  { id:'plate_gauntlets',name:'Plate Gauntlets',atk:7,  slot:'gloves', ...defPrices(85000) },
+  { id:'greenwood_gloves',name:'Thorngrip Wraps',atk:10,slot:'gloves', grade:'D', zone:2, ...defPrices(155000) },
+];
+const BOOTS = [
+  { id:'no_boots',     name:'No Boots',         def:0,  slot:'boots', ...defPrices(0) },
+  { id:'leather_boots',name:'Leather Boots',    def:1,  slot:'boots', ...defPrices(3500) },
+  { id:'iron_greaves', name:'Iron Greaves',     def:3,  slot:'boots', ...defPrices(17000) },
+  { id:'plate_greaves',name:'Plate Greaves',    def:6,  slot:'boots', ...defPrices(55000) },
+  { id:'greenwood_boots',name:'Swiftwalker Boots',def:9,slot:'boots', grade:'D', zone:2, ...defPrices(140000) },
+];
+const PANTS = [
+  { id:'no_pants',     name:'No Leggings',      def:0,  slot:'pants', ...defPrices(0) },
+  { id:'leather_legs', name:'Leather Leggings', def:2,  slot:'pants', ...defPrices(4500) },
+  { id:'chain_legs',   name:'Chain Leggings',   def:4,  slot:'pants', ...defPrices(22000) },
+  { id:'plate_legs',   name:'Plate Legs',       def:8,  slot:'pants', ...defPrices(78000) },
+  { id:'greenwood_pants',name:'Bark Leggings',  def:12, slot:'pants', grade:'D', zone:2, ...defPrices(145000) },
+];
+
+/* ---- Junk items (dropped by mobs, sold at General Store) ---- */
+const JUNK = [
+  { id:'rags',      name:'Torn Rags',      icon:'🧹', value:80 },
+  { id:'bones',     name:'Old Bones',      icon:'🦴', value:150 },
+  { id:'trinket',   name:'Cheap Trinket',  icon:'💍', value:350 },
+  { id:'coin_pouch',name:'Coin Pouch',     icon:'💰', value:700 },
+  { id:'gem_shard', name:'Gem Shard',      icon:'💎', value:1500 },
+];
+/* Junk drop table: mob name → [{junkId, chance}] */
+const JUNK_DROPS = {
+  'Giant Rat':       [['rags',.4]],
+  'Dire Wolf':       [['bones',.3]],
+  'Bandit Chief':    [['coin_pouch',.25],['trinket',.2]],
+  'Broodmother':     [['bones',.3]],
+  'Restless Knight': [['trinket',.25],['gem_shard',.1]],
+  'Venom Cultist':   [['trinket',.3]],
+  'Giant Iron Boar': [['bones',.35]],
+  'Forest Troll':    [['trinket',.3],['gem_shard',.15]],
+  'Sprouting Treant':[['rags',.35]],
+  'Dire Boar':       [['bones',.3]],
+  'Forest Wisp':     [['gem_shard',.25],['trinket',.2]],
+  'Webweaver Queen': [['gem_shard',.2],['coin_pouch',.3]],
+  'Bandit Warlord':  [['coin_pouch',.35],['gem_shard',.15]],
+  'Amber Wasp Queen':[['gem_shard',.2]],
+  'Glass Swordsman': [['gem_shard',.3]],
+  'Ancient Treant':  [['gem_shard',.3],['trinket',.25]],
+  'The First Wanderer':[['gem_shard',.5]],
+  // Zone 3 — The Ruins
+  'Ash Hound':         [['bones',.4],['rags',.3]],
+  'Tomb Warden':       [['bones',.4],['gem_shard',.15]],
+  'Bone Archer':       [['bones',.45],['trinket',.2]],
+  'Plague Shade':      [['trinket',.3],['gem_shard',.2]],
+  'Iron Sentinel':     [['gem_shard',.25],['coin_pouch',.3]],
+  'Ruinborn Warlord':  [['coin_pouch',.4],['gem_shard',.2]],
+  'Cursed Colossus':   [['gem_shard',.5],['coin_pouch',.35]],
+  'The Lich':          [['gem_shard',.6],['trinket',.4]],
+  'Field Rat':       [['rags',.4]], 'Tunnel Rat':[['bones',.25]], 'Stray Wolf':[['bones',.3]],
+  'Footpad':         [['coin_pouch',.2]], 'Deserter Scout':[['coin_pouch',.25]],
+  'Sapling Treant':  [['rags',.3]], 'Wild Boar':[['bones',.3]], 'Webspinner':[['rags',.3]],
+  'Forest Stalker':  [['coin_pouch',.25]], 'Thornback Boar':[['bones',.35]],
+};
+/* Dropped weapons by mob (rare ~8%) */
+const WEAPON_DROPS = {
+  'Bandit Chief':    ['dagger'],
+  'Restless Knight': ['ironsword'],
+  'Forest Troll':    ['mace'],
+  'Bandit Warlord':  ['longsword'],
+  'Glass Swordsman': ['knight'],
+  'The First Wanderer': ['eldersword'],
+  'Deserter Scout':  ['rusty'],
+  'Footpad':         ['dagger'],
+  // Zone 3
+  'Ruinborn Warlord':['knight'],
+  'Cursed Colossus': ['eldersword'],
+  'The Lich':        ['eldersword'],
+};
+/* Backpack upgrade tiers (General Store) */
+const BACKPACKS = [
+  { id:'bp1', name:'Satchel Upgrade I',  slots:5,  cost:8000 },
+  { id:'bp2', name:'Satchel Upgrade II', slots:5,  cost:25000 },
+  { id:'bp3', name:'Satchel Upgrade III',slots:5,  cost:70000 },
+];
+
+/* Quests — Witcher-style contracts, L2-style grind, one Elden-style legend.
+   Monster traits: swift (strikes first) · armored (your damage −25%) ·
+   venom N (N dmg at the start of your turns once bitten) · frenzy (atk +50%
+   below 30% HP) · regen N (heals N after its turn). Balance simulated.
+   Quest indices: 0-6 = Oppidum, 7 = Forest Troll boss (FOREST_UNLOCK=8),
+   8-14 = Greenwood, 15 = Heart boss, 16 = Legend. */
+const QUESTS = [
+  // ---- Zone 1: Oppidum ----
+  { name:'Rats in the Cellar', type:'Hunt', giver:'Marta, keeper of the Resting Boar',
+    monster:{ name:'Giant Rat', emoji:'🐀', hp:28, atk:4 }, xp:22, g:500,
+    flavor:'The Resting Boar\'s cellar echoes with gnawing. Marta pays in coin and stew.',
+    lore:'Three weeks past, a grain barge from downriver paid Marta in sacks instead of coin, and something rode in with the sacks. First it was droppings in the flour. Then the cellar cat stopped coming up. Now the gnawing keeps the whole common room awake: beams, barrels, the leg of the spare bed, all carved like a feast. Last night it ate a wheel of cheese the size of a cartwheel, and the shelf it sat on.<br><br>”I\'ve fed half of Oppidum from that cellar through two bad winters,” Marta says, sliding the key across the bar. “The winter stores are down there. The seed grain too. One more beam and the Boar comes down on all our heads, and where will you lot drink then?” She pays from the strongbox under the floorboards, and she pays fair.' },
+  { name:'Wolves at the Gate', type:'Hunt', giver:'Calloway the shepherd',
+    monster:{ name:'Dire Wolf', emoji:'🐺', hp:40, atk:6, swift:true }, xp:33, g:600,
+    flavor:'Three lambs in two nights. The shepherd swears the pack moves like smoke.',
+    lore:'It began at the autumn shearing, when the pack stopped fearing torchlight. Calloway\'s neighbors lost a dog, then a gate, then their nerve. Most now drive their flocks to market and sell at a loss rather than winter them on the hill. Three lambs gone in two nights, and the grey wolf that leads the pack is no natural beast: it watched Calloway over the fence rail, he swears, with eyes that counted.<br><br>The old man has buried three dogs this season and will not bury a fourth. The flock is all that stands between his granddaughter and a beggar\'s winter. “My family\'s grazed this hill three hundred years,” he says. “I\'ll not be the one who hands it to wolves.” He cannot pay much. He offers it anyway. Mind yourself, the beast strikes before most folk finish drawing.' },
+  { name:'The Bandit Toll', type:'Contract', giver:'Reeve Ostric of Oppidum',
+    monster:{ name:'Bandit Chief', emoji:'🗡️', hp:70, atk:9, frenzy:true }, xp:44, g:700,
+    flavor:'A toll where no king set one. Cornered men fight hardest when bloodied.',
+    lore:'The toll began in spring as a plank across the East Road and a man with a knife; by midsummer it was six men and a ledger. The Chief, a deserter from the border war, keeps records, of all things: who paid, who argued, who he let bleed as an example. Merchants pay or turn back, and Oppidum\'s market shelves grow thinner by the week.<br><br>Ostric\'s clerks recovered a page of that ledger from a fleeing porter. The Reeve read it once, rolled it up, and doubled the bounty. The contract is sealed with his own wax and worded carefully: ended quietly and lawfully, by which he means a body in a ditch and no questions at council. They say the Chief fights like the war never ended. Cornered and bleeding, he fights worse.' },
+  { name:'Spiders of Hollow Mill', type:'Contract', giver:'Tobias the miller',
+    monster:{ name:'Broodmother', emoji:'🕷️', hp:85, atk:10, venom:2 }, xp:57, g:800,
+    flavor:'The miller\'s boys won\'t set foot inside. Her bite festers, bring potions.',
+    lore:'Hollow Mill ground Oppidum\'s grain for five generations until the webs came: sheets of silk thick as sailcloth strung between the millstones. Tobias sent his eldest in with a torch; the boy came out white-haired and will not speak of what hung from the rafters. The flour runs out in a fortnight, and with it the bread. Her venom works long after the bite, potions are not a luxury on this contract. They are the plan.' },
+  { name:'The Graveyard Shift', type:'Hunt', giver:'Father Bede of the chapel yard',
+    monster:{ name:'Restless Knight', emoji:'💀', hp:120, atk:15, armored:true }, xp:70, g:900,
+    flavor:'A knight who forgot he died. Blades glance off the old plate.',
+    lore:'Father Bede lights a candle for the thing in the yard every evening, and every evening it walks anyway. The armor bears the sigil of a house that fell before Oppidum had walls. A knight sworn to guard this ground, never released from the oath. Bede does not ask you to destroy it. He asks you to free it, and he is old enough to know those are the same thing. That grave-plate has turned blades for three hundred years. Strike true, and often.' },
+  { name:'The Poisoned Well', type:'Contract', giver:'Matilda, the warden\'s wife',
+    monster:{ name:'Venom Cultist', emoji:'🧪', hp:95, atk:12, venom:3 }, xp:55, g:750,
+    flavor:'Someone is poisoning the wells. The warden\'s wife offers double the law allows.',
+    lore:'The sickness started at the eastern well: first the cattle, then a child, then three more. The town physician traced it to the water but not to its cause. Matilda\'s husband is the warden and cannot be seen to pay for a killing, so she pays herself, from the household coin she controls, and she says nothing about lawful or unlawful. Her child was the first to fall ill. It recovered. The other two did not.<br><br>The cultist is not from Oppidum — no one recognizes the mark burned into his arm. He moves at night and keeps close to the drainage channels. His venom is deliberate. Whatever he serves, it wants Oppidum weak and sick. Mind the bite: his cult uses the same poison he puts in the wells.' },
+  { name:'Iron Jaws', type:'Hunt', giver:'Bram, miller south of the road',
+    monster:{ name:'Giant Iron Boar', emoji:'🐗', hp:115, atk:14, frenzy:true }, xp:65, g:800,
+    flavor:'The mill\'s waterwheel crushed every night by something huge and furious.',
+    lore:'Bram rebuilt the waterwheel three times. The first time he thought it was rot. The second time he called it bad luck. The third time, he found the tracks: each hoof-print two hands across, driven so deep into the riverbank that the mud had dried around them like iron casts. Something comes up from the river at dusk, destroys the wheel with systematic fury, and returns before dawn.<br><br>”I don\'t need it dead,” Bram says. “I need it gone.” He does not believe it is possible. He is offering the coin because a debt paid is a man\'s only dignity when he has lost everything else. The boar grows fiercer the more it bleeds. Do not mistake a wound for a victory.' },
+  { name:'The Forest Troll', type:'Boss', giver:'Reeve Ostric, by emergency decree',
+    monster:{ name:'Forest Troll', emoji:'👹', hp:220, atk:21, regen:5 }, xp:110, g:1500, boss:true,
+    flavor:'It mends as fast as you cut. Strike harder than it heals, or not at all.',
+    lore:'It came down from the treeline in the night and took the toll bridge apart stone by stone, eating, the witnesses insist, the mortar. Trolls are why Oppidum\'s grandmothers say the forest is locked. Its flesh knits faster than any blade can open it; half-measures only feed it. The decree promises gold, but everyone knows what this hunt truly is: the key to the Greenwood. Beyond the troll lies the old green world, and none have walked it in a generation.',
+    bossMsg:'The path to the Greenwood is open!' },
+  // ---- Zone 2: the Greenwood (D-grade hunting grounds) ----
+  { name:'Roots That Walk', type:'Hunt', giver:'Warden Yvet of the Greenwood marches',
+    monster:{ name:'Sprouting Treant', emoji:'🌱', hp:240, atk:22, regen:4 }, xp:130, g:1800, zone:2,
+    flavor:'The Greenwood\'s saplings pull free of the soil and walk. The wood remembers axes.',
+    lore:'Yvet has warded the forest edge since before the troll came, marking the boundary oaks with iron nails. Now the saplings pull their roots from the soil and walk the marches at dusk, and her nails turn up bent in the grass. “The wood remembers every axe we ever swung,” she says, “and something deep in the Greenwood has been reminding it.” She wants the walking ones cut down before they learn to walk in numbers.' },
+  { name:'Tusks in the Thicket', type:'Hunt', giver:'Joss, huntsman of the lodge',
+    monster:{ name:'Dire Boar', emoji:'🐗', hp:280, atk:25, frenzy:true }, xp:155, g:2000, zone:2,
+    flavor:'Wounded boars don\'t run. They remember.',
+    lore:'Joss has hunted boar his whole life and wears the scars like a ledger. This one is different, it gored his hunting partner of twenty years, then waited beside the body for the rest of the party to come. “A normal pig kills you because you\'re in the way,” he says, sharpening a spear he no longer trusts. “This one keeps count.” The angrier it gets, the harder it hits. Do not let the bleeding make you bold.' },
+  { name:'Lights in the Mist', type:'Hunt', giver:'Wenna the charcoal-burner',
+    monster:{ name:'Forest Wisp', emoji:'✨', hp:435, atk:33, swift:true }, xp:175, g:2200, zone:2,
+    flavor:'Follow the lights, lose the path. It strikes before you see it.',
+    lore:'Wenna\'s camp sits deeper in the Greenwood than anyone\'s, and she keeps two rules: never whistle after dark, never count the lights. Her apprentice counted. They found his charcoal stacks still smoldering and his boots set neatly side by side at the edge of the mist. No boy. The light that took him still dances over the wet hollows, beautiful and patient, and it will have struck before you know the fight has begun. Wenna pays in coin she had saved for the boy\'s wages.' },
+  { name:'The Silken Hollow', type:'Contract', giver:'Cassia, silk-trader of the southern road',
+    monster:{ name:'Webweaver Queen', emoji:'🕸️', hp:500, atk:40, venom:6 }, xp:200, g:2400, zone:2,
+    flavor:'Queen of the web-choked hollow. Her venom drips through mail. Stock the satchel.',
+    lore:'Cassia built a fortune on spider-silk gathered at the hollow\'s edge, finest thread south of the mountains, and she never asked what spun it. Then her gatherers stopped coming back with silk, and then they stopped coming back at all. The contract is blunt: the Queen dies, the hollow opens, the guild pays grandly. Her venom is the worst in the Greenwood. It works through mail, through skin, through hours. Bring every potion you own. She means it.' },
+  { name:'Toll of the Greenwood', type:'Contract', giver:'Captain Roderic, late of the merchant escort',
+    monster:{ name:'Bandit Warlord', emoji:'⚔️', hp:545, atk:34, armored:true }, xp:220, g:2600, zone:2,
+    flavor:'The Warlord wears a dead knight\'s plate. History repeats its tolls.',
+    lore:'Roderic commanded twelve swords escorting the autumn caravan. He walked out of the Greenwood alone. The Warlord who broke them was a toll-bandit once. The Chief\'s own brother, some whisper. And he has done what his brother never dared: killed a knight and pried the plate off the corpse. Roderic\'s wages, his savings, and his sword-oath are yours if you put the Greenwood toll out of business for good.' },
+  { name:'The Amber Wasps', type:'Contract', giver:'a guild factor, recently fled from the hollow',
+    monster:{ name:'Amber Wasp Queen', emoji:'🪲', hp:470, atk:37, venom:5, swift:true }, xp:200, g:2600, zone:2,
+    flavor:'A new hive in the silk hollow, bigger than any wasp should grow. Her venom moves fast.',
+    lore:'The factor did not mention the hive when he hired the last crew of gatherers. He thought it was small. By the time the screaming started it was the size of a barn. The Amber Wasp Queen is not native to the Greenwood — no one is certain where she came from, only that she builds fast, breeds faster, and her guard wasps strike the moment anything enters range.<br><br>Her venom is quick and merciless. Unlike the Queen\'s webs, it gives no warning: one sting, then the burning starts. She moves before you think she\'s seen you. Bring potions. Drink the first one before you enter range.' },
+  { name:'The Glass Swordsman', type:'Contract', giver:'a dying soldier found on the forest road',
+    monster:{ name:'Glass Swordsman', emoji:'🗡️', hp:520, atk:43, swift:true, armored:true }, xp:225, g:2800, zone:2,
+    flavor:'A warrior ground to perfection. She counters everything. You must be faster.',
+    lore:'The dying soldier gave one description before he stopped being able to talk: a woman in pale armour, moving so quietly the leaves didn\'t stir. She wears the glass plate of the old order — ground from forest crystal, harder than steel, lighter than leather. Her blade is the same material. It doesn\'t catch the light. It bends it.<br><br>She has no contract, no employer, no bounty posted by her hand. She simply stands on the road and waits for someone worth fighting. The soldier was not. You may be. She is armored and fast. Your first strike will tell her everything she needs to know about you. Make it count.' },
+  { name:'Heart of the Forest', type:'Boss', giver:'Maelo, last druid of the old circle',
+    monster:{ name:'Ancient Treant', emoji:'🌳', hp:760, atk:48, regen:12 }, xp:350, g:5000, zone:2, boss:true,
+    flavor:'The eldest tree walks. Bring an elixir and every potion you own.',
+    lore:'Maelo remembers when the circle sang to the Eldest and it answered with good harvests. The circle is dead now; the Eldest outlived its keepers, then its patience, then its sanity. It is the thing that woke the saplings, bent Yvet\'s iron, and fattened the Queen. The druid asks not for victory but for mercy: “End the song that is left in it. It will mend faster than you can wound it. Come as a storm, or do not come.”',
+    bossMsg:'The Greenwood falls silent… for now.' },
+  { name:'✠ Echo of the First Wanderer', type:'Legend', giver:'a nameless pilgrim, who pays in advance',
+    monster:{ name:'The First Wanderer', emoji:'👁️', hp:680, atk:38, swift:true, frenzy:true }, xp:880, g:20000, zone:2, boss:true,
+    flavor:'The first to walk ten thousand steps never stopped. It waits beyond the treeline for those who dare. Enchant your blade.',
+    lore:'Before Oppidum, before the Reeve\'s wax and the Bank\'s vaults, there was only the road, and the first one to walk it. Ten thousand steps a day, the old verses say, every day, until the body wore out and the walking didn\'t. What waits beyond the treeline is not a ghost and not a god. It is the stride itself, hungry for someone worth pacing. The pilgrim who posts this bounty leaves the gold up front and does not wait for news. “Either you outwalk the legend,” she says, “or you join it.”',
+    bossMsg:'The Echo bows, and walks on. You have surpassed the legend.' },
+  // ── Zone 3: The Ruins (unlock at questsCleared >= 17) ──
+  { name:'Hounds of Ash', type:'Hunt', zone:3, xp:200, g:1400,
+    giver:'a scout posted at the ruins gate',
+    flavor:'"They don\'t bark. They don\'t growl. They just come."',
+    monster:{ name:'Ash Hound', emoji:'🐕', hp:320, atk:32, venom:2, swift:true } },
+  { name:'The Tomb Warden', type:'Hunt', zone:3, xp:230, g:1600,
+    giver:'a grave-robber who barely made it back',
+    flavor:'"It stood perfectly still — until it didn\'t."',
+    monster:{ name:'Tomb Warden', emoji:'⚰️', hp:420, atk:36, armored:true } },
+  { name:'Bone Archers', type:'Hunt', zone:3, xp:255, g:1800,
+    giver:'Warden Yvet, second dispatch',
+    flavor:'"The bolts come from everywhere. Stay moving."',
+    monster:{ name:'Bone Archer', emoji:'🏹', hp:370, atk:40, swift:true } },
+  { name:'The Plague Shade', type:'Contract', zone:3, xp:280, g:2000,
+    giver:'Father Bede, under seal of the chapel',
+    lore:'"Something old woke up in those stones. It taints the air around it. Do not breathe deep." — Father Bede',
+    monster:{ name:'Plague Shade', emoji:'💀', hp:480, atk:42, venom:4, regen:2 } },
+  { name:'Iron Sentinel', type:'Hunt', zone:3, xp:310, g:2300,
+    giver:'a guild factor, by urgent letter',
+    flavor:'"It was built to guard. Whatever it was guarding is long gone. It guards still."',
+    monster:{ name:'Iron Sentinel', emoji:'🤖', hp:600, atk:40, armored:true } },
+  { name:'The Ruinborn Warlord', type:'Contract', zone:3, xp:340, g:2600,
+    giver:'Captain Roderic, final dispatch',
+    flavor:'"He remembers nothing of his old life. Only the fighting."',
+    monster:{ name:'Ruinborn Warlord', emoji:'⚔️', hp:550, atk:48, frenzy:true, swift:true } },
+  { name:'✠ Cursed Colossus', type:'Legend', zone:3, xp:440, g:3500, boss:true,
+    giver:'a proclamation nailed to the ruins gate',
+    lore:'"Nobody built it. Nobody remembers it being built. It simply was." — The Proclamation',
+    monster:{ name:'Cursed Colossus', emoji:'🗿', hp:600, atk:36, armored:true, regen:4 },
+    bossMsg:'The Colossus crumbles, stone by stone, into dust.' },
+  { name:'✠ The Lich of Oppidum', type:'Legend', zone:3, xp:550, g:4500, boss:true,
+    giver:'the town records, a name that should not exist',
+    lore:'"He was the first Reeve of Oppidum, three hundred years before Ostric. He never left." — Town Records, Vol. I',
+    monster:{ name:'The Lich', emoji:'👁️', hp:750, atk:40, venom:2, regen:3, swift:true, armored:true },
+    bossMsg:'The Lich dissolves. The Ruins grow quiet for the first time in centuries.' },
+];
+/* Rumor-locked quests: some hunts only appear after you hear of them
+   in the Inn\'s common room (buy a round, hear the tale).
+   questIdx values match QUESTS array (0-16). */
+const RUMORS = [
+  { id:'grave', questIdx:4, cost:25, teller:'a gravedigger, deep in his cups',
+    text:'”Why d\'you think the sexton drinks? Every dawn there\'s boot-prints in the frost inside the chapel yard, plate boots, in a yard nobody\'s opened since the old wars. Father Bede knows whose they are. Ask him about the candle he lights.”' },
+  { id:'mist', questIdx:10, cost:50, teller:'Wenna\'s cousin, hauling charcoal to market',
+    text:'”My cousin won\'t leave the Greenwood, not even now. Says the lights took her apprentice and left his boots standing side by side, neat as church shoes. She\'s got coin saved and nobody left to spend it on. If a light can be killed, go and see her.”' },
+  { id:'wasps', questIdx:13, cost:60, teller:'a guild factor, recently fled from the hollow',
+    text:'”I lost four good men to something that wasn\'t there last season. The whole silk hollow is sealed. The hive is enormous. Someone needs to deal with the queen before it spreads to the road. I pay in guild script, which is better than coin.”' },
+  { id:'glass', questIdx:14, cost:75, teller:'a limping soldier with a broken sword',
+    text:'”She took my sword at the hilt — just snapped it. Glass plate, glass blade, moves like water. I\'ve been walking since dawn and I still can\'t feel my sword hand. She\'s still out there. She\'s waiting for the next one.”' },
+  { id:'pilgrim', questIdx:16, cost:100, teller:'a hooded pilgrim alone in the corner',
+    text:'”You silenced the Heart of the Forest? Then you\'re ready to hear it. The first one to walk this road never stopped walking. It\'s still out there past the treeline, keeping pace with nothing. I pay in advance. The ones who could collect afterward are rare.”' },
+];
+/* Lore chats: flavor conversations at the Inn, no quest attached */
+const LORE_CHATS = [
+  { id:'elder_fire', cost:10, icon:'👴', teller:'the elder by the fire',
+    text:'”The Bank\'s vault has held coin through three wars and a flood. Yours will too. A fool\'s purse goes with the fool when he falls, though. Bank before you fight anything with a name.”' },
+  { id:'road_merchant', cost:15, icon:'🛒', teller:'a road-worn merchant',
+    text:'”The Greenwood silk trade was good once. Then the road went wrong, as roads do. Now even the smugglers pay the toll. I\'ve started going around. Takes twice as long. I arrive.”' },
+  { id:'barmaid', cost:20, icon:'🍻', teller:'the barmaid, wiping a cup',
+    text:'”Every fighter who\'s slept here — every one — wakes asking where the Bank is. They all deposit after they\'re robbed once. Funny how that works.”' },
+  { id:'pilgrim_chat', cost:25, icon:'🧎', teller:'a pilgrim resting her feet',
+    text:'”I\'ve walked the road south from the capital and back. Every step I take here, I earn something there. That\'s the covenant of the road. You can\'t beat it. The streak is real — miss one day and you start over, but walk ten straight and the coin flows.”' },
+  { id:'off_guard', cost:30, icon:'⚔️', teller:'an off-duty gate guard',
+    text:'”The regen monsters are the worst. Don\'t trade blows with anything that heals between turns — you\'ll lose the war of attrition every time. Hit hard, hit fast, don\'t stop. An elixir helps.”' },
+];
+/* ─── Inn regulars: rotate daily, flavour the world ─── */
+const INNFOLK = [
+  { name:'Harwick the Trader',  icon:'🧔', lines:[
+    '"Wolves on the East Road again. Third time this month."',
+    '"I\'ve been buying low at the market and selling north. The margin\'s shrinking."',
+    '"Mark my words — something in the Greenwood has been quiet too long."',
+  ]},
+  { name:'Elara the Herbalist', icon:'🌿', lines:[
+    '"The foxglove\'s coming in strong this season. Good omen, or bad."',
+    '"Elswyth ran dry of stamina draughts again. Wanderers buy faster than she brews."',
+    '"If you\'re headed into the Greenwood, chew some willowbark first. Trust me."',
+  ]},
+  { name:'Brother Anselm',      icon:'📿', lines:[
+    '"Father Bede lit a candle for you last night. He doesn\'t know why. Neither do I."',
+    '"The chapel ledger shows forty souls fell to the Forest Troll since spring. Forty-one tomorrow, perhaps."',
+    '"Pray before you fight. It won\'t help — but it\'ll feel like it did."',
+  ]},
+  { name:'Senna the Scout',     icon:'🏹', lines:[
+    '"I circled the Greenwood three times yesterday. Something\'s moving in it that I won\'t follow."',
+    '"The Glass Swordsman left a dead soldier on the road. She doesn\'t rob. She just fights and walks."',
+    '"Count your steps in the Greenwood. It\'s longer coming out than going in."',
+  ]},
+  { name:'Mistress Volke',      icon:'👒', lines:[
+    '"Half of Oppidum owes money to the Bank. Master Aurelius planned it that way."',
+    '"My cart lost a wheel near the toll. The bandits helped fix it, then took my coin. I almost liked them."',
+    '"The market\'s thin since the road trouble. Buy what you need now."',
+  ]},
+  { name:'Young Pip',           icon:'🧒', lines:[
+    '"Did you know boars can run faster than horses? The blacksmith told me. He also told me not to test it."',
+    '"I\'m going to be a wanderer when I grow up. Pa says I\'m already wandering too much."',
+    '"The stray dog behind the inn knows something. I can tell by how it looks at you."',
+  ]},
+];
+function innFolkToday() {
+  const d = localDateStr(new Date());
+  const seed = d.split('-').reduce((a,b) => a + parseInt(b), 0);
+  return [...INNFOLK].sort((a,b) => {
+    const ia = INNFOLK.indexOf(a), ib = INNFOLK.indexOf(b);
+    return ((seed*31+ia*17)%97) - ((seed*31+ib*17)%97);
+  }).slice(0, 3);
+}
+
+/* ─── Town NPCs: flavor dialog hotspots ─── */
+const TOWN_NPCS = [
+  { l:35, t:72, label:'👴 Elder Croft', lines:[
+    '"Walk ten thousand steps today. The road doesn\'t care about excuses."',
+    '"In forty years I\'ve seen three trolls come down from the treeline. No wanderer came back looking the same."',
+    '"Bank your Gradus before you fight anything with a name. The vault remembers you. The grave doesn\'t."',
+  ]},
+  { l:50, t:80, label:'🧑 Tobias\' Boy', lines:[
+    '"Pa says the mill\'s running again! Proper flour at last."',
+    '"I counted forty wolves from the roof last night. Pa says I can\'t count. I say Pa can\'t sleep."',
+    '"The blacksmith lets me pump the bellows sometimes. It\'s very hot. I love it."',
+  ]},
+  { l:75, t:75, label:'🛒 Peddler', lines:[
+    '"Buy something or move along. I\'ve got a quota."',
+    '"Elswyth\'s prices went up again. Everything goes up. My cart wheel went up a ditch last week."',
+    '"Three wanderers came through this morning. None of them came back this afternoon."',
+  ]},
+  { l:22, t:82, label:'🐕 Stray Dog', lines:[
+    '"..."',
+    '"*wags tail*"',
+    '"*follows you briefly, then sits down and watches*"',
+  ]},
+  // ── Quest-chain NPCs: milestone-aware dialogue ──
+  { l:48, t:68, label:'👨‍⚖️ Reeve Ostric', stages:[
+    { q:0,  text:'"The Greenwood pushes closer every year. The troll hasn\'t shown itself yet. Yet. Do what wanderers do — walk, fight, and don\'t ask the Reeve for anything free."' },
+    { q:4,  text:'"You cleared the Broodmother. The silk-weavers are breathing again. Small mercy, but mercy counts." He stamps a document without looking up.' },
+    { q:8,  text:'"The Forest Troll is dead. Twelve years I\'ve posted a bounty. Twelve years. You did it in an afternoon. I\'ve already paid the steward — find him yourself."' },
+    { q:17, text:'"You walked into the Ruins and came back. I stopped sending men there after the third didn\'t return. Whatever you\'re doing — keep doing it."' },
+  ]},
+  { l:62, t:76, label:'🌿 Mira', stages:[
+    { q:0,  text:'"The venom cultists keep burning my gathering spots. Herb prices are double what they were. If you see them out there — handle it." She does not smile.' },
+    { q:4,  text:'"The Broodmother — that was you, wasn\'t it. I can reach the east slopes again. The good glowdust grows there. Come find me when you need something brewed."' },
+    { q:8,  text:'"The Greenwood is open. I\'ve started the long walk myself, mornings, before the mist clears. Brings back half a satchel of things I haven\'t seen in years."' },
+    { q:17, text:'"Glowdust from the Ruins — I\'ve heard it\'s different. Older. Bring me what you find. I\'ll pay fairly."' },
+  ]},
+  { l:55, t:58, label:'⛪ Brother Alden', stages:[
+    { q:0,  text:'"Light your steps. Burn no more than you can carry. The road takes what you give it." He doesn\'t explain further.' },
+    { q:8,  text:'"The Greenwood was a place of pilgrimage before the treants turned. You\'ve cleared the path again. Whatever your faith — or lack of it — the chapel thanks you."' },
+    { q:16, text:'"The Ancient Treant falls. The forest breathes differently. Even from here I can feel it." He touches the chapel wall like he\'s listening.' },
+    { q:17, text:'"The Ruins hold something older than Oppidum. Older than the faith. There are names carved beneath the altar stones that no tongue here can read. Be careful."' },
+  ]},
+  { l:70, t:65, label:'⚔️ Warden Cassel', stages:[
+    { q:0,  text:'"Gate closes at dusk. Cold work." He doesn\'t mean it as an invitation.' },
+    { q:8,  text:'"Troll\'s dead. First time in twelve years I\'ve opened the south gate after dark. Still do it quietly." He won\'t say why.' },
+    { q:17, text:'"The Ruins posting. I held it three months before I transferred here. Took me a year before I stopped checking corners. You\'ll understand."' },
+  ]},
+];
+let townNpcToday = {};
+function showTownNPC(npc) {
+  let line;
+  if (npc.stages) {
+    // milestone NPCs: pick the highest stage the player has unlocked
+    const match = [...npc.stages].reverse().find(s => S.questsCleared >= s.q);
+    line = match ? match.text : npc.stages[0].text;
+  } else {
+    const d = localDateStr(new Date());
+    const k = npc.label;
+    if (!townNpcToday[k]) {
+      const seed = d.split('-').reduce((a,b) => a + parseInt(b), 0) + npc.label.length;
+      townNpcToday[k] = npc.lines[seed % npc.lines.length];
+    }
+    line = townNpcToday[k];
+  }
+  showModal(`<h2>${npc.label}</h2><p class="mt" style="font-style:italic;line-height:1.6">${line}</p>`, [{label:'← Back'}]);
+}
+
+const RUMOR_BY_QUEST = {};
+RUMORS.forEach(r => RUMOR_BY_QUEST[r.questIdx] = r);
+function rumorLocked(i) {
+  const r = RUMOR_BY_QUEST[i];
+  return !!(r && !S.rumors[r.id] && i >= S.questsCleared);   // cleared hunts are known by deed
+}
+function hearRumor(id) {
+  const r = RUMORS.find(x => x.id === id);
+  if (!r || S.rumors[r.id]) return;
+  if (S.gradus < r.cost) { toast('You can\'t afford the round.'); return; }
+  S.gradus -= r.cost;
+  S.rumors[r.id] = true;
+  save(); sfx('potion');
+  showModal(
+    `<h2>🍻 ${r.teller}</h2><p class="dim" style="font-style:italic;line-height:1.5">${r.text}</p>
+     <p class="mt gold">New hunt revealed: ${QUESTS[r.questIdx].name}</p>`,
+    [{ label:'🍺 To the quest board', fn:() => showScreen('tavern') }, { label:'Stay a while' }]);
+  renderInn(); renderHUD();
+}
+
+function traitTags(m) {
+  const t = [];
+  if (m.swift) t.push('⚡Swift'); if (m.armored) t.push('🛡️Armored');
+  if (m.venom) t.push('☠️Venom ' + m.venom); if (m.frenzy) t.push('😡Frenzy');
+  if (m.regen) t.push('💚Regen ' + m.regen);
+  return t;
+}
+/* ---------------- FitnessProvider interface ----------------
+   Swap ManualFitnessProvider for a real API provider later
+   (Garmin / Apple Health / Oura / Samsung via aggregator).
+   Contract: async getActivity(dateStr) -> {steps, calories} | null
+------------------------------------------------------------- */
+class FitnessProvider {
+  async getActivity(dateStr) { throw new Error('not implemented'); }
+}
+class ManualFitnessProvider extends FitnessProvider {
+  // Manual mode: data comes from the sync form. Pending entries are
+  // staged here by the UI, then read back through the interface.
+  constructor() { super(); this.pending = {}; }
+  stage(dateStr, steps, calories) { this.pending[dateStr] = { steps, calories }; }
+  async getActivity(dateStr) { return this.pending[dateStr] || null; }
+}
+const provider = new ManualFitnessProvider();
+
+/* ---------------- State ---------------- */
+const SAVE_KEY_PREFIX = 'gradus-save-v1-';
+const ACCT_KEY = 'gradus-accounts';
+let currentEmail = null;   // email of logged-in account
+function saveKey(email) { return SAVE_KEY_PREFIX + (email || 'offline'); }
+// Backward compat: migrate old single-save to 'offline' account slot
+const LEGACY_KEY = 'gradus-save-v1';
+let S = null;
+
+function freshState(name) {
+  return {
+    name, sex: 'm', level: 1, xp: 0, heroClass: null,
+    gradus: 0, ries: 0,
+    lifetimeSteps: 0, lifetimeCalories: 0,
+    weapons: ['rusty'], armor: ['cloth'],
+    shields: ['no_shield'], helms: ['no_helm'],
+    gloves: ['no_gloves'], boots: ['no_boots'], pants: ['no_pants'],
+    equipped: { weapon: 'rusty', armor: 'cloth',
+                shield: 'no_shield', helm: 'no_helm',
+                gloves: 'no_gloves', boots: 'no_boots', pants: 'no_pants' },
+    potions: {},                 // id -> count
+    syncLog: {},                 // 'YYYY-MM-DD' -> {steps, calories}
+    bank: 0, wounded: false, achievements: {}, title: null, sound: true, diedOnce: false,
+    upgrades: {},                // itemId -> +level (forge)
+    investments: [],             // {amount, date, mature}
+    rumors: {}, music: true,
+    stats: { str:0, dex:0, int:0, vit:0, end:0 }, statPoints: 0,
+    bag: [], bagCap: 15,         // general bag: junk, dropped items
+    dailyClaimed: null,           // date of last daily reward claim
+    expedition: null,             // null or {type,label,started,returns,level}
+    bpBought: {},                // backpack upgrade ids bought
+  };
+}
+function save() { localStorage.setItem(saveKey(currentEmail), JSON.stringify(S)); }
+// Backward-compatible migration for pre-combat saves
+function migrate(s) {
+  if (s.questsCleared === undefined) s.questsCleared = 0;
+  if (!s.questsToday) s.questsToday = { date:'', used:0, bonus:0 };
+  if (!s.enchants) s.enchants = {};
+  if (s.heroClass === undefined) s.heroClass = null;
+  if (s.xp === undefined) s.xp = 0;
+  if (s.bank === undefined) s.bank = 0;
+  if (s.wounded === undefined) s.wounded = false;
+  if (!s.achievements) s.achievements = {};
+  if (s.title === undefined) s.title = null;
+  if (s.sound === undefined) s.sound = true;
+  if (s.diedOnce === undefined) s.diedOnce = false;
+  if (!s.upgrades) s.upgrades = {};
+  if (!s.investments) s.investments = [];   // {amount, date, mature}
+  if (!s.rumors) s.rumors = {};
+  if (s.music === undefined) s.music = true;
+  if (s.backend === undefined) s.backend = '';
+  if (!s.lifeSkills) s.lifeSkills = { fishing:{lvl:1,xp:0}, cooking:{lvl:1,xp:0}, woodcutting:{lvl:1,xp:0}, thieving:{lvl:1,xp:0}, gathering:{lvl:1,xp:0} };
+  if (!s.lifeSkills.gathering) s.lifeSkills.gathering = {lvl:1,xp:0};
+  if (!s.materials) s.materials = { fish:0, wood:0, meal:0 };
+  if (!s.chapelBought) s.chapelBought = {};
+  if (!s.chatsBought) s.chatsBought = {};
+  ['herb','hide','venomsac','glowdust'].forEach(k => { if (s.materials[k] === undefined) s.materials[k] = 0; });
+  // hunts already cleared are known by deed, not rumor
+  // new equipment slots
+  const _slots = { shields:'no_shield', helms:'no_helm', gloves:'no_gloves', boots:'no_boots', pants:'no_pants' };
+  Object.entries(_slots).forEach(([k,def]) => {
+    if (!s[k]) s[k] = [def];
+    const eqKey = k.replace(/s$/,'');
+    if (!s.equipped[eqKey]) s.equipped[eqKey] = def;
+  });
+  // stats
+  if (!s.stats) s.stats = { str:0, dex:0, int:0, vit:0, end:0 };
+  if (s.statPoints === undefined) s.statPoints = 0;
+  // bag
+  if (!s.bag) s.bag = [];
+  if (s.bagCap === undefined) s.bagCap = 15;
+  if (!s.bpBought) s.bpBought = {};
+  if (s.dailyClaimed === undefined) s.dailyClaimed = null;
+  if (s.expedition === undefined) s.expedition = null;
+  if (!s.sex) s.sex = 'm';
+  if (typeof RUMORS !== 'undefined') RUMORS.forEach(r => { if (s.questsCleared > r.questIdx) s.rumors[r.id] = true; });
+  return s;
+}
+function load() {
+  // Check stored session first
+  try {
+    const stored = localStorage.getItem('gradus-session');
+    if (stored) {
+      const { email } = JSON.parse(stored);
+      const data = JSON.parse(localStorage.getItem(saveKey(email)));
+      if (data) { currentEmail = email; S = migrate(data); return; }
+    }
+  } catch(e) {}
+  // Legacy single-save → migrate to offline slot
+  try {
+    const legacy = JSON.parse(localStorage.getItem(LEGACY_KEY));
+    if (legacy) { S = migrate(legacy); currentEmail = null; return; }
+  } catch(e) {}
+  S = null;
+}
+
+
+/* ─── Account system (localStorage, no real auth — local game only) ─── */
+function getAccounts() {
+  try { return JSON.parse(localStorage.getItem(ACCT_KEY)) || {}; } catch(e) { return {}; }
+}
+function saveAccounts(accts) { localStorage.setItem(ACCT_KEY, JSON.stringify(accts)); }
+function switchAuthPanel(panel) {
+  $('login-panel').style.display = panel === 'login' ? '' : 'none';
+  $('register-panel').style.display = panel === 'register' ? '' : 'none';
+}
+function registerAccount() {
+  const email = $('reg-email').value.trim().toLowerCase();
+  const pass  = $('reg-pass').value;
+  $('reg-err').textContent = '';
+  if (!email || !email.includes('@')) { $('reg-err').textContent = 'Enter a valid email.'; return; }
+  if (pass.length < 4) { $('reg-err').textContent = 'Password must be at least 4 characters.'; return; }
+  const accts = getAccounts();
+  if (accts[email]) { $('reg-err').textContent = 'That email is already registered. Log in instead.'; return; }
+  accts[email] = { pass };
+  saveAccounts(accts);
+  currentEmail = email;
+  localStorage.setItem('gradus-session', JSON.stringify({ email }));
+  showScreen('create');  // name + sex chosen on next screen
+}
+function loginAccount() {
+  const email = $('login-email').value.trim().toLowerCase();
+  const pass  = $('login-pass').value;
+  $('login-err').textContent = '';
+  if (!email) { $('login-err').textContent = 'Enter your email.'; return; }
+  const accts = getAccounts();
+  if (!accts[email]) { $('login-err').textContent = 'No account found for that email.'; return; }
+  if (accts[email].pass !== pass) { $('login-err').textContent = 'Wrong password.'; return; }
+  currentEmail = email;
+  localStorage.setItem('gradus-session', JSON.stringify({ email }));
+  const data = JSON.parse(localStorage.getItem(saveKey(email)));
+  if (data) { S = migrate(data); }
+  else { S = migrate(freshState(email.split('@')[0])); save(); }
+  checkAch();
+  showScreen('town');
+}
+let pendingSex = 'm';
+function setSex(s) {
+  pendingSex = s;
+  const bm = $('btn-sex-m'), bf = $('btn-sex-f');
+  if (bm) bm.className = 'btn-sex' + (s === 'm' ? ' btn-sex-active' : '');
+  if (bf) bf.className = 'btn-sex' + (s === 'f' ? ' btn-sex-active' : '');
+}
+function finishCreate() {
+  const name = ($('hero-name').value || '').trim() || 'Wanderer';
+  $('create-err').textContent = '';
+  S = migrate(freshState(name));
+  S.sex = pendingSex;
+  save();
+  toast('Welcome to Oppidum, ' + name + '!');
+  showScreen('town');
+  // First-time tip: show once after creating a character
+  setTimeout(() => {
+    showModal(
+      '<h2>🏰 Welcome to Oppidum</h2>' +
+      '<p class="mt">Here\'s how to get started:</p>' +
+      '<ol style="margin-top:10px;padding-left:20px;line-height:2">' +
+      '<li>📜 <b>Realm Sync</b> — enter today\'s steps &amp; calories to earn Gradus and Ries.</li>' +
+      '<li>🍺 <b>Tavern</b> — accept a quest and battle a monster.</li>' +
+      '<li>🏦 <b>Bank before bosses</b> — your purse is lost if you fall in battle.</li>' +
+      '</ol>' +
+      '<p class="dim mt" style="font-size:12px">Your class unlocks at level 10. You are a Wanderer until then.</p>',
+      [{ label: 'Let\'s go →', cls: 'btn-g' }]
+    );
+  }, 300);
+}
+function logoutAccount() {
+  if (S) save();
+  localStorage.removeItem('gradus-session');
+  currentEmail = null;
+  S = null;
+  questZoneTab = 0;
+  showScreen('title');
+  loadAccountList();
+}
+function loadAccountList() {
+  const accts = getAccounts();
+  const emails = Object.keys(accts);
+  const panel = $('account-list');
+  if (!emails.length) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  $('acct-list-rows').innerHTML = emails.map(e => {
+    const data = JSON.parse(localStorage.getItem(saveKey(e)) || 'null');
+    const info = data ? ` — Lv.${data.level} ${data.heroClass || 'Wanderer'}` : '';
+    return `<button onclick="quickLogin('${e}')">👤 ${e}${info}</button>`;
+  }).join('');
+}
+function quickLogin(email) {
+  $('login-email').value = email;
+  $('login-pass').focus();
+}
+
+/* ---------------- Helpers ---------------- */
+const $ = id => document.getElementById(id);
+const fmt = n => n.toLocaleString('en-US');
+function localDateStr(d) {
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function lastNDays(n) {
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    out.push(localDateStr(d));
+  }
+  return out;
+}
+function dayLabel(dateStr, idx) {
+  if (idx === 0) return 'Today';
+  if (idx === 1) return 'Yesterday';
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+}
+function xpForNext(level) { return level * 100; }
+
+/* ---------------- Retention: streak, daily bonus, loot ---------------- */
+// Consecutive synced days ending today (or yesterday if today isn\'t synced yet)
+function streakDays() {
+  // Only days with >= DAILY_STEP_GOAL steps advance the streak
+  let n = 0;
+  const d = new Date();
+  const todayKey = localDateStr(d);
+  const todayEntry = S.syncLog[todayKey];
+  if (!todayEntry || todayEntry.steps < DAILY_STEP_GOAL) d.setDate(d.getDate() - 1);
+  while (true) {
+    const key = localDateStr(d);
+    const entry = S.syncLog[key];
+    if (!entry || entry.steps < DAILY_STEP_GOAL) break;
+    n++;
+    d.setDate(d.getDate() - 1);
+  }
+  return n;
+}
+// +5% earnings per streak day, capped at +50%
+function streakMult() { return 1 + Math.min(streakDays(), 10) * 0.05; }
+// One unlocked quest pays triple, rotating daily
+function dailyBonusIdx() {
+  const today = localDateStr(new Date());
+  let h = 0;
+  for (const ch of today) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return h % Math.min(S.questsCleared + 1, QUESTS.length);
+}
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.style.display = 'block';
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.style.display = 'none', 2200);
+}
+
+/* ---------------- Screens ---------------- */
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $('screen-' + name).classList.add('active');
+  if (name === 'sync') renderSync();
+  if (name === 'town') renderTown();
+  if (name === 'tavern') renderTavern();
+  if (name === 'class') renderClass();
+  if (name === 'stats') renderStats();
+  if (name === 'inv') renderEquipAndGrid();
+  if (name === 'skills') renderSkills();
+  if (name === 'inn') renderInn();
+  if (name === 'bank') renderBank();
+  if (name === 'commons') renderCommons();
+  if (name === 'woodcutting') renderWoodcutting();
+  if (name === 'chapel') renderChapel();
+  if (name === 'lake') renderLake();
+  if (name === 'hunt') renderHunt();
+  if (name === 'craft') renderCraft();
+  if (name === 'expedition') renderExpedition();
+  if (name === 'death') renderDeathScreen();
+  renderHUD();
+}
+
+/* ---------------- HUD ---------------- */
+/* ---- Local clock ---- */
+function updateClock() {
+  const el = $('hud-clock');
+  if (!el) return;
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const s2 = String(now.getSeconds()).padStart(2,'0');
+  el.textContent = `${h}:${m}:${s2}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+function renderHUD() {
+  if (!S) return;
+  $('hud').style.display = 'block';
+  $('hud-name').textContent = S.name + (S.title ? ' ' + S.title : '');
+  $('hud-sound').textContent = S.sound === false ? '🔇' : '🔊';
+  $('hud-music').textContent = S.music === false ? '🎵̸' : '🎵';
+  $('hud-music').style.opacity = S.music === false ? '.45' : '1';
+  $('hud-level').textContent = S.level;
+  $('hud-class').textContent = S.heroClass ? '· ' + S.heroClass : '· Wanderer';
+  $('hud-gradus').textContent = fmt(S.gradus);
+  $('hud-ries').textContent = fmt(S.ries);
+  const _maxhp = heroMaxHP(); $('hud-hp').textContent = (S.wounded ? Math.round(_maxhp * 0.25) : _maxhp) + '/' + _maxhp;
+  $('hp-mini').style.width = (S.wounded ? 25 : 100) + '%';
+  $('en-mini').style.width = Math.min(100, S.ries / 4000 * 100) + '%';
+  $('hud-weapon').textContent = dispName(WEAPONS.find(w => w.id === S.equipped.weapon));
+  $('hud-armor').textContent  = dispName(ARMOR.find(a => a.id === S.equipped.armor));
+  $('hud-streak').textContent = streakDays();
+  const _todaySteps = (S.syncLog[localDateStr(new Date())] || {}).steps || 0;
+  const _goalBadge = $('hud-goal-badge');
+  if (_goalBadge) {
+    if (_todaySteps >= STRETCH_STEP_GOAL)    { _goalBadge.style.display = ''; _goalBadge.textContent = '⭐ 10K'; }
+    else if (_todaySteps >= DAILY_STEP_GOAL) { _goalBadge.style.display = ''; _goalBadge.textContent = '🎯 7K'; }
+    else                                     { _goalBadge.style.display = 'none'; }
+  }
+  $('xpfill').style.width = Math.min(100, Math.round(100 * S.xp / xpForNext(S.level))) + '%';
+  const _spb = $('hud-sp-badge'); if (_spb) { _spb.style.display = S.statPoints > 0 ? '' : 'none'; if (S.statPoints > 0) _spb.textContent = '⬆️ ' + S.statPoints; }
+}
+
+/* ---------------- Title ---------------- */
+/* ---------------- Town (clickable map with menu fallback) ----------------
+   Drop the painted town image into the game folder as `town.png` and the
+   map takes over; without it, the classic menu shows. Hotspot positions
+   are percentages of the 1280×720 art. */
+const TOWN_HOTSPOTS = [
+  { l:4,    t:3.5, w:18,   h:29, label:'🏦 Bank',            act:() => showScreen('bank') },
+  { l:26.5, t:3.5, w:20,   h:28, label:'🍺 Tavern',          act:() => showScreen('tavern') },
+  { l:33,   t:13,  w:28,   h:45, label:'📜 The Keep — Realm Sync', act:() => showScreen('sync') },
+  { l:54.5, t:2,   w:16.5, h:24, label:'🛡️ Armorer',         act:() => openShop('armorer') },
+  { l:71.5, t:16,  w:14.5, h:21, label:'⚒️ Blacksmith',      act:() => openShop('blacksmith') },
+  { l:85.5, t:7.5, w:13,   h:52, label:'🧪 Apothecary',      act:() => openShop('apothecary') },
+  { l:68,   t:53,  w:16,   h:26, label:'🛏️ Inn',             act:() => showScreen('inn') },
+  { l:84.5, t:62,  w:15.5, h:36, label:'🏹 Woodsmith',       act:() => openShop('woodsmith') },
+  { l:10,   t:37,  w:23,   h:56, label:'🧺 The Commons',     act:() => showScreen('commons') },
+  { l:42.5, t:64,  w:14.5, h:34, label:'⛪ Chapel',          act:() => showScreen('chapel') },
+  { l:0,    t:53,  w:9.5,  h:40, label:'📚 Library',         act:() => showScreen('library') },
+  { l:24,   t:90.5,w:17,   h:9,  label:'🌾 Hunting Grounds', act:() => showScreen('hunt') },
+  { l:58,   t:90.5,w:16,   h:9,  label:'🎣 Lake Path',       act:() => showScreen('lake') },
+  // Town NPCs (flavor)
+  ...TOWN_NPCS.map(n => ({ l:n.l, t:n.t, w:7, h:10, label:n.label, act:() => showTownNPC(n) })),
+];
+let TOWN_HOTS_BUILT = false;
+function initTownMap() {
+  const img = $('town-img');
+  img.onload = () => {
+    $('town-map').style.display = 'block';
+    $('town-menu').style.display = 'none';
+    if (TOWN_HOTS_BUILT) return;
+    TOWN_HOTS_BUILT = true;
+    TOWN_HOTSPOTS.forEach((h, i) => {
+      const d = document.createElement('div');
+      d.className = 'hot';
+      d.style.cssText = `left:${h.l}%;top:${h.t}%;width:${h.w}%;height:${h.h}%`;
+      d.innerHTML = `<span>${h.label}</span>`;
+      d.onclick = () => TOWN_HOTSPOTS[i].act();
+      $('town-map').appendChild(d);
+    });
+  };
+  img.onerror = () => {                       // no town.png: classic menu
+    $('town-map').style.display = 'none';
+    $('town-menu').style.display = 'block';
+  };
+  img.src = 'town.png';
+}
+function renderTown() {
+  $('stat-steps').textContent = fmt(S.lifetimeSteps);
+  $('stat-cals').textContent = fmt(S.lifetimeCalories);
+  // Expedition return indicator on button
+  const eb = $('town-exped-btn');
+  if (eb && S.expedition) {
+    const ready = Date.now() >= S.expedition.returns;
+    eb.innerHTML = ready
+      ? '⛺ Expedition — <span style="color:var(--gold);font-weight:bold">✅ Returned! Collect rewards</span>'
+      : '⛺ Expedition — <span class="dim">away: ' + S.expedition.label + '</span>';
+  } else if (eb) {
+    eb.innerHTML = '⛺ Expedition — <span class="dim">passive income while away</span>';
+  }
+  // Daily reward: show once per calendar day
+  checkDailyClaim();
+}
+
+/* ---------------- Daily Login Reward ---------------- */
+const DEATH_QUOTES = [
+  '"The road is long. Rest. Return." — Reeve Ostric',
+  '"Every wanderer falls. Not every wanderer gets up." — Elder Croft',
+  '"The Bank vault holds. Your legend does not end here." — Master Aurelius',
+  '"Come back better." — Senna the Scout',
+  '"The Inn fire is still lit. It will be." — Osgar the keeper',
+];
+function checkDailyClaim() {
+  const today = localDateStr(new Date());
+  if (S.dailyClaimed === today) return;
+  // Scale reward based on yesterday's step count
+  const yesterday = localDateStr(new Date(Date.now() - 86400000));
+  const ySteps = (S.syncLog[yesterday] || {}).steps || 0;
+  let gradusBase, riesBase, tierLabel;
+  if (ySteps >= STRETCH_STEP_GOAL) {
+    gradusBase = 1200; riesBase = 300; tierLabel = '⭐ 10K Explorer';
+  } else if (ySteps >= DAILY_STEP_GOAL) {
+    gradusBase = 700; riesBase = 180; tierLabel = '🎯 Daily Wanderer (7K+)';
+  } else if (ySteps > 0) {
+    gradusBase = 350; riesBase = 90; tierLabel = '🚶 Wanderer (under 7K)';
+  } else {
+    gradusBase = 150; riesBase = 40; tierLabel = '😴 No steps synced yesterday';
+  }
+  const streak = streakDays();
+  const streakTxt = streak > 0 ? `<p class="dim mt" style="color:var(--gold)">🔥 ${streak}-day streak!</p>` : '';
+  showModal(
+    `<h2>🌅 Daily Reward</h2>` +
+    `<p class="dim mt" style="font-style:italic">"Another day walked. The realm remembers."</p>` +
+    `<p class="dim">${tierLabel}</p>` +
+    streakTxt +
+    `<p class="mt" style="font-size:20px;letter-spacing:1px">🪙 +${fmt(gradusBase)} Gradus</p>` +
+    `<p style="font-size:18px">⚡ +${fmt(riesBase)} Ries</p>`,
+    [{ label: '✅ Claim reward', cls: 'btn-g', fn: () => {
+      S.gradus     += gradusBase;
+      S.ries       += riesBase;
+      S.dailyClaimed = today;
+      save(); checkAch(); renderHUD();
+      toast('Daily reward claimed!');
+    }}]
+  );
+}
+
+/* ---------------- Expedition System ---------------- */
+const EXPED_TYPES = {
+  scout:   { label:'Scout',    hours:4,  baseMin:400,  baseMax:800,  matChance:0.25 },
+  patrol:  { label:'Patrol',   hours:8,  baseMin:900,  baseMax:1800, matChance:0.45 },
+  deeprun: { label:'Deep Run', hours:24, baseMin:2800, baseMax:5600, matChance:0.75 },
+};
+function startExpedition(type) {
+  if (S.expedition) { toast('You are already on an expedition.'); return; }
+  if (S.wounded)    { toast('You are wounded — rest first.'); return; }
+  const e = EXPED_TYPES[type];
+  if (!e) return;
+  const now = Date.now();
+  S.expedition = { type, label:e.label, started:now, returns:now + e.hours*3600000, level:S.level };
+  save(); sfx('coin');
+  toast('\u26FA ' + e.label + ' begins — returns in ' + e.hours + 'h.');
+  renderExpedition(); renderTown(); renderHUD();
+}
+function collectExpedition() {
+  const e = S.expedition;
+  if (!e || Date.now() < e.returns) return;
+  const cfg = EXPED_TYPES[e.type];
+  const g = Math.round((cfg.baseMin + Math.random()*(cfg.baseMax-cfg.baseMin)) * e.level);
+  S.gradus += g;
+  let msg = '\u26FA ' + e.label + ' returned — +' + fmt(g) + ' Gradus';
+  if (Math.random() < cfg.matChance) {
+    const mats = ['herb','hide','wood','fish','glowdust'];
+    const zone = S.questsCleared >= 17 ? mats : mats.slice(0,4);
+    const m = zone[Math.floor(Math.random()*zone.length)];
+    S.materials[m] = (S.materials[m]||0) + 1;
+    msg += ' \u00b7 +1 ' + (MATS[m]||[m])[0];
+  }
+  S.expedition = null;
+  save(); sfx('coin'); checkAch();
+  toast(msg);
+  renderExpedition(); renderTown(); renderHUD();
+}
+function renderExpedition() {
+  const el = $('expedition-status');
+  if (!el) return;
+  const now = Date.now();
+  if (S.expedition) {
+    const e = S.expedition;
+    const remaining = e.returns - now;
+    if (remaining > 0) {
+      const h = Math.floor(remaining / 3600000);
+      const m = Math.floor((remaining % 3600000) / 60000);
+      el.innerHTML =
+        '<p>\u26FA <b>' + e.label + '</b> — your hero is away.</p>' +
+        '<p class="dim mt">Returns in <b>' + h + 'h ' + m + 'm</b>.</p>' +
+        '<div class="mt"><button disabled>\u23F3 Still away...</button></div>';
+    } else {
+      el.innerHTML =
+        '<p style="color:var(--gold)">\u26FA <b>' + e.label + '</b> has returned!</p>' +
+        '<button class="btn-g mt" onclick="collectExpedition()">\uD83D\uDCB0 Collect rewards</button>';
+    }
+  } else {
+    const wd = S.wounded;
+    const lvl = S.level;
+    el.innerHTML =
+      '<p class="dim">Choose an expedition. Your hero returns with Gradus and materials based on your level.</p>' +
+      '<table class="mt"><tbody>' +
+      '<tr><td>\u26FA <b>Scout</b><br><span class="dim">4 hours · ' + fmt(400*lvl) + '–' + fmt(800*lvl) + ' Gradus + chance of materials</span></td>' +
+      '<td class="r"><button onclick="startExpedition(\'scout\')" ' + (wd?'disabled':'') + '>Send \u2192</button></td></tr>' +
+      '<tr><td>\u26FA <b>Patrol</b><br><span class="dim">8 hours · ' + fmt(900*lvl) + '–' + fmt(1800*lvl) + ' Gradus + materials</span></td>' +
+      '<td class="r"><button onclick="startExpedition(\'patrol\')" ' + (wd?'disabled':'') + '>Send \u2192</button></td></tr>' +
+      '<tr><td>\u26FA <b>Deep Run</b><br><span class="dim">24 hours · ' + fmt(2800*lvl) + '–' + fmt(5600*lvl) + ' Gradus + rare materials</span></td>' +
+      '<td class="r"><button onclick="startExpedition(\'deeprun\')" ' + (wd?'disabled':'') + '>Send \u2192</button></td></tr>' +
+      '</tbody></table>';
+  }
+}
+
+/* ---------------- Death Screen ---------------- */
+function renderDeathScreen() { /* populated by showDeathScreen() — no-op here */ }
+function showDeathScreen(monsterName, lostGradus, xpGained) {
+  $('death-scene').textContent = '\uD83D\uDC80';
+  $('death-stats').innerHTML =
+    '<b>Slain by:</b> ' + monsterName + '<br>' +
+    (lostGradus ? '<b style="color:var(--red)">Gradus lost:</b> ' + fmt(lostGradus) + ' (looters took your purse)<br>' : '') +
+    (xpGained ? '<b>XP earned:</b> ' + xpGained + '<br>' : '') +
+    '<b style="color:var(--gold)">Vault:</b> ' + fmt(S.bank) + ' Gradus safe in the Bank';
+  const q = DEATH_QUOTES[Math.floor(Math.random()*DEATH_QUOTES.length)];
+  $('death-quote').textContent = q;
+  showScreen('death');
+}
+
+/* ---------------- Sync ---------------- */
+/* ---- cloud account (uses the same worker, see INTEGRATION.md) ---- */
+/* cloud auth removed — local account system used instead */
+
+function renderSync() {
+  $('backend-url').value = S.backend || '';
+  const rows = lastNDays(BACK_DAYS).map((date, i) => {
+    const logged = S.syncLog[date];
+    if (logged) {
+      return `<tr>
+        <td>${dayLabel(date, i)}</td>
+        <td class="synced">${fmt(logged.steps)} 🪙</td>
+        <td class="synced">${fmt(logged.calories)} 🔥</td>
+        <td class="synced">✔ reported</td>
+      </tr>`;
+    }
+    return `<tr>
+      <td>${dayLabel(date, i)}</td>
+      <td><input type="number" min="0" id="steps-${date}" placeholder="steps"></td>
+      <td><input type="number" min="0" id="cals-${date}" placeholder="kcal"></td>
+      <td><button onclick="syncDay('${date}')">Report</button></td>
+    </tr>`;
+  });
+  // Today's goal progress bar
+  const _td = localDateStr(new Date());
+  const _tdEntry = S.syncLog[_td];
+  const _tdSteps = _tdEntry ? _tdEntry.steps : null;
+  const _goalBar = $('sync-goal-bar');
+  if (_goalBar) {
+    if (_tdSteps !== null) {
+      const _pct = Math.min(100, Math.round(_tdSteps / DAILY_STEP_GOAL * 100));
+      const _pct10 = Math.min(100, Math.round(_tdSteps / STRETCH_STEP_GOAL * 100));
+      const _badge = _tdSteps >= STRETCH_STEP_GOAL ? '⭐' : _tdSteps >= DAILY_STEP_GOAL ? '🎯' : '🚶';
+      _goalBar.innerHTML = `<div style="margin:8px 0 4px"><b>${_badge} Today: ${fmt(_tdSteps)} / ${fmt(DAILY_STEP_GOAL)} steps</b> &nbsp;<span class="dim">(${_pct}%)</span></div>`+
+        `<div style="background:#333;border-radius:4px;height:10px;max-width:340px">`+
+        `<div style="background:${_tdSteps>=DAILY_STEP_GOAL?'var(--gold)':'var(--ries)'};width:${_pct}%;height:100%;border-radius:4px;transition:width .3s"></div></div>`;
+    } else {
+      _goalBar.innerHTML = '<p class="dim" style="margin:6px 0 2px">🚶 No steps logged today yet.</p>';
+    }
+  }
+  $('sync-rows').innerHTML = rows.join('');
+  // Restore device-link value (field moved to bottom of screen via HTML injection)
+  const dlField = $('backend-url');
+  if (dlField && S) dlField.value = S.backend || '';
+}
+
+// Caps applied here: excess beyond 50K steps / 4K kcal is ignored.
+function applyCaps(steps, calories) {
+  return {
+    steps: Math.max(0, Math.min(Math.floor(steps) || 0, STEP_CAP)),
+    calories: Math.max(0, Math.min(Math.floor(calories) || 0, CAL_CAP)),
+  };
+}
+
+// Core crediting: caps + streak bonus + wallets. Used by manual entry AND device pull.
+function creditDay(date, rawSteps, rawCals) {
+  if (S.syncLog[date]) return null;
+  const { steps, calories } = applyCaps(rawSteps, rawCals);
+  if (!steps && !calories) return null;
+  S.syncLog[date] = { steps, calories };
+  const mult = streakMult();                       // includes the day just reported
+  const g = Math.round(steps * mult), ri = Math.round(calories * mult);
+  S.gradus += g;
+  S.ries += ri;
+  S.lifetimeSteps += steps;
+  S.lifetimeCalories += calories;
+  // Threshold bonuses: 7K daily goal and 10K stretch goal
+  let bonusG = 0, bonusR = 0;
+  if (steps >= DAILY_STEP_GOAL)   { bonusG += 2000; bonusR += 200; }
+  if (steps >= STRETCH_STEP_GOAL) { bonusG += 1500; }
+  S.gradus += bonusG; S.ries += bonusR;
+  return { g, ri, mult, bonusG, bonusR, capped: rawSteps > STEP_CAP || rawCals > CAL_CAP };
+}
+async function syncDay(date) {
+  if (S.syncLog[date]) { toast('That day is already reported.'); return; }
+  const rawSteps = Number($('steps-' + date).value);
+  const rawCals  = Number($('cals-' + date).value);
+  if (!rawSteps && !rawCals) { toast('Enter steps or calories first.'); return; }
+
+  provider.stage(date, rawSteps, rawCals);                 // UI -> provider
+  const activity = await provider.getActivity(date);       // provider -> game
+  const res = creditDay(date, activity.steps, activity.calories);
+  if (!res) return;
+  save();
+
+  const capped = res.capped ? ' (daily limit applied)' : '';
+  const bonus = res.mult > 1 ? ` · 🔥+${Math.round((res.mult - 1) * 100)}% streak` : '';
+  const goal  = res.bonusG >= 3500 ? ' · ⭐ 10K bonus!' : res.bonusG >= 2000 ? ' · 🎯 7K bonus!' : '';
+  sfx('coin');
+  toast(`+${fmt(res.g)} Gradus · +${fmt(res.ri)} Ries${bonus}${goal}${capped}`);
+  checkAch();
+  renderSync(); renderHUD();
+}
+
+/* ---- device link (Terra via the Cloudflare worker, see INTEGRATION.md) ---- */
+function saveBackend() {
+  S.backend = $('backend-url').value.trim().replace(/\/+$/, '');
+  save();
+  toast(S.backend ? 'Device link saved.' : 'Device link cleared.');
+}
+function connectDevice() {
+  if (!S.backend) { toast('Save your device-link URL first.'); return; }
+  window.open(S.backend + '/connect', '_blank');
+}
+async function pullDevice() {
+  if (!S.backend) { toast('Save your device-link URL first.'); return; }
+  toast('📡 Reaching across the realms…');
+  try {
+    const r = await fetch(S.backend + '/activity?days=' + BACK_DAYS);
+    const days = await r.json();
+    let credited = 0, totG = 0, totR = 0;
+    days.forEach(d => {
+      const res = creditDay(d.date, d.steps || 0, d.calories || 0);
+      if (res) { credited++; totG += res.g; totR += res.ri; }
+    });
+    save(); checkAch();
+    renderSync(); renderHUD();
+    if (credited) { sfx('coin'); toast(`📡 ${credited} day(s) from your device: +${fmt(totG)} Gradus · +${fmt(totR)} Ries`); }
+    else toast('Nothing new from the device.');
+  } catch (e) {
+    toast('Device link failed. Check the URL and worker.');
+  }
+}
+
+/* ---------------- Shops ---------------- */
+const SHOPS = {
+  blacksmith: { title:'⚒️ Blacksmith', blurb:'"Steel for the road, and the forge can always make yours bite harder." — Wulfric the smith',
+    items: [...WEAPONS.filter(w => w.shop !== 'wood'), ...GLOVES], kind:'weapon' },
+  woodsmith:  { title:'🏹 Woodsmith',  blurb:'"Yew, ash, and heartwood. The forest provides, friend." — Aldwin the bowyer',
+    items: WEAPONS.filter(w => w.shop === 'wood'), kind:'weapon' },
+  armorer:    { title:'🛡️ Armorer',    blurb:'"A dead hero buys nothing. Armor up." — Brunhild the armorer',
+    items: [...ARMOR, ...SHIELDS, ...HELMS, ...BOOTS, ...PANTS], kind:'armor' },
+  apothecary: { title:'🧪 Apothecary', blurb:'"Brewed at dawn. Drink responsibly." — Mother Elswyth',
+    items: POTIONS, kind:'potion' },
+  general:    { title:'🏪 General Store', blurb:'"A little of everything, and a price for whatever you carry." — Bram the storekeeper',
+    items: [...POTIONS, ...BACKPACKS], kind:'general' },
+};
+const SHOP_VENDORS = {
+  blacksmith: { icon:'⚒️', name:'Wulfric the Smith',     quote:'"Steel doesn\'t lie. Neither do I. Show me what you need." — Wulfric, son of Wulfgar' },
+  woodsmith:  { icon:'🏹', name:'Aldwin the Bowyer',      quote:'"Yew bends, it doesn\'t break. Same rule applies to the man holding it." — Aldwin' },
+  armorer:    { icon:'🛡️', name:'Brunhild the Armorer',   quote:'"A dead hero buys nothing. Armor up before you die proving that wrong." — Brunhild' },
+  apothecary: { icon:'🌿', name:'Mother Elswyth',         quote:'"Brewed at dawn, blessed by habit. Drink it before the fight, not after." — Elswyth' },
+  general:    { icon:'🧺', name:'Bram the Storekeeper',   quote:'"A little of everything. If I don\'t have it, you don\'t need it." — Bram' },
+};
+let currentShop = null;
+
+const SHOP_ICONS = { blacksmith: 'anvil', woodsmith: 'bowicon', armorer: 'shield', apothecary: 'flask', general: 'mug' };
+function openShop(id) {
+  currentShop = id;
+  const shop = SHOPS[id];
+  $('shop-title').innerHTML = PIX[SHOP_ICONS[id]] + shop.title.replace(/^[^ ]+ /, '');
+  const _v = SHOP_VENDORS[id];
+  $('shop-vendor').innerHTML = _v
+    ? `<div class="vendor-card"><span class="vicon">${_v.icon}</span><div><div class="vname">${_v.name}</div><div class="vquote">${_v.quote}</div></div></div>`
+    : '';
+  renderShop();
+  showScreen('shop');
+}
+
+function itemSection(item) {
+  if (item.slots !== undefined)   return '🎒 Bag Upgrades';
+  if (item.slot === 'shield')     return '🛡️ Shields';
+  if (item.slot === 'helm')       return '⛑️ Helms';
+  if (item.slot === 'gloves')     return '🧤 Gauntlets';
+  if (item.slot === 'boots')      return '👢 Boots';
+  if (item.slot === 'pants')      return '🩲 Leggings';
+  if (item.def !== undefined && !item.slot) return '🧥 Body Armor';
+  if (item.type === 'crossbow')   return '🏹 Crossbows';
+  if (item.type === 'bow')        return '🏹 Bows';
+  if (item.type === 'staff')      return '🪄 Staves';
+  if (item.desc)                  return '🧪 Potions';
+  return '⚔️ Swords & Blades';
+}
+function renderShop() {
+  const shop = SHOPS[currentShop];
+  let _lastSec = null;
+  const _itemRows = [];
+  shop.items.forEach(item => {
+    const _sec = itemSection(item);
+    if (_sec !== _lastSec) {
+      _itemRows.push(`<tr class="shop-section"><td colspan="4">${_sec}</td></tr>`);
+      _lastSec = _sec;
+    }
+    let stat = '—';
+    if (item.atk !== undefined) stat = `ATK ${item.atk}${item.slot !== 'gloves' ? ' · ' + wtype(item) : ''}`;
+    else if (item.def !== undefined) stat = `DEF ${item.def}`;
+    else if (item.desc) stat = item.desc;
+    else if (item.slots) stat = `+${item.slots} bag slots`;
+    let action = '';
+    const isGeneral = shop.kind === 'general';
+    if (isGeneral && item.slots) {
+      // backpack upgrade
+      action = S.bpBought && S.bpBought[item.id] ? '<span class="owned">OWNED</span>' : '';
+      const owned = S.bpBought && S.bpBought[item.id];
+      const buyBtn = owned ? '' : `<button class="btn-g" onclick="buyItem('${item.id}','g')" ${S.gradus < item.g ? 'disabled' : ''}>${fmt(item.g)}</button>`;
+      _itemRows.push(`<tr><td>🎒 <b>${item.name}</b><br><span class="dim">${stat}</span></td><td>${action}</td><td class="r">${buyBtn}</td></tr>`);
+      return;
+    }
+    let ownedList = null, equippedId = null;
+    if (shop.kind === 'potion' || isGeneral) {
+      const owned = S.potions[item.gives || item.id] || 0;
+      action = `<span class="dim">${owned ? 'x' + owned + ' owned' : ''}</span>`;
+    } else {
+      const slotKey = item.slot;
+      if (slotKey === 'shield')      { ownedList = S.shields;  equippedId = S.equipped.shield; }
+      else if (slotKey === 'helm')   { ownedList = S.helms;    equippedId = S.equipped.helm; }
+      else if (slotKey === 'gloves') { ownedList = S.gloves;   equippedId = S.equipped.gloves; }
+      else if (slotKey === 'boots')  { ownedList = S.boots;    equippedId = S.equipped.boots; }
+      else if (slotKey === 'pants')  { ownedList = S.pants;    equippedId = S.equipped.pants; }
+      else if (shop.kind === 'weapon') { ownedList = S.weapons; equippedId = S.equipped.weapon; }
+      else                           { ownedList = S.armor;    equippedId = S.equipped.armor; }
+      if (item.id === equippedId) action = `<span class="owned">EQUIPPED</span>`;
+      else if (ownedList && ownedList.includes(item.id)) {
+        action = `<button class="btn-eq" onclick="equipItem('${item.id}')">Equip</button>`;
+      }
+    }
+    const locked = item.zone === 2 && S.questsCleared < FOREST_UNLOCK;
+    if (locked) action = `<span class="dim">🔒 Greenwood</span>`;
+    const isOwnedGear = !isGeneral && ownedList && ownedList.includes(item.id);
+    const buyBtns = (item.g === 0 || isOwnedGear || locked) ? '' :
+      `<button class="btn-g" onclick="buyItem('${item.id}','g')" ${S.gradus < item.g ? 'disabled' : ''}>${fmt(item.g)}</button>`;
+    const gradeTag = item.grade ? ` <span class="gold">[${item.grade}]</span>` : '';
+    const itemRowHtml = `<tr>
+      <td>${item.name}${gradeTag}<br><span class="dim">${stat}</span></td>
+      <td>${action}</td>
+      <td class="r">${item.g === 0 ? '<span class="dim">—</span>' : (buyBtns ? '' : '<span class="dim">' + fmt(item.g) + '</span>')}</td>
+      <td class="r">${buyBtns}</td>
+    </tr>`;
+    _itemRows.push(itemRowHtml);
+  });
+  $('shop-rows').innerHTML = _itemRows.join('');
+  renderSellSection();
+  renderForge();
+}
+/* Blacksmith forge: upgrade owned gear, +4% per level, max +5, paid in Gradus */
+function renderForge() {
+  if (currentShop === 'woodsmith') {
+    $('shop-extra').innerHTML = `<p class="mt"><button onclick="showScreen('craft')">🛠 Use the crafting bench</button></p>`;
+    return;
+  }
+  if (currentShop !== 'blacksmith') { $('shop-extra').innerHTML = ''; return; }
+  const owned = [
+    ...S.weapons.map(id => WEAPONS.find(x => x.id === id)),
+    ...S.armor.map(id => ARMOR.find(x => x.id === id)),
+  ].filter(it => it && it.g > 0);
+  const rows = owned.map(it => {
+    const lvl = upgradeLvl(it.id);
+    const stat = it.atk !== undefined
+      ? `ATK ${Math.round(it.atk * upMult(it.id))}`
+      : `DEF ${Math.round(it.def * upMult(it.id))}`;
+    let action;
+    if (lvl >= 5) action = '<span class="gold">MAX +5</span>';
+    else {
+      const riesCost = upgradeCost(it, lvl + 1);
+      const goldCost = upgradeGoldCost(it, lvl + 1);
+      const canUpgrade = S.ries >= riesCost && S.gradus >= goldCost;
+      action = `<button class="btn-r" onclick="upgradeItem('${it.id}')" ${canUpgrade ? '' : 'disabled'}>+${lvl + 1} — 🪙${fmt(goldCost)} · ⚡${fmt(riesCost)}</button>`;
+    }
+    return `<tr><td>${dispName(it)}${it.grade ? ` <span class="gold">[${it.grade}]</span>` : ''}<br><span class="dim">${stat}</span></td><td class="r">${action}</td></tr>`;
+  }).join('');
+  $('shop-extra').innerHTML = `<h2 class="mt">🔧 The Forge</h2>
+    <p class="dim footer-note">"Bring me what you own — I\'ll make it bite harder." +4% per level, up to +5. The forge feeds on ⚡ Ries energy.</p>
+    <table class="mt"><tbody>${rows || '<tr><td class="dim">Nothing worth the hammer yet.</td></tr>'}</tbody></table>
+    <p class="mt"><button onclick="showScreen('craft')">🛠 Use the crafting bench</button></p>`;
+}
+/* ─── Sell section ─── */
+function renderSellSection() {
+  const sellable = currentShop === 'general' || currentShop === 'blacksmith' || currentShop === 'woodsmith' || currentShop === 'armorer';
+  if (!sellable) return;
+  // Collect sellable items: gear + junk
+  const items = [];
+  if (currentShop === 'blacksmith' || currentShop === 'woodsmith' || currentShop === 'general') {
+    S.weapons.filter(id => id !== S.equipped.weapon && id !== 'rusty').forEach(id => {
+      const it = WEAPONS.find(x => x.id === id);
+      if (it && it.g > 0) items.push({ label: it.name + (upgradeLvl(id) ? ' +' + upgradeLvl(id) : ''), value: Math.round(it.g * 0.30), id, type:'weapon' });
+    });
+    S.gloves.filter(id => id !== S.equipped.gloves && id !== 'no_gloves').forEach(id => {
+      const it = GLOVES.find(x => x.id === id);
+      if (it && it.g > 0) items.push({ label: it.name, value: Math.round(it.g * 0.30), id, type:'gloves' });
+    });
+  }
+  if (currentShop === 'armorer' || currentShop === 'general') {
+    S.armor.filter(id => id !== S.equipped.armor && id !== 'cloth').forEach(id => {
+      const it = ARMOR.find(x => x.id === id);
+      if (it && it.g > 0) items.push({ label: it.name, value: Math.round(it.g * 0.30), id, type:'armor' });
+    });
+    ['shields','helms','boots','pants'].forEach(arrKey => {
+      const arr = S[arrKey] || [];
+      const slot = arrKey.replace(/s$/,''); // 'shield', 'helm', etc.
+      const equipped = S.equipped[slot === 'pants' ? 'pants' : slot];
+      const cat = { shields:SHIELDS, helms:HELMS, boots:BOOTS, pants:PANTS }[arrKey];
+      arr.filter(id => id !== equipped && !id.startsWith('no_')).forEach(id => {
+        const it = cat.find(x => x.id === id);
+        if (it && it.g > 0) items.push({ label: it.name, value: Math.round(it.g * 0.30), id, type:slot });
+      });
+    });
+  }
+  if (currentShop === 'general') {
+    S.bag.forEach((b, i) => items.push({ label: `${b.icon} ${b.name} ×${b.qty}`, value: b.value * b.qty, id: b.id, type:'junk', bagIdx: i }));
+  }
+  if (!items.length) {
+    if (currentShop === 'general') {
+      const el = $('shop-extra');
+      el.innerHTML = (el.innerHTML || '') + '<h2 class="mt">💰 Sell Loot</h2><p class="dim footer-note">No gear or junk to sell.</p>';
+    }
+    return;
+  }
+  const rows = items.map((item, li) =>
+    `<tr><td>${item.label}</td><td class="r"><span class="gold">🪙 ${fmt(item.value)}</span></td>
+     <td class="r"><button class="btn-r" onclick="sellItem(${li})">Sell</button></td></tr>`
+  ).join('');
+  const el = $('shop-extra');
+  el.innerHTML = (el.innerHTML || '') +
+    `<h2 class="mt">💰 Sell</h2><p class="dim footer-note">You receive 30% of purchase price.</p>
+     <table class="mt"><tbody>${rows}</tbody></table>`;
+  // stash the items list for sell callbacks
+  _sellItems = items;
+}
+function sellItem(li) {
+  const items = _sellItems;
+  if (!items || !items[li]) return;
+  const item = items[li];
+  S.gradus += item.value;
+  if (item.type === 'weapon') S.weapons = S.weapons.filter(id => id !== item.id);
+  else if (item.type === 'armor') S.armor = S.armor.filter(id => id !== item.id);
+  else if (item.type === 'shield') S.shields = S.shields.filter(id => id !== item.id);
+  else if (item.type === 'helm') S.helms = S.helms.filter(id => id !== item.id);
+  else if (item.type === 'gloves') S.gloves = S.gloves.filter(id => id !== item.id);
+  else if (item.type === 'boots') S.boots = S.boots.filter(id => id !== item.id);
+  else if (item.type === 'pants') S.pants = S.pants.filter(id => id !== item.id);
+  else if (item.type === 'junk') {
+    const b = S.bag.find(x => x.id === item.id);
+    if (b) S.bag = S.bag.filter(x => x !== b);
+  }
+  sfx('coin'); toast(`Sold for 🪙 ${fmt(item.value)}!`);
+  save(); renderShop(); renderHUD();
+}
+
+function upgradeItem(id) {
+  const it = WEAPONS.find(x => x.id === id) || ARMOR.find(x => x.id === id);
+  if (!it) return;
+  const lvl = upgradeLvl(id);
+  if (lvl >= 5) return;
+  const riesCost = upgradeCost(it, lvl + 1);
+  const goldCost = upgradeGoldCost(it, lvl + 1);
+  if (S.ries < riesCost) { toast('Not enough ⚡ Ries.'); return; }
+  if (S.gradus < goldCost) { toast('Not enough 🪙 Gradus.'); return; }
+  S.ries -= riesCost;
+  S.gradus -= goldCost;
+  S.upgrades[id] = lvl + 1;
+  save(); sfx('hit');
+  toast(`⚒️ ${it.name} is now +${lvl + 1}!`);
+  renderShop(); renderHUD();
+}
+
+function buyItem(itemId, currency) {
+  const shop = SHOPS[currentShop];
+  const item = shop.items.find(i => i.id === itemId);
+  const cost = currency === 'g' ? item.g : item.r;
+  const wallet = currency === 'g' ? 'gradus' : 'ries';
+  if (S[wallet] < cost) { toast('Not enough ' + (currency === 'g' ? 'Gradus' : 'Ries') + '!'); return; }
+  S[wallet] -= cost;
+  if (shop.kind === 'general' && item.slots) {
+    // backpack upgrade
+    if (S.bpBought[item.id]) { toast('Already upgraded!'); return; }
+    S.bpBought[item.id] = true;
+    S.bagCap += item.slots;
+    sfx('coin'); toast(`🎒 Bag expanded: ${S.bagCap} slots.`);
+    save(); renderShop(); renderHUD(); return;
+  }
+  if (shop.kind === 'potion' || shop.kind === 'general') {
+    const key = item.gives || item.id;
+    if (item.qty) S.potions[key] = (S.potions[key] || 0) + item.qty;
+  } else {
+    const slot = item.slot;
+    if (slot === 'shield') { S.shields.push(item.id); S.equipped.shield = item.id; }
+    else if (slot === 'helm') { S.helms.push(item.id); S.equipped.helm = item.id; }
+    else if (slot === 'gloves') { S.gloves.push(item.id); S.equipped.gloves = item.id; }
+    else if (slot === 'boots') { S.boots.push(item.id); S.equipped.boots = item.id; }
+    else if (slot === 'pants') { S.pants.push(item.id); S.equipped.pants = item.id; }
+    else if (shop.kind === 'weapon') { S.weapons.push(item.id); S.equipped.weapon = item.id; }
+    else { S.armor.push(item.id); S.equipped.armor = item.id; }
+  }
+  save();
+  sfx('coin');
+  toast(`Bought ${item.name}!`);
+  renderShop(); renderHUD();
+}
+
+function equipItem(itemId) {
+  if (S.weapons.includes(itemId)) S.equipped.weapon = itemId;
+  else if (S.armor.includes(itemId)) S.equipped.armor = itemId;
+  else if (S.shields.includes(itemId)) S.equipped.shield = itemId;
+  else if (S.helms.includes(itemId)) S.equipped.helm = itemId;
+  else if (S.gloves.includes(itemId)) S.equipped.gloves = itemId;
+  else if (S.boots.includes(itemId)) S.equipped.boots = itemId;
+  else if (S.pants.includes(itemId)) S.equipped.pants = itemId;
+  else return;
+  save();
+  invSel = null;
+  if ($('screen-inv').classList.contains('active')) renderEquipAndGrid();
+  else renderShop();
+  renderHUD();
+}
+
+/* ---------------- Hospitium (inn) ---------------- */
+function restCost() { return 25 * S.level; }
+function roomCost() { return 100 * S.level; }
+function renderInn() {
+  let status;
+  if (S.wounded) {
+    const cost = restCost();
+    const canPay = S.gradus >= cost;
+    status =
+      `<p>🩸 You are <b style="color:var(--red)">wounded</b>. The road is closed to you until you rest.</p>` +
+      `<button class="mt" onclick="doRest()">${canPay ? `🛏️ Rest — ${fmt(cost)} Gradus` : '🛏️ Rest — the keeper takes pity (free)'}</button>`;
+  } else {
+    const rc = roomCost();
+    const canRoom = S.gradus >= rc;
+    status = `<p class="dim">You are hale. The fire crackles; the stew is decent.</p>` +
+      `<button class="mt" onclick="doRoom()" ${canRoom ? '' : 'disabled'}>🛏️ Rent a room — ${fmt(rc)} Gradus (+${fmt(rc*2)} ⚡ Ries · +1 quest bonus)</button>`;
+  }
+  // the common room: rumors that unlock hunts
+  const available = RUMORS.filter(r => S.questsCleared >= r.questIdx);
+  let common = '<h2 class="mt">🍻 The Common Room</h2>';
+  if (!available.length) {
+    common += '<p class="dim footer-note">Tonight the talk is all weather and taxes.</p>';
+  } else {
+    common += available.map(r => S.rumors[r.id]
+      ? `<p class="dim footer-note">✓ You bought a round for ${r.teller} — they spoke of <b>${QUESTS[r.questIdx].name}</b>.</p>`
+      : `<button class="mt" onclick="hearRumor('${r.id}')" ${S.gradus < r.cost ? 'disabled' : ''}>🍻 Buy a round for ${r.teller} — ${fmt(r.cost)} Gradus</button>`
+    ).join('');
+  }
+  $('inn-body').innerHTML = status + common;
+  // Regulars
+  const folk = innFolkToday();
+  const d2 = localDateStr(new Date());
+  const seed2 = d2.split('-').reduce((a,b) => a + parseInt(b), 0);
+  const folkHtml = folk.map((f, fi) => {
+    const line = f.lines[(seed2 + fi * 7) % f.lines.length];
+    return `<div class="npc-card"><span class="npc-icon">${f.icon}</span><div><b>${f.name}</b><br><span class="dim" style="font-style:italic">${line}</span></div></div>`;
+  }).join('');
+  // Quest-chain NPCs always visible in inn
+  const namedNPCs = TOWN_NPCS.filter(n => n.stages);
+  const namedHtml = namedNPCs.length
+    ? '<h2 class="mt">🗣️ Notable Faces</h2>' + namedNPCs.map(n => {
+        const stage = [...n.stages].reverse().find(s => S.questsCleared >= s.q) || n.stages[0];
+        return `<div class="npc-card" onclick="showTownNPC(n)" style="cursor:pointer">`
+          + `<span class="npc-icon">${n.label.split(' ')[0]}</span>`
+          + `<div><b>${n.label.replace(/^\S+\s/,'')}</b><br>`
+          + `<span class="dim" style="font-style:italic">${stage.text.slice(0,80)}${stage.text.length>80?'…':''}</span></div></div>`;
+      }).join('')
+    : '';
+  $('inn-folk').innerHTML = namedHtml + '<h2 class="mt">🪑 Around the Hearth</h2>' + folkHtml;
+}
+function doRoom() {
+  if (S.wounded) { toast('Rest your wounds first.'); return; }
+  const cost = roomCost();
+  if (S.gradus < cost) { toast('Not enough Gradus.'); return; }
+  S.gradus -= cost;
+  // A good night\'s sleep restores Ries and gives a next-quest bonus
+  const riesGain = Math.round(roomCost() * 2);
+  S.ries += riesGain;
+  S.questsToday.bonus = (S.questsToday.bonus || 0) + 1;
+  save(); sfx('potion');
+  toast(`You wake well-rested. +${fmt(riesGain)} ⚡ Ries · +1 quest bonus slot.`);
+  renderInn(); renderHUD();
+}
+function doRest() {
+  if (!S.wounded) return;
+  const cost = restCost();
+  if (S.gradus >= cost) S.gradus -= cost;
+  S.wounded = false;
+  save(); sfx('potion');
+  toast('You wake restored. The road calls.');
+  renderInn(); renderHUD();
+}
+
+/* ---------------- Argentaria (bank) ---------------- */
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setDate(d.getDate() + n);
+  return localDateStr(d);
+}
+function renderBank() {
+  const invested = S.investments.reduce((a, v) => a + v.amount, 0);
+  $('bank-rows').innerHTML =
+    `<tr><td class="dim">Purse (carried — looters take this if you fall)</td><td class="r gold">🪙 ${fmt(S.gradus)}</td></tr>` +
+    `<tr><td class="dim">Vault (safe)</td><td class="r gold">🏦 ${fmt(S.bank)}</td></tr>` +
+    (invested ? `<tr><td class="dim">Sealed in ventures</td><td class="r gold">📜 ${fmt(invested)}</td></tr>` : '');
+  const today = localDateStr(new Date());
+  $('invest-rows').innerHTML = S.investments.length
+    ? S.investments.map((v, i) => {
+        const ready = today >= v.mature;
+        const payout = Math.round(v.amount * (v.rate || 1.05));
+        return `<tr><td>📜 ${fmt(v.amount)} Gradus <span class="dim">· invested ${v.date}</span><br>
+          <span class="dim">${ready ? `Matured — pays ${fmt(payout)}` : `Sealed until ${v.mature} · pays ${fmt(payout)}`}</span></td>
+          <td class="r">${ready ? `<button class="btn-g" onclick="collectInvestment(${i})">💰 Collect</button>` : '<span class="dim">🔒</span>'}</td></tr>`;
+      }).join('')
+    : '<tr><td class="dim">No letters of investment. Your coin sleeps un-grown.</td></tr>';
+}
+function investGradus(days) {
+  const amt = Math.floor(Number($('invest-amt').value)) || 0;
+  if (amt <= 0) { toast('Enter an amount.'); return; }
+  if (amt > S.gradus) { toast('You don\'t carry that much.'); return; }
+  const rate = days === 7 ? 1.03 : 1.05;
+  const payout = Math.round(amt * rate);
+  const today = localDateStr(new Date());
+  S.gradus -= amt;
+  S.investments.push({ amount: amt, date: today, mature: addDays(today, days), rate });
+  $('invest-amt').value = '';
+  save(); sfx('coin');
+  toast(`📜 ${fmt(amt)} Gradus sealed for ${days} days — returns as ${fmt(payout)}.`);
+  renderBank(); renderHUD();
+}
+function collectInvestment(i) {
+  const v = S.investments[i];
+  if (!v || localDateStr(new Date()) < v.mature) return;
+  const rate = v.rate || 1.05;
+  const payout = Math.round(v.amount * rate);
+  S.investments.splice(i, 1);
+  S.gradus += payout;
+  save(); sfx('coin'); checkAch();
+  toast(`💰 Venture matured: +${fmt(payout)} Gradus (${fmt(payout - v.amount)} profit).`);
+  renderBank(); renderHUD();
+}
+function bankOp(op) {
+  let amt = Math.floor(Number($('bank-amt').value)) || 0;
+  if (op === 'depositAll') { amt = S.gradus; op = 'deposit'; }
+  if (amt <= 0) { toast('Enter an amount.'); return; }
+  if (op === 'deposit') {
+    if (amt > S.gradus) { toast('You don\'t carry that much.'); return; }
+    S.gradus -= amt; S.bank += amt;
+    toast(`Vaulted ${fmt(amt)} Gradus.`);
+  } else {
+    if (amt > S.bank) { toast('The vault holds less than that.'); return; }
+    S.bank -= amt; S.gradus += amt;
+    toast(`Withdrew ${fmt(amt)} Gradus.`);
+  }
+  $('bank-amt').value = '';
+  save(); sfx('coin'); checkAch();
+  renderBank(); renderHUD();
+}
+
+/* ---------------- Achievements & titles ---------------- */
+const ACHS = [
+  { id:'awakened',   name:'First Steps',        title:'the Awakened',  desc:'Complete your first Realm Sync.',            test:s => s.lifetimeSteps > 0 || s.lifetimeCalories > 0 },
+  { id:'strider',    name:'Ten Thousand',       title:'Strider',       desc:'Report 10,000+ steps in a single day.',       test:s => Object.values(s.syncLog).some(d => d.steps >= 10000) },
+  { id:'devoted',    name:'Unbroken Week',      title:'the Devoted',   desc:'Hold a 7-day sync streak.',                   test:() => streakDays() >= 7 },
+  { id:'pathfinder', name:'The Long Road',      title:'Pathfinder',    desc:'Walk 100,000 lifetime steps.',                test:s => s.lifetimeSteps >= 100000 },
+  { id:'tireless',   name:'A Million Underfoot',title:'the Tireless',  desc:'Walk 1,000,000 lifetime steps.',              test:s => s.lifetimeSteps >= 1000000 },
+  { id:'proven',     name:'The Choosing',       title:'the Proven',    desc:'Reach level 10 and choose your path.',        test:s => !!s.heroClass },
+  { id:'trollsbane', name:'Trollsbane',         title:'Trollsbane',    desc:'Fell the Forest Troll.',                      test:s => s.questsCleared >= 8 },
+  { id:'heartwood',  name:'Silence in the Greenwood',   title:'Heartwood',     desc:'Defeat the Ancient Treant.',                  test:s => s.questsCleared >= 16 },
+  { id:'echo',       name:'Beyond Legend',      title:'Echo-Walker',   desc:'Defeat the Echo of the First Wanderer.',      test:s => s.questsCleared >= 17 },
+  { id:'ruinwalker', name:'Into the Ruins',     title:'Ruinwalker',    desc:'Enter The Ruins and defeat the Ash Hound.',   test:s => s.questsCleared >= 18 },
+  { id:'lich',       name:'Lich King',          title:'Lichbane',      desc:'Slay the Lich of Oppidum.',                   test:s => s.questsCleared >= 25 },
+  { id:'goldhand',   name:'Goldhand',           title:'Goldhand',      desc:'Hold 100,000 Gradus across purse and vault.', test:s => s.gradus + (s.bank || 0) >= 100000 },
+  { id:'fallen',     name:'Memento Mori',       title:'the Fallen',    desc:'Die. Learn. Return.',                         test:s => !!s.diedOnce },
+];
+/* ---------------- Rare mob encounters (1 in 10000 hunts) ---------------- */
+const RARE_MOBS = [
+  { name:'The Pale Wanderer',  emoji:'👁️', spr:['wanderer'],         hp:550, atk:48, xp:1200, g:60000, swift:true,  frenzy:true,
+    intro:'A figure in grey rags steps from the treeline and stops. It turns to face you with hollow, patient eyes. It has been walking a very long time.' },
+  { name:'The Rat King',       emoji:'👑', spr:['rat','#c9a227'],     hp:380, atk:32, xp:900,  g:35000, regen:8,
+    intro:'A rat the size of a dog, wearing a crown of bent copper wire, regards you with unsettling intelligence. It does not flinch.' },
+  { name:'The Hollow Knight',  emoji:'🛡️', spr:['skeleton'],          hp:700, atk:60, xp:1800, g:80000, armored:true,
+    intro:'Ancient plate armor walks toward you. There is no rider. The visor is open. There is nothing behind it. It raises its sword anyway.' },
+];
+
+/* ---------------- Chapel quests (lore / information rewards) ---------------- */
+const CHAPEL_QUESTS = [
+  { id:'bestiary', name:'Consult the Bestiary', cost:200, xp:30,
+    desc:'Father Bede keeps notes on every creature the chapel has records of.',
+    reward:`<b>From Bede\\'s notes, chapter VII:</b><br><br>"Venomed creatures inject their poison on first contact; potions between turns are the only counter. Armored foes blunt every blow by a quarter — abilities that bypass armor (Mage\\'s Fireball) are invaluable. Frenzied beasts are most dangerous below 30% health; try to burst them down quickly. Regenerating monsters must be defeated faster than they heal — offensive items and elixirs are not luxuries, they are plans."` },
+  { id:'routes', name:'The Old Road Maps', cost:350, xp:50,
+    desc:'Pre-war maps might show useful annotations on survival.',
+    reward:`<b>Reeve Ostric\\'s marginal note, found in the chapel deed records:</b><br><br>"The Bank vault survives your death. Carry nothing into a fight you cannot afford to lose. Deposit all Gradus before entering a boss fight. The Bank charges no fee and keeps no ledger of why you came. A soldier who banks before battle is either wise or experienced. Usually both."` },
+  { id:'herbs', name:'The Herb Lore Scroll', cost:500, xp:70,
+    desc:`Medieval folk medicine compiled by three generations of Bede\\'s predecessors.`,
+    reward:`<b>Brother Caedmon\\'s notes on materials:</b><br><br>"Herbs drop most readily from cursed men — bandits, cultists, and their kind. Hides come from animals: wolves, boars, and the great beasts. Venom sacs are harvested from spiders and wasps. Glowdust is the rarest — found on the restless dead and the luminous creatures of the Greenwood\\'s deep reaches. The Gathering life skill practiced at the Commons yields herbs steadily; the Lake yields fish; the Forest Edge yields wood."` },
+  { id:'history', name:'The Chronicle of Oppidum', cost:800, xp:100,
+    desc:`The town\\'s full history, from the founding through the current troubles.`,
+    reward:'<b>Chronicle of Oppidum, vol. III, final page:</b><br><br>"The road south was built by a wanderer who said ten thousand steps were sacred. She walked it herself three times before the town grew up around her resting place. The inn was her house. The bank was her storehouse. The well was her gift. She kept no name — only her steps remain, pressed into the stones where the road begins. Walk them, and you walk with her."' },
+];
+
+function checkAch() {
+  let earned = false;
+  ACHS.forEach(a => {
+    if (!S.achievements[a.id] && a.test(S)) {
+      S.achievements[a.id] = localDateStr(new Date());
+      toast(`🏅 ${a.name} — title “${a.title}” earned!`);
+      earned = true;
+    }
+  });
+  if (earned) { sfx('level'); save(); }
+}
+function useTitle(id) {
+  const a = ACHS.find(x => x.id === id);
+  if (!a || !S.achievements[id]) return;
+  S.title = S.title === a.title ? null : a.title;     // toggle off if re-clicked
+  save(); renderStats(); renderHUD();
+}
+
+/* ---------------- The Commons: life skills + crafting ---------------- */
+const LS = {
+  fishing:     { name:'Fishing',     emoji:'🎣', energy:20, act:'Cast a line' },
+  woodcutting: { name:'Woodcutting', emoji:'🪓', energy:20, act:'Swing the axe' },
+  gathering:   { name:'Gathering',   emoji:'🌿', energy:15, act:'Search the fields' },
+  cooking:     { name:'Cooking',     emoji:'🍳', energy:10, act:'→ Crafting Bench' },
+  thieving:    { name:'Thieving',    emoji:'🗡️', energy:25, act:'Work the crowd' },
+};
+function lsGain(skill, xp) {
+  const s = S.lifeSkills[skill];
+  if (s.lvl >= 99) { s.xp = 0; return; }
+  s.xp += xp;
+  while (s.xp >= s.lvl * 100 && s.lvl < 99) { s.xp -= s.lvl * 100; s.lvl++; sfx('level'); toast(`⬆️ ${LS[skill].name} level ${s.lvl}!`); }
+  if (s.lvl >= 99) { s.xp = 0; }
+}
+function spendEnergy(n, what) {
+  const endDiscount = Math.min(n - 1, (S.stats && S.stats.end) || 0);
+  const cost = n - endDiscount;
+  if (S.ries < cost) { toast(`Not enough ⚡ Ries for ${what}. Burn calories in the other realm, or eat a meal.`); return false; }
+  S.ries -= cost; return true;
+}
+const MATS = { fish:['🐟','fish'], wood:['🪵','timber'], meal:['🍽️','meal'], herb:['🌿','herb'], hide:['🐗','hide'], venomsac:['☠️','venom sac'], glowdust:['✨','glowdust'] };
+function satchelLine() { return Object.keys(MATS).map(k => `${MATS[k][0]} ${S.materials[k] || 0}`).join(' · '); }
+const MOB_DROPS = {
+  'Giant Rat':[['herb',.3]], 'Dire Wolf':[['hide',.35]], 'Bandit Chief':[['herb',.25]],
+  'Broodmother':[['venomsac',.35]], 'Restless Knight':[['glowdust',.2]],
+  'Venom Cultist':[['venomsac',.35],['herb',.2]], 'Giant Iron Boar':[['hide',.4]],
+  'Forest Troll':[['hide',.4],['herb',.3]], 'Sprouting Treant':[['wood',.6]],
+  'Dire Boar':[['hide',.45]], 'Forest Wisp':[['glowdust',.45]], 'Webweaver Queen':[['venomsac',.5]],
+  'Bandit Warlord':[['hide',.3],['herb',.3]],
+  'Amber Wasp Queen':[['venomsac',.55],['glowdust',.3]],
+  'Glass Swordsman':[['glowdust',.35]],
+  'Ancient Treant':[['wood',.8],['glowdust',.3]],
+  'The First Wanderer':[['glowdust',.8],['venomsac',.5]],
+  'Field Rat':[['herb',.3]], 'Tunnel Rat':[['herb',.25]], 'Stray Wolf':[['hide',.35]],
+  'Footpad':[['herb',.25]], 'Deserter Scout':[['herb',.3]],
+  'Sapling Treant':[['wood',.6]], 'Wild Boar':[['hide',.45]], 'Webspinner':[['venomsac',.4]],
+  'Forest Stalker':[['hide',.35],['herb',.2]], 'Thornback Boar':[['hide',.5]],
+  // Zone 3 — The Ruins
+  'Ash Hound':        [['hide',.4]],
+  'Tomb Warden':      [['glowdust',.3]],
+  'Bone Archer':      [['glowdust',.25],['herb',.2]],
+  'Plague Shade':     [['venomsac',.4],['herb',.3]],
+  'Iron Sentinel':    [['glowdust',.35]],
+  'Ruinborn Warlord': [['hide',.35],['glowdust',.25]],
+  'Cursed Colossus':  [['glowdust',.5],['hide',.4]],
+  'The Lich':         [['glowdust',.7],['venomsac',.5]],
+};
+function doFish() {
+  if (!spendEnergy(LS.fishing.energy, 'fishing')) return;
+  const lvl = S.lifeSkills.fishing.lvl;
+  if (Math.random() < 0.6 + lvl * 0.02) { S.materials.fish++; toast('🎣 A fat lake perch!'); }
+  else toast('🎣 The line comes back bare.');
+  lsGain('fishing', 25); save(); renderLake(); renderHUD();
+}
+function renderLake() {
+  const s = S.lifeSkills.fishing;
+  $('lake-body').innerHTML =
+    `<p>🎣 <b>Fishing</b> <span class="dim">· level ${s.lvl} · ${s.xp}/${s.lvl * 100} XP · catch chance ${Math.round((0.6 + s.lvl * 0.02) * 100)}%</span></p>` +
+    `<button class="mt" onclick="doFish()">Cast a line — ⚡${LS.fishing.energy}</button>` +
+    `<p class="mt"><span class="dim">Satchel:</span> ${satchelLine()}</p>`;
+}
+/* Forest Edge (woodcutting) */
+function renderWoodcutting() {
+  const s = S.lifeSkills.woodcutting;
+  const canChop = S.ries >= LS.woodcutting.energy;
+  $('woodcutting-body').innerHTML =
+    `<p>🪓 <b>Woodcutting</b> <span class="dim">· level ${s.lvl} · ${s.xp}/${s.lvl * 100} XP · bonus log chance ${Math.round(s.lvl * 3)}%</span></p>` +
+    `<button class="mt" onclick="doChop()" ${canChop ? '' : 'disabled'}>Swing the axe — ⚡${LS.woodcutting.energy}</button>` +
+    `<p class="mt"><span class="dim">Satchel:</span> ${satchelLine()}</p>`;
+}
+/* Chapel of St. Cedd */
+function renderChapel() {
+  const rows = CHAPEL_QUESTS.map(q => {
+    if (S.chapelBought[q.id]) {
+      return `<div class="mt"><p class="dim">✔ <b>${q.name}</b> — already consulted.</p></div>`;
+    }
+    const canBuy = S.gradus >= q.cost;
+    return `<div class="mt panel" style="padding:10px;margin:6px 0">
+      <b>${q.name}</b> — <span class="gold">🪙 ${fmt(q.cost)}</span> · +${q.xp} XP<br>
+      <span class="dim">${q.desc}</span><br>
+      <button class="mt btn-g" onclick="buyChapelQuest('${q.id}')" ${canBuy ? '' : 'disabled'}>📖 Consult</button>
+    </div>`;
+  }).join('');
+  let chatSection = '<h2 class="mt">🕯️ Contemplation</h2><p class="dim footer-note">Father Bede is available for private counsel on matters of faith and philosophy.</p>';
+  chatSection += LORE_CHATS.map(c => {
+    if (S.chatsBought[c.id]) return `<p class="dim footer-note mt">✔ ${c.icon} ${c.teller} — <em>${c.text.substring(0, 60)}…</em></p>`;
+    return `<button class="mt" onclick="buyLoreChat('${c.id}')" ${S.gradus >= c.cost ? '' : 'disabled'}>${c.icon} Buy a word with ${c.teller} — ${fmt(c.cost)} Gradus</button>`;
+  }).join('');
+  $('chapel-body').innerHTML =
+    `<h2>📜 Father Bede\'s Records</h2>
+     <p class="dim footer-note">Consulting Bede\'s records costs Gradus and grants a small amount of experience.</p>` +
+    rows + chatSection;
+}
+function buyChapelQuest(id) {
+  const q = CHAPEL_QUESTS.find(x => x.id === id);
+  if (!q || S.chapelBought[id]) return;
+  if (S.gradus < q.cost) { toast('Not enough Gradus.'); return; }
+  S.gradus -= q.cost;
+  S.chapelBought[id] = true;
+  gainXP(q.xp);
+  save(); sfx('potion'); checkAch();
+  showModal(`<h2>📖 ${q.name}</h2><p class="dim mt" style="line-height:1.6">${q.reward}</p>`,
+    [{ label:'✔ Understood', cls:'btn-g' }]);
+  renderChapel(); renderHUD();
+}
+function buyLoreChat(id) {
+  const c = LORE_CHATS.find(x => x.id === id);
+  if (!c || S.chatsBought[id]) return;
+  if (S.gradus < c.cost) { toast('Not enough Gradus.'); return; }
+  S.gradus -= c.cost;
+  S.chatsBought[id] = true;
+  save(); sfx('coin');
+  showModal(`<h2>${c.icon} ${c.teller}</h2><p class="dim mt" style="font-style:italic;line-height:1.5">${c.text}</p>`,
+    [{ label:'🍻 Much obliged' }]);
+  renderChapel(); renderHUD();
+}
+
+/* hunting grounds (free hunts) */
+function renderHunt() {
+  $('hunt-rows').innerHTML = GRIND_ZONES.map((z, zi) => {
+    const open = S.questsCleared >= z.unlock;
+    return `<tr><td>${open ? '' : '🔒 '}<b>${z.name}</b><br><span class="dim">${z.mobs.map(m => m.emoji).join(' ')} roaming mobs · ⚡${z.energy} per hunt · no daily limit</span></td>
+      <td class="r"><button onclick="startGrind(${zi})" ${(!open || S.wounded || S.ries < z.energy) ? 'disabled' : ''}>🌾 Hunt</button></td></tr>`;
+  }).join('');
+}
+/* crafting bench */
+const RECIPES = [
+  { id:'meal',      name:'Grilled Fish',         icon:'🍽️', out:['mat','meal'],     req:{ fish:1, wood:1 },        en:10, gCost:50 },
+  { id:'minorpot',  name:'Minor Health Potion',  icon:'🧪', out:['pot','minor'],    req:{ herb:2 },                en:10, gCost:100 },
+  { id:'healthpot', name:'Health Potion',        icon:'⚗️', out:['pot','health'],   req:{ herb:3, glowdust:1 },    en:15, gCost:250 },
+  { id:'elixir',    name:'Strength Elixir',      icon:'💪', out:['pot','strength'], req:{ venomsac:1, herb:1 },    en:15, gCost:400 },
+  { id:'ench',      name:'Weapon Enchantment',   icon:'✨', out:['pot','enchant'],  req:{ glowdust:2, venomsac:1 }, en:40, gCost:2000 },
+];
+function canCraft(r) { return Object.entries(r.req).every(([m, n]) => (S.materials[m] || 0) >= n) && S.ries >= r.en && S.gradus >= (r.gCost || 0); }
+function doCraft(id) {
+  const r = RECIPES.find(x => x.id === id);
+  if (!r || !canCraft(r)) { toast('Missing materials, 🪙 Gradus, or ⚡ Ries.'); return; }
+  S.ries -= r.en;
+  S.gradus -= (r.gCost || 0);
+  Object.entries(r.req).forEach(([m, n]) => S.materials[m] -= n);
+  if (r.out[0] === 'mat') S.materials[r.out[1]] = (S.materials[r.out[1]] || 0) + 1;
+  else S.potions[r.out[1]] = (S.potions[r.out[1]] || 0) + 1;
+  lsGain('cooking', 30);
+  sfx('potion'); toast('🛠 Crafted: ' + r.name);
+  save(); renderCraft(); renderHUD();
+}
+function renderCraft() {
+  $('craft-satchel').innerHTML = `<span class="dim">Satchel:</span> ${satchelLine()}`;
+  $('craft-rows').innerHTML = RECIPES.map(r => {
+    const req = Object.entries(r.req).map(([m, n]) => `${n}× ${MATS[m][0]}`).join(' + ');
+    const costs = `${req} + ⚡${r.en}${r.gCost ? ' + 🪙' + fmt(r.gCost) : ''}`;
+    return `<tr><td>${r.icon} <b>${r.name}</b><br><span class="dim">${costs}</span></td>
+      <td class="r"><button onclick="doCraft('${r.id}')" ${canCraft(r) ? '' : 'disabled'}>🛠 Craft</button></td></tr>`;
+  }).join('');
+  $('craft-eat').innerHTML = `<button onclick="eatMeal()" ${S.materials.meal < 1 ? 'disabled' : ''}>🍽️ Eat a meal — +${300 + 10 * S.lifeSkills.cooking.lvl} ⚡ (${S.materials.meal} carried)</button>`;
+}
+function doChop() {
+  if (!spendEnergy(LS.woodcutting.energy, 'woodcutting')) return;
+  const n = 1 + (Math.random() < S.lifeSkills.woodcutting.lvl * 0.03 ? 1 : 0);
+  S.materials.wood += n;
+  toast(`🪓 +${n} timber.`);
+  lsGain('woodcutting', 20); save(); renderWoodcutting(); renderHUD();
+}
+function doGather() {
+  if (!spendEnergy(LS.gathering.energy, 'gathering')) return;
+  const lvl = S.lifeSkills.gathering.lvl;
+  const roll = Math.random();
+  if (roll < 0.68 + lvl * 0.01) { S.materials.herb++; toast('🌿 +1 herb.'); }
+  else if (roll < 0.88 + lvl * 0.005) { S.materials.wood++; toast('🌿 Some kindling, too — +1 timber.'); }
+  else { toast('🌿 Nothing useful this time.'); }
+  lsGain('gathering', 20); save(); renderCommons(); renderHUD();
+}
+function doThieve() {
+  if (!spendEnergy(LS.thieving.energy, 'thieving')) return;
+  const lvl = S.lifeSkills.thieving.lvl;
+  const roll = Math.random();
+  if (roll < 0.5 + lvl * 0.02) { const take = 200 * lvl; S.gradus += take; S.ries += 20; sfx('coin'); toast(`🗡️ A purse, lifted clean: +${fmt(take)} Gradus · +20 ⚡ Ries.`); }
+  else if (roll < 0.8) toast('🗡️ Too many eyes. You slip away empty-handed.');
+  else { const fine = Math.min(S.gradus, 150 * lvl); S.gradus -= fine; sfx('hurt'); toast(`🗡️ Caught! The watch fines you ${fmt(fine)} Gradus.`); }
+  lsGain('thieving', 35); save(); renderCommons(); renderHUD();
+}
+function eatMeal() {
+  if (S.materials.meal < 1) { toast('No meals in the satchel.'); return; }
+  S.materials.meal--;
+  const gain = 300 + 10 * S.lifeSkills.cooking.lvl;
+  S.ries += gain;
+  sfx('potion'); toast(`🍽️ +${gain} ⚡ Ries.`);
+  save(); renderHUD();
+  if ($('screen-craft').classList.contains('active')) renderCraft();
+}
+function renderCommons() {
+  $('cm-rows').innerHTML = [
+    ['gathering', 'doGather'],
+    ['thieving', 'doThieve'],
+  ].map(([k, fn]) => {
+    const s = S.lifeSkills[k], d = LS[k];
+    const canDo = S.ries >= d.energy && !S.wounded;
+    return `<tr><td>${d.emoji} <b>${d.name}</b> <span class="dim">· level ${s.lvl} · ${s.xp}/${s.lvl * 100} XP</span></td>
+      <td class="r"><button onclick="${fn}()" ${canDo ? '' : 'disabled'}>${d.act} — ⚡${d.energy}</button></td></tr>`;
+  }).join('');
+  $('ls-materials').innerHTML = `<span class="dim">Satchel:</span> ${satchelLine()}`;
+}
+
+/* ─── Stat allocation ─── */
+const STAT_DESC = {
+  str: { name:'STR', label:'Strength',   icon:'⚔️', desc:'+1 ATK per point' },
+  dex: { name:'DEX', label:'Dexterity',  icon:'💨', desc:'+1.5% dodge per point' },
+  int: { name:'INT', label:'Intelligence',icon:'📚',desc:'+5% XP per point' },
+  vit: { name:'VIT', label:'Vitality',   icon:'❤️', desc:'+5 max HP per point' },
+  end: { name:'END', label:'Endurance',  icon:'⚡', desc:'-1 energy cost per point (min 1)' },
+};
+function spendStat(key) {
+  if (!S.statPoints || S.statPoints <= 0) return;
+  S.stats[key] = (S.stats[key] || 0) + 1;
+  S.statPoints--;
+  save(); renderStats(); renderHUD();
+}
+function renderStats() {
+  $('char-name').textContent = S.name + (S.title ? ' ' + S.title : '');
+  // Stat allocation panel
+  const allocPanel = $('stat-alloc-panel');
+  if (S.statPoints > 0) {
+    allocPanel.style.display = 'block';
+    $('stat-points-left').textContent = S.statPoints;
+    $('stat-alloc-rows').innerHTML = Object.keys(STAT_DESC).map(k => {
+      const d = STAT_DESC[k];
+      return `<div class="stat-row">${d.icon} <b>${d.name}</b> <span class="dim">${d.label} · ${d.desc}</span>
+        <span class="gold" style="min-width:30px;text-align:right">${S.stats[k] || 0}</span>
+        <button class="btn-g" onclick="spendStat('${k}')">+</button></div>`;
+    }).join('');
+  } else { allocPanel.style.display = 'none'; }
+  $('ach-rows').innerHTML = ACHS.map(a => {
+    const got = S.achievements[a.id];
+    const wearing = S.title === a.title;
+    const right = got
+      ? `<button class="${wearing ? 'btn-g' : 'btn-eq'}" onclick="useTitle('${a.id}')">${wearing ? '★ Worn' : '“' + a.title + '”'}</button>`
+      : '<span class="dim">🔒</span>';
+    return `<tr><td>${got ? '🏅' : '🔒'} <b>${a.name}</b>${got ? ` <span class="dim">· ${got}</span>` : ''}<br><span class="dim">${a.desc}</span></td><td class="r">${right}</td></tr>`;
+  }).join('');
+  const cls = S.heroClass || 'Wanderer';
+  const row = (k, v) => `<tr><td class="dim">${k}</td><td class="r">${v}</td></tr>`;
+  const statsLine = Object.keys(STAT_DESC).map(k => `${STAT_DESC[k].icon}${STAT_DESC[k].name}:${S.stats[k]||0}`).join(' · ');
+  const gl = GLOVES.find(x => x.id === S.equipped.gloves) || GLOVES[0];
+  $('char-stats').innerHTML =
+    row('Class', `${cls} <span class="dim">· Level ${S.level}</span>`) +
+    row('Experience', `${fmt(S.xp)} / ${fmt(xpForNext(S.level))} XP`) +
+    row('Max HP', heroMaxHP()) +
+    row('Attack', `${heroATK(false)} <span class="dim">(${WEAPONS.find(w => w.id === S.equipped.weapon).name}${S.enchants[S.equipped.weapon] ? ' ✨' : ''})</span>`) +
+    row('Stats', `<span class="dim">${statsLine}</span>`) +
+    row('Stat points', S.statPoints > 0 ? `<span class="gold">✨ ${S.statPoints} unspent — scroll up to allocate</span>` : '0') +
+    row('Sync streak', `🔥 ${streakDays()} day(s) · +${Math.round((streakMult() - 1) * 100)}% earnings`) +
+    row('Quests cleared', `${S.questsCleared} / ${QUESTS.length}`) +
+    row('Life skills', Object.keys(LS).map(k => `${LS[k].emoji}${S.lifeSkills[k].lvl}`).join(' · ')) +
+    row('Lifetime travel', `${fmt(S.lifetimeSteps)} steps · ${fmt(S.lifetimeCalories)} kcal`) +
+    row('Purse', `<span class="gold">🪙 ${fmt(S.gradus)}</span> · <span class="riescol">🔥 ${fmt(S.ries)}</span>`);
+}
+
+/* ---------------- Skills window ---------------- */
+function renderSkills() {
+  const rows = [];
+  if (S.heroClass) {
+    const c = CLASSES.find(x => x.id === S.heroClass);
+    const a = ABILITIES[S.heroClass];
+    rows.push(`<tr><td>${c.emoji} <b>${c.id}</b> <span class="dim">· class passive</span><br><span class="dim">${c.desc}</span></td><td class="r"><span class="owned">PASSIVE</span></td></tr>`);
+    rows.push(`<tr><td>${a.emoji} <b>${a.name}</b> <span class="dim">· active · cooldown ${a.cd} turns</span><br><span class="dim">${a.desc}</span></td><td class="r"><span class="owned">IN BATTLE</span></td></tr>`);
+  } else {
+    rows.push(`<tr><td>🧍 <b>Wanderer</b><br><span class="dim">Reach level 10 to choose your path: Knight, Mage, Archer or Cleric — each grants a passive and an active battle ability.</span></td><td class="r"><span class="dim">Lv.10</span></td></tr>`);
+  }
+  if (S.heroClass) {
+    const aff = (AFFINITY[S.heroClass] || []).join(' / ');
+    const w = WEAPONS.find(x => x.id === S.equipped.weapon);
+    const matched = (AFFINITY[S.heroClass] || []).includes(wtype(w));
+    rows.push(`<tr><td>🎯 <b>Weapon Affinity</b> <span class="dim">· passive</span><br><span class="dim">+10% ATK wielding: ${aff}. Currently wielding a ${wtype(w)}.</span></td><td class="r"><span class="${matched ? 'owned' : 'dim'}">${matched ? 'ACTIVE' : 'INACTIVE'}</span></td></tr>`);
+  }
+  rows.push(`<tr><td>✨ <b>Weapon Enchanting</b><br><span class="dim">Apply a Weapon Enchantment (Apothecary) during quest prep for a permanent +10% on that weapon.</span></td><td class="r"><span class="${Object.keys(S.enchants).length ? 'owned' : 'dim'}">${Object.keys(S.enchants).length ? 'LEARNED' : '—'}</span></td></tr>`);
+  rows.push('<tr><td colspan="2" class="gold">LIFE SKILLS</td></tr>');
+  Object.keys(LS).forEach(k => {
+    const s = S.lifeSkills[k];
+    const where = k === 'fishing' ? 'Lake' : k === 'cooking' ? 'Crafting Bench' : k === 'woodcutting' ? 'Forest Edge' : 'Commons';
+    rows.push(`<tr><td>${LS[k].emoji} <b>${LS[k].name}</b><br><span class="dim">${s.xp}/${s.lvl * 100} XP — trained at the ${where}</span></td><td class="r">Level ${s.lvl}</td></tr>`);
+  });
+  $('skills-rows').innerHTML = rows.join('');
+}
+
+/* ---- Mu/Diablo-style grid inventory ---- */
+const ICONS = {
+  rusty:'🗡️', dagger:'🔪', ironsword:'⚔️', mace:'🔨', longsword:'🗡️', knight:'⚔️',
+  forestblade:'🍃', wolfsbane:'🪓', eldersword:'🌿',
+  lightxbow:'🏹', arbalest:'🏹', shortbow:'🏹', huntbow:'🏹', recurve:'🏹',
+  oakstaff:'🪄', runestaff:'🪄', heartstaff:'🪄',
+  cloth:'👕', vest:'🦺', leather:'🥋', chain:'⛓️', plate:'🛡️', rangertunic:'🧥', barkmail:'🪵', treantplate:'🛡️',
+  minor:'🧪', health:'⚗️', stamina:'⚡', strength:'💪', enchant:'✨',
+  // shields
+  no_shield:'🔘', woodshield:'🛡️', ironshield:'🛡️', kiteshield:'🛡️', towershield:'🛡️', greenwood_shield:'🌿',
+  // helms
+  no_helm:'🔘', leather_cap:'🪖', chaincoif:'⛓️', iron_helm:'🪖', great_helm:'🪖', greenwood_helm:'🌿',
+  // gloves
+  no_gloves:'🔘', leather_gloves:'🧤', chain_gauntlets:'⛓️', iron_gauntlets:'🧤', plate_gauntlets:'🧤', greenwood_gloves:'🌿',
+  // boots
+  no_boots:'🔘', leather_boots:'👢', iron_greaves:'🦵', plate_greaves:'🦵', greenwood_boots:'👢',
+  // pants
+  no_pants:'🔘', leather_legs:'👖', chain_legs:'⛓️', plate_legs:'👖', greenwood_pants:'🌿',
+  // junk
+  rags:'🧹', bones:'🦴', trinket:'💍', coin_pouch:'💰', gem_shard:'💎',
+};
+let invSel = null;                                  // {type, id}
+function invSelect(type, id) { invSel = { type, id }; renderEquipAndGrid(); }
+function findItem(type, id) {
+  const t = type.replace(/-eq$/, '');
+  if (t === 'weapon') return WEAPONS.find(x => x.id === id);
+  if (t === 'armor')  return ARMOR.find(x => x.id === id);
+  if (t === 'shield') return SHIELDS.find(x => x.id === id);
+  if (t === 'helm')   return HELMS.find(x => x.id === id);
+  if (t === 'gloves') return GLOVES.find(x => x.id === id);
+  if (t === 'boots')  return BOOTS.find(x => x.id === id);
+  if (t === 'pants')  return PANTS.find(x => x.id === id);
+  if (t === 'potion') return POTIONS.find(x => x.id === id);
+  return null;
+}
+function itemStatLine(it) {
+  let stat;
+  if (it.atk !== undefined) stat = 'ATK ' + (it.slot === 'gloves' ? it.atk : Math.round(it.atk * upMult(it.id))) + (it.slot !== 'gloves' ? ' · ' + wtype(it) : '');
+  else if (it.def !== undefined) stat = 'DEF ' + it.def;
+  else if (it.desc) stat = it.desc;
+  else stat = '—';
+  const tag = it.grade ? ` <span class="gold">[${it.grade}]</span>` : '';
+  const ench = S.enchants && S.enchants[it.id] ? ' · ✨+10%' : '';
+  return `<b>${dispName(it)}</b>${tag} — ${stat}${ench}`;
+}
+function renderEquipAndGrid() {
+  // paperdoll: equipped weapon + armor boxes
+  const eqBox = (type, id, label) => {
+    const it = findItem(type, id);
+    const sel = invSel && invSel.type === type + '-eq' && invSel.id === id;
+    return `<div class="eq-slot${sel ? ' sel' : ''}" onclick="invSelect('${type}-eq','${id}')">${ICONS[id] || '❔'}` +
+      (it.grade ? `<span class="inv-grade">${it.grade}</span>` : '') +
+      `<span class="eq-label">${label}</span></div>`;
+  };
+  $('char-equip').innerHTML =
+    eqBox('weapon', S.equipped.weapon,  'WEAPON')   +
+    eqBox('armor',  S.equipped.armor,   'ARMOR')    +
+    eqBox('shield', S.equipped.shield,  'SHIELD')   +
+    eqBox('helm',   S.equipped.helm,    'HELM')     +
+    eqBox('gloves', S.equipped.gloves,  'GLOVES')   +
+    eqBox('boots',  S.equipped.boots,   'BOOTS')    +
+    eqBox('pants',  S.equipped.pants,   'PANTS');
+  if ($('inv-cap-label')) $('inv-cap-label').textContent = `${S.bag.length}/${S.bagCap} slots`;
+  // grid boxes: unequipped gear + potion stacks + bag items
+  const cells = [];
+  S.weapons.filter(id => id !== S.equipped.weapon).forEach(id => cells.push({ type:'weapon', id }));
+  S.armor.filter(id => id !== S.equipped.armor).forEach(id => cells.push({ type:'armor', id }));
+  S.shields.filter(id => id !== S.equipped.shield).forEach(id => cells.push({ type:'shield', id }));
+  S.helms.filter(id => id !== S.equipped.helm).forEach(id => cells.push({ type:'helm', id }));
+  S.gloves.filter(id => id !== S.equipped.gloves).forEach(id => cells.push({ type:'gloves', id }));
+  S.boots.filter(id => id !== S.equipped.boots).forEach(id => cells.push({ type:'boots', id }));
+  S.pants.filter(id => id !== S.equipped.pants).forEach(id => cells.push({ type:'pants', id }));
+  POTIONS.filter(p => !p.gives && (S.potions[p.id] || 0) > 0).forEach(p => cells.push({ type:'potion', id:p.id, count:S.potions[p.id] }));
+  S.bag.forEach((b,i) => cells.push({ type:'junk', id:b.id, count:b.qty, bagIdx:i, icon:b.icon, name:b.name, value:b.value }));
+  const total = Math.max(32, Math.ceil(cells.length / 8) * 8);
+  $('char-grid').innerHTML = Array.from({ length: total }, (_, i) => {
+    const c = cells[i];
+    if (!c) return '<div class="inv-slot"></div>';
+    const it = findItem(c.type, c.id);
+    const sel = invSel && invSel.type === c.type && invSel.id === c.id;
+    return `<div class="inv-slot filled${sel ? ' sel' : ''}" title="${it.name}" onclick="invSelect('${c.type}','${c.id}')">${ICONS[c.id] || '❔'}` +
+      (it.grade ? `<span class="inv-grade">${it.grade}</span>` : '') +
+      (c.count ? `<span class="inv-count">×${c.count}</span>` : '') + '</div>';
+  }).join('');
+  // detail bar
+  let d = 'Select an item to inspect it…';
+  if (invSel) {
+    if (invSel.type === 'junk') {
+      const b = S.bag[invSel.bagIdx];
+      if (b) d = `${b.icon} <b>${b.name}</b> ×${b.qty} — Junk. Sell at the General Store for <span class="gold">🪙 ${fmt(b.value * b.qty)}</span>`;
+    } else {
+      const it = findItem(invSel.type, invSel.id);
+      if (it) {
+        if (invSel.type.endsWith('-eq')) d = itemStatLine(it) + ' · <span class="owned">EQUIPPED</span>';
+        else if (invSel.type === 'potion') d = `<b>${it.name}</b> ×${S.potions[it.id] || 0} — ${it.desc}. <span class="dim">Consumed during quest prep.</span>`;
+        else d = itemStatLine(it) + ` <button class="btn-eq" style="margin-left:10px" onclick="equipItem('${it.id}')">Equip</button>`;
+      }
+    }
+  }
+  $('inv-detail').innerHTML = d;
+}
+
+/* ---------------- Hero stats ---------------- */
+/* forge upgrades: +4% to the item\'s own stat per level, max +5 */
+function upgradeLvl(id) { return (S.upgrades && S.upgrades[id]) || 0; }
+function upMult(id) { return 1 + 0.04 * upgradeLvl(id); }
+function upgradeCost(item, next) { return Math.round(item.g * 0.03 * next); }  // Ries cost
+function upgradeGoldCost(item, next) { return Math.round(item.g * 0.02 * next); }  // Gradus cost
+function dispName(it) { const l = upgradeLvl(it.id); return it.name + (l ? ' +' + l : ''); }
+function heroMaxHP() {
+  const a     = ARMOR.find(x => x.id === S.equipped.armor);
+  const sh    = SHIELDS.find(x => x.id === S.equipped.shield) || SHIELDS[0];
+  const helm  = HELMS.find(x => x.id === S.equipped.helm)   || HELMS[0];
+  const pants = PANTS.find(x => x.id === S.equipped.pants)   || PANTS[0];
+  const vit   = (S.stats && S.stats.vit) || 0;
+  let hp = 20 + (a.def * 4 + sh.def * 3 + helm.def * 3 + pants.def * 3) * 1 + S.level * 5 + vit * 5;
+  // forge multiplier on chest armor
+  hp += (a.def * (upMult(a.id) - 1)) * 4;
+  if (S.heroClass === 'Knight') hp *= 1.25;
+  return Math.round(hp);
+}
+function heroATK(elixir) {
+  const w  = WEAPONS.find(x => x.id === S.equipped.weapon);
+  const gl = GLOVES.find(x => x.id === S.equipped.gloves) || GLOVES[0];
+  const str = (S.stats && S.stats.str) || 0;
+  let atk = w.atk * upMult(w.id) + S.level + gl.atk + str;
+  if (S.enchants[w.id]) atk *= 1.1;
+  if (S.heroClass === 'Mage') atk *= 1.25;
+  if (S.heroClass && (AFFINITY[S.heroClass] || []).includes(wtype(w))) atk *= 1.10;
+  if (elixir) atk *= 1.25;
+  return Math.round(atk);
+}
+function gainXP(rawXp) {
+  const intBonus = (S.stats && S.stats.int) ? Math.round(rawXp * S.stats.int * 0.05) : 0;
+  S.xp += rawXp + intBonus;
+  let leveled = false;
+  while (S.xp >= xpForNext(S.level)) {
+    S.xp -= xpForNext(S.level);
+    S.level++;
+    S.statPoints = (S.statPoints || 0) + 1;
+    leveled = true;
+    toast('⬆️ Level ' + S.level + '! +1 stat point');
+  }
+  if (leveled) { sfx('level'); if ($('screen-stats').classList.contains('active')) renderStats(); }
+}
+
+let questZoneTab = 0;
+let _sellItems = [];
+function setQuestZone(z) {
+  const gwUnlocked = S.questsCleared >= FOREST_UNLOCK;
+  const ruinsUnlocked = S.questsCleared >= RUINS_UNLOCK;
+  if (z === 1 && !gwUnlocked) { toast('Defeat the Forest Troll to enter the Greenwood.'); return; }
+  if (z === 2 && !ruinsUnlocked) { toast('Defeat the Echo of the First Wanderer to enter The Ruins.'); return; }
+  questZoneTab = z;
+  renderTavern();
+}
+/* ---------------- Tavern & quest budget ---------------- */
+function questBudget() {
+  const today = localDateStr(new Date());
+  if (S.questsToday.date !== today) { S.questsToday = { date: today, used: 0, bonus: 0 }; save(); }
+  return QUESTS_PER_DAY + S.questsToday.bonus - S.questsToday.used;
+}
+function renderTavern() {
+  const budget = questBudget(); // roll day if needed
+  const stam = S.potions['stamina'] || 0;
+  const sr = $('quest-stamina-row');
+  if (sr) {
+    sr.style.display = stam > 0 ? 'block' : 'none';
+    const sb = $('btn-stamina');
+    if (sb) sb.textContent = `🧪 Stamina Draught (+50 ⚡ Ries) — x${stam}`;
+  }
+  // Zone tab state
+  const gwUnlocked = S.questsCleared >= FOREST_UNLOCK;
+  const ruinsUnlocked = S.questsCleared >= RUINS_UNLOCK;
+  const qt0 = $('qtab-0'), qt1 = $('qtab-1'), qt2 = $('qtab-2');
+  if (qt0) { qt0.classList.toggle('zt-active', questZoneTab === 0); }
+  if (qt1) {
+    qt1.classList.toggle('zt-active', questZoneTab === 1);
+    qt1.disabled = !gwUnlocked;
+    if (qt1.disabled) qt1.title = 'Defeat the Forest Troll to unlock';
+  }
+  if (qt2) {
+    qt2.classList.toggle('zt-active', questZoneTab === 2);
+    qt2.disabled = !ruinsUnlocked;
+    if (qt2.disabled) qt2.title = 'Defeat the Echo of the First Wanderer to unlock';
+  }
+  if (!gwUnlocked && questZoneTab === 1) questZoneTab = 0;
+  if (!ruinsUnlocked && questZoneTab === 2) questZoneTab = 0;
+
+  const bonusIdx = dailyBonusIdx();
+  const rows = [];
+  QUESTS.forEach((q, i) => {
+    const qZone = q.zone || 1;
+    if (questZoneTab === 0 && qZone !== 1) return;
+    if (questZoneTab === 1 && qZone !== 2) return;
+    if (questZoneTab === 2 && qZone !== 3) return;
+    const cleared = i < S.questsCleared;
+    const available = i <= S.questsCleared;
+    if (!cleared && rumorLocked(i)) {                        // lore-locked: heard of at the Inn
+      rows.push(`<tr><td>❓ <span class="dim">[${q.type.toUpperCase()}]</span> <b>A hunt not yet known</b><br>
+        <span class="dim" style="font-style:italic">“Someone in the Inn\'s common room knows more of this…”</span></td>
+        <td class="r"><button disabled>❓ Rumor</button></td></tr>`);
+      return;
+    }
+    const isBonus = available && i === bonusIdx;
+    let btn;
+    if (!available) btn = `<button disabled>🔒 Locked</button>`;
+    else if (S.wounded) btn = `<button disabled>🩸 Wounded</button>`;
+    else if (budget <= 0) btn = `<button disabled>😴 Spent</button>`;
+    else btn = `<button onclick="startPrep(${i})">${cleared ? '↻ Repeat' : '⚔️ Take'}</button>`;
+    const star = isBonus ? '<span class="gold">★ 3× rewards today!</span> · ' : '';
+    const traits = traitTags(q.monster).join(' ');
+    const typeTag = q.type === 'Legend' ? '<span class="red" style="color:var(--red)">[LEGEND]</span>'
+      : q.type === 'Boss' ? '<span class="gold">[BOSS]</span>'
+      : `<span class="dim">[${q.type.toUpperCase()}]</span>`;
+    const loreBtn = q.lore ? `<button class="dim" style="font-size:11px;padding:1px 6px;margin-left:6px" onclick="showQuestLore(${i})">📜 lore</button>` : '';
+    rows.push(`<tr><td>${cleared ? '✔ ' : ''}${typeTag} ${q.name}${loreBtn}
+      ${q.giver ? `<br><span class="dim" style="font-size:12px">— ${q.giver}</span>` : ''}
+      ${available ? `<br><span class="dim" style="font-style:italic">"${q.flavor}"</span>` : ''}
+      <br><span class="dim">${star}${q.monster.emoji} ${q.monster.name} · HP ${q.monster.hp} · ATK ${q.monster.atk}${traits ? ' · ' + traits : ''} · ⚡${questEnergy(q)}</span></td>
+      <td class="r">${btn}</td></tr>`);
+  });
+  $('quest-rows').innerHTML = rows.join('');
+}
+function showQuestLore(i) {
+  const q = QUESTS[i];
+  showModal(
+    `<h2>${q.monster.emoji} ${q.name}</h2>
+     ${q.giver ? `<p class="dim" style="font-size:13px;margin-top:4px">— ${q.giver}</p>` : ''}
+     <p class="mt" style="line-height:1.7;font-size:13px;text-align:left">${q.lore}</p>`,
+    [{label:'← Back'}]
+  );
+}
+function drinkStamina() {
+  if (!S.potions['stamina']) return;
+  S.potions['stamina']--;
+  S.ries += 50;
+  save(); sfx('potion'); renderTavern(); renderHUD(); toast('+50 ⚡ Ries from the draught!');
+}
+
+/* ---------------- Quest prep ---------------- */
+let prep = null;
+function startPrep(i) {
+  if (S.wounded) { toast('You are wounded — rest at the Inn first.'); return; }
+  if (rumorLocked(i)) { toast('You\'ve not heard of this hunt — listen at the Inn.'); return; }
+  if (questBudget() <= 0) return;
+  prep = { questIdx: i, elixir: false };
+  renderPrep();
+  showScreen('prep');
+}
+function renderPrep() {
+  const q = QUESTS[prep.questIdx], m = q.monster;
+  const traits = traitTags(m).join(' · ');
+  $('prep-title').textContent = '⚔️ ' + q.name;
+  // Boss cinematic: dramatic panel border + header
+  const prepPanel = $('screen-prep').querySelector('.panel');
+  if (prepPanel) prepPanel.style.borderColor = q.boss ? 'var(--red)' : '';
+  const bossHeader = q.boss
+    ? '<p style="color:var(--red);font-size:14px;font-weight:bold;letter-spacing:2px;text-align:center;padding:8px;background:#180808;border-radius:3px;margin-bottom:12px">'
+        + '\u26A0\uFE0F  BOSS ENCOUNTER  \u26A0\uFE0F</p>'
+    : '';
+  $('prep-monster').innerHTML = bossHeader +
+    `<span class="dim" style="font-style:italic;display:block;line-height:1.5;border-left:2px solid var(--border);padding-left:10px;margin-bottom:8px">${q.lore || '“' + q.flavor + '”'}</span>` +
+    (q.giver ? `<span class="dim">— ${q.giver}</span><br>` : '') +
+    `${m.emoji} <b>${m.name}</b> — HP ${m.hp} · ATK ${m.atk}${traits ? ' · ' + traits : ''}` +
+    `${q.boss ? ' · <span style="color:var(--red)">BOSS</span>' : ''}`;
+  $('prep-hero').innerHTML = `${S.sex === 'f' ? '🧍\u200d\u2640\ufe0f' : '🧍'} <b>${S.name}</b> — HP ${heroMaxHP()} \u00b7 ATK ${heroATK(prep.elixir)}`;
+  const _bossWarn = $('prep-boss-warn');
+  if (_bossWarn) {
+    if (q.boss && S.gradus >= 500) {
+      _bossWarn.style.display = '';
+      _bossWarn.innerHTML = `\u26a0\ufe0f You carry <b>${fmt(S.gradus)} Gradus</b> \u2014 looters take everything if you fall. `
+        + `<a href="#" onclick="showScreen('bank');return false" style="color:var(--gold)">Bank it first?</a>`;
+    } else { _bossWarn.style.display = 'none'; }
+  }
+  const minor = S.potions['minor'] || 0, health = S.potions['health'] || 0, str = S.potions['strength'] || 0, ench = S.potions['enchant'] || 0;
+  const rows = [
+    `<button onclick="toggleElixir()" ${(str || prep.elixir) ? '' : 'disabled'}>${prep.elixir ? '✔ ' : ''}💪 Strength Elixir (+25% ATK, this battle) — x${str}</button>`,
+  ];
+  const w = WEAPONS.find(x => x.id === S.equipped.weapon);
+  if (ench && !S.enchants[w.id]) rows.push(`<button onclick="applyEnchant()">✨ Enchant ${w.name} (permanent +10%) — x${ench}</button>`);
+  rows.push(`<span class="dim">🎒 Satchel: ${minor}× Minor, ${health}× Health — drink them <b>during</b> battle.</span>`);
+  $('prep-potions').innerHTML = rows.join('');
+}
+function toggleElixir() {
+  if (prep.elixir) { prep.elixir = false; S.potions['strength'] = (S.potions['strength'] || 0) + 1; }
+  else { if (!S.potions['strength']) return; S.potions['strength']--; prep.elixir = true; }
+  save(); renderPrep();
+}
+function applyEnchant() {
+  const w = S.equipped.weapon;
+  if (!S.potions['enchant'] || S.enchants[w]) return;
+  S.potions['enchant']--; S.enchants[w] = true;
+  save(); toast('✨ Weapon enchanted — +10% forever.'); renderPrep();
+}
+
+/* ---------------- Battle (turn-based) ----------------
+   Your turn: Attack, drink a Potion, or Flee. Each action gives the
+   monster its turn. Traits: swift monsters open the fight (Archers
+   still pre-empt them), armored reduces your damage 25%, venom bleeds
+   you each turn once bitten, frenzied monsters rage below 30% HP,
+   regenerators heal after acting. */
+function vary(x) { return Math.max(1, Math.round(x * (0.85 + Math.random() * 0.3))); }
+function setBars(h, m) {
+  $('b-hero-hp').style.width = Math.round(h * 100) + '%';
+  $('b-mon-hp').style.width = Math.round(m * 100) + '%';
+}
+let B = null;
+function blog(t) {
+  const div = document.createElement('div');
+  div.textContent = '▸ ' + t;
+  $('battle-log').appendChild(div);
+  $('battle-log').scrollTop = $('battle-log').scrollHeight;
+}
+/* ---- energy costs & free hunts ---- */
+function questEnergy(q) { return q.grind ? q.energy : (q.type === 'Legend' ? 150 : q.zone === 2 ? 80 : 40); }
+const GRIND_ZONES = [
+  { name:'Oppidum Fields', unlock:0, energy:25, mobs:[
+    { name:'Field Rat',      emoji:'🐀', spr:['rat','#7a5f3a'],      hp:24,  atk:3,  xp:14,  g:120 },
+    { name:'Tunnel Rat',     emoji:'🐀', spr:['rat','#3a2c18'],      hp:45,  atk:5,  xp:20,  g:180, venom:1 },
+    { name:'Stray Wolf',     emoji:'🐺', spr:['wolf','#6a6a74'],     hp:36,  atk:6,  xp:18,  g:160, swift:true },
+    { name:'Footpad',        emoji:'🗡️', spr:['humanoid','#5a4630'], hp:60,  atk:8,  xp:24,  g:220 },
+    { name:'Deserter Scout', emoji:'⚔️', spr:['humanoid','#4a4030'], hp:75,  atk:9,  xp:30,  g:260, armored:true },
+  ]},
+  { name:'Greenwood Deep', unlock:8, energy:50, mobs:[
+    { name:'Sapling Treant',  emoji:'🌱', spr:['brute','#5a7a3a','#46602e',true], hp:180, atk:18, xp:62,  g:500, regen:3 },
+    { name:'Wild Boar',       emoji:'🐗', spr:['boar','#5f4326'],                 hp:220, atk:21, xp:75,  g:600, frenzy:true },
+    { name:'Webspinner',      emoji:'🕸️', spr:['spider','#3a2c40'],               hp:260, atk:24, xp:88,  g:700, venom:3 },
+    { name:'Forest Stalker',  emoji:'🧟', spr:['humanoid','#2a3a1a'],             hp:300, atk:27, xp:110, g:800, swift:true },
+    { name:'Thornback Boar',  emoji:'🐗', spr:['boar','#3a2a18'],                 hp:350, atk:30, xp:130, g:900, frenzy:true, armored:true },
+  ]},
+];
+function startGrind(zi) {
+  const z = GRIND_ZONES[zi];
+  if (S.wounded) { toast('You are wounded — rest at the Inn.'); return; }
+  if (S.questsCleared < z.unlock) { toast('That ground is closed to you.'); return; }
+  if (!spendEnergy(z.energy, 'the hunt')) return;
+  save();
+  // 1-in-10000 rare encounter
+  if (Math.random() < 0.0001) {
+    const rare = RARE_MOBS[Math.floor(Math.random() * RARE_MOBS.length)];
+    showModal(
+      `<h2 style="color:var(--ries)">⚠️ ${rare.emoji} RARE APPARITION</h2>
+       <p class="mt">${rare.intro}</p>
+       <p class="gold mt">An extraordinarily rare encounter. Fight well.</p>`,
+      [{ label:'⚔️ I will not run', cls:'btn-r',
+         fn:() => launchBattle({ name: z.name + ' — ★ RARE', monster: rare, xp: rare.xp, g: rare.g, grind: true, energy: z.energy }) },
+       { label:'🏃 Flee immediately' }]);
+    return;
+  }
+  const m = z.mobs[Math.floor(Math.random() * z.mobs.length)];
+  launchBattle({ name: z.name + ' — free hunt', monster: m, xp: m.xp, g: m.g, grind: true, energy: z.energy });
+}
+function confirmBattle() {
+  if (S.gradus > 0) {
+    showModal(
+      `<h2>⚠️ A Heavy Purse</h2>
+       <p>You carry <b class="gold">🪙 ${fmt(S.gradus)} Gradus</b> into this fight.</p>
+       <p class="dim mt">If you fall, looters take every coin you hold. What sits in the Bank\'s vault — or sealed in its ventures — survives you.</p>`,
+      [
+        { label:'⚔️ Fight anyway', cls:'btn-r', fn:() => beginBattle() },
+        { label:'🏦 Think better of it' },
+      ]);
+  } else beginBattle();
+}
+function beginBattle() {
+  const q = QUESTS[prep.questIdx];
+  if (questBudget() <= 0) { showScreen('tavern'); return; }
+  if (!spendEnergy(questEnergy(q), 'this hunt')) return;
+  S.questsToday.used++; save();
+  launchBattle(q, prep.elixir);
+}
+function launchBattle(q, elixir) {
+  const m = q.monster;
+  B = { q, maxH: heroMaxHP(), hhp: heroMaxHP(), maxM: m.hp, mhp: m.hp,
+        elixir: !!elixir, venomed: false, over: false, busy: false,
+        cd: 0, shield: false };
+  $('battle-title').innerHTML = PIX.skull + q.name;
+  $('battle-scene').innerHTML = heroSpriteSVG() + '<span class="vs">⚔</span>' +
+    (q.grind ? pix(16, 90, MON_BUILDERS[m.spr[0]](...m.spr.slice(1))) : monsterSpriteSVG(QUESTS.indexOf(q)));
+  const _bw = WEAPONS.find(x => x.id === S.equipped.weapon);
+  const _ba = ARMOR.find(x => x.id === S.equipped.armor);
+  const _wIcon = _bw ? (wtype(_bw)==='bow'?'\uD83C\uDFF9':wtype(_bw)==='staff'?'\uD83E\uDE84':wtype(_bw)==='crossbow'?'\uD83C\uDFAF':'\u2694\uFE0F') : '\u2694\uFE0F';
+  const _aStars = _ba ? '\u2605'.repeat(Math.min(5,Math.ceil(_ba.def/4))) : '\u2606';
+  $('b-hero-name').innerHTML = (S.sex==='f'?'\uD83E\uDDD1\u200D\u2640\uFE0F':'\uD83E\uDDCD')
+    + ' <b>' + S.name + '</b> <span class="dim" style="font-size:11px">' + _wIcon + ' ' + (_bw?_bw.name:'') + ' \u00b7 \uD83D\uDEE1\uFE0F' + _aStars + '</span>';
+  const traits = traitTags(m).join(' ');
+  $('b-mon-name').textContent = `${m.emoji} ${m.name}${traits ? ' · ' + traits : ''}`;
+  $('battle-log').innerHTML = '';
+  $('battle-done').style.display = 'none';
+  setBars(1, 1);
+  blog('The battle begins!');
+  showScreen('battle');
+  if (m.swift && S.heroClass !== 'Archer') {        // swift monsters open
+    blog(`${m.name} moves first!`);
+    B.busy = true; renderActions();
+    setTimeout(monsterAct, 450);
+  } else renderActions();
+}
+function renderActions() {
+  if (!B || B.over) { $('battle-actions').innerHTML = ''; return; }
+  const minor = S.potions['minor'] || 0, health = S.potions['health'] || 0;
+  const dis = B.busy ? 'disabled' : '';
+  let abilityBtn = '';
+  if (S.heroClass) {
+    const a = ABILITIES[S.heroClass];
+    abilityBtn = `<button onclick="actAbility()" ${(B.busy || B.cd > 0) ? 'disabled' : ''} title="${a.desc}">` +
+      `${a.emoji} ${a.name}${B.cd > 0 ? ' ⏳' + B.cd : ''}</button> `;
+  }
+  $('battle-actions').innerHTML =
+    `<button onclick="actAttack()" ${dis}>⚔️ Attack</button> ` + abilityBtn +
+    `<button onclick="actPotion('minor')" ${(!minor || B.busy) ? 'disabled' : ''}>🧪 Minor ×${minor}</button> ` +
+    `<button onclick="actPotion('health')" ${(!health || B.busy) ? 'disabled' : ''}>⚗️ Health ×${health}</button> ` +
+    `<button onclick="actFlee()" ${dis}>🏃 Flee</button>`;
+}
+function tickCd() { if (B.cd > 0) B.cd--; }
+function updateBars() { setBars(B.hhp / B.maxH, B.mhp / B.maxM); }
+function venomTick() {
+  const m = B.q.monster;
+  if (m.venom && B.venomed) {
+    B.hhp = Math.max(0, B.hhp - m.venom);
+    blog(`☠️ Venom seeps — −${m.venom} HP.`);
+    updateBars();
+    if (B.hhp <= 0) { finishTB(false, false); return true; }
+  }
+  return false;
+}
+function actAbility() {
+  if (!B || B.over || B.busy || B.cd > 0 || !S.heroClass) return;
+  if (venomTick()) return;
+  const a = ABILITIES[S.heroClass], m = B.q.monster;
+  B.cd = a.cd;
+  sfx('ability');
+  if (S.heroClass === 'Knight') {
+    B.shield = true;
+    blog('🛡️ You raise Shield Wall — the next blow will be halved.');
+  } else if (S.heroClass === 'Mage') {
+    const d = vary(heroATK(B.elixir)) * 2;           // ignores armor
+    B.mhp = Math.max(0, B.mhp - d);
+    blog(`🔥 Fireball sears for ${d}! Armor means nothing.`);
+    updateBars();
+    if (B.mhp <= 0) { finishTB(true, false); return; }
+  } else if (S.heroClass === 'Archer') {
+    for (let i = 0; i < 2 && B.mhp > 0; i++) {
+      let d = vary(heroATK(B.elixir));
+      if (m.armored) d = Math.round(d * 0.75);
+      B.mhp = Math.max(0, B.mhp - d);
+      blog(`🏹 Arrow ${i + 1} strikes for ${d}!`);
+    }
+    updateBars();
+    if (B.mhp <= 0) { finishTB(true, false); return; }
+  } else if (S.heroClass === 'Cleric') {
+    const heal = Math.round(B.maxH * 0.5);
+    B.hhp = Math.min(B.maxH, B.hhp + heal);
+    blog(`⚕️ Mending Prayer restores ${heal} HP.`);
+    updateBars();
+  }
+  monsterSoon();
+}
+function actAttack() {
+  if (!B || B.over || B.busy) return;
+  if (venomTick()) return;
+  tickCd();
+  const m = B.q.monster;
+  let d = vary(heroATK(B.elixir));
+  if (m.armored) d = Math.round(d * 0.75);
+  B.mhp = Math.max(0, B.mhp - d);
+  sfx('hit');
+  blog(`You strike for ${d}!${m.armored ? ' (armor absorbs some)' : ''}`);
+  updateBars();
+  if (B.mhp <= 0) { finishTB(true, false); return; }
+  monsterSoon();
+}
+function actPotion(id) {
+  if (!B || B.over || B.busy || !(S.potions[id] > 0)) return;
+  if (venomTick()) return;
+  tickCd();
+  S.potions[id]--;
+  const mult = S.heroClass === 'Cleric' ? 1.5 : 1;
+  const heal = Math.round(B.maxH * (id === 'minor' ? 0.3 : 0.7) * mult);
+  B.hhp = Math.min(B.maxH, B.hhp + heal);
+  save();
+  sfx('potion');
+  blog(`You drink a ${id === 'minor' ? 'Minor' : 'Health'} Potion — +${heal} HP.${mult > 1 ? ' (Cleric)' : ''}`);
+  updateBars();
+  monsterSoon();
+}
+function actFlee() {
+  if (!B || B.over || B.busy) return;
+  blog('You turn and run…');
+  finishTB(false, true);
+}
+function monsterSoon() { B.busy = true; renderActions(); setTimeout(monsterAct, 480); }
+function monsterAct() {
+  if (!B || B.over) return;
+  B.busy = false;
+  const m = B.q.monster;
+  const dex = (S.stats && S.stats.dex) || 0;
+  const dodgeChance = (S.heroClass === 'Archer' ? 0.15 : 0) + dex * 0.015;
+  if (Math.random() < dodgeChance) {
+    blog('💨 You dodge the attack!' + (dex ? ` (DEX ${dex})` : ''));
+  } else {
+    let atk = m.atk;
+    const frenzied = m.frenzy && B.mhp < B.maxM * 0.3;
+    if (frenzied) atk = Math.round(atk * 1.5);
+    let d = vary(atk);
+    if (B.shield) { d = Math.round(d / 2); B.shield = false; blog('🛡️ Shield Wall absorbs the blow!'); }
+    B.hhp = Math.max(0, B.hhp - d);
+    if (m.venom) B.venomed = true;
+    sfx('hurt');
+    blog(`${m.name} hits you for ${d}!${frenzied ? ' 😡 FRENZY!' : ''}`);
+  }
+  if (m.regen && B.mhp > 0 && B.mhp < B.maxM) {
+    B.mhp = Math.min(B.maxM, B.mhp + m.regen);
+    blog(`💚 ${m.name} knits its wounds (+${m.regen}).`);
+  }
+  updateBars();
+  if (B.hhp <= 0) { finishTB(false, false); return; }
+  renderActions();
+}
+function finishTB(win, fled) {
+  B.over = true;
+  renderActions();
+  const q = B.q;
+  let msg;
+  if (win) {
+    let g = 0, xp, isBonus = false, first = false;
+    if (q.grind) {                               // free hunt: flat reward, no quest bookkeeping
+      g = q.g; xp = q.xp;
+    } else {
+      const qi = QUESTS.indexOf(q);
+      first = qi === S.questsCleared;
+      isBonus = qi === dailyBonusIdx();
+      if (first) { g = q.g * (isBonus ? 3 : 1); xp = q.xp; S.questsCleared++; }
+      else { xp = Math.round(q.xp * 0.65); if (isBonus) g = q.g; }
+    }
+    S.gradus += g;
+    gainXP(xp);
+    msg = `🏆 VICTORY! ${g ? '+' + fmt(g) + ' Gradus · ' : ''}+${xp} XP`;
+    if (isBonus) msg = '★ ' + msg + (first ? ' (3× daily bonus)' : ' (daily bonus payout)');
+    // loot drops
+    if (Math.random() < 0.30) {
+      const pool = ['minor','minor','minor','health','health','stamina','strength'];
+      const id = pool[Math.floor(Math.random() * pool.length)];
+      S.potions[id] = (S.potions[id] || 0) + 1;
+      msg += ` · 🎒 ${POTIONS.find(p => p.id === id).name} drop!`;
+    }
+    if (Math.random() < 0.05) { S.gradus += 2000; msg += ' · 💎 Rare gem (+2,000 Gradus)!'; }
+    // material drops
+    (MOB_DROPS[q.monster.name] || []).forEach(([m, p]) => {
+      if (Math.random() < p) { S.materials[m] = (S.materials[m] || 0) + 1; msg += ` · 🎁 ${MATS[m][0]} ${MATS[m][1]}`; }
+    });
+    // junk drops → bag
+    (JUNK_DROPS[q.monster.name] || []).forEach(([jid, p]) => {
+      if (Math.random() < p) {
+        const junk = JUNK.find(x => x.id === jid);
+        if (junk) {
+          const existing = S.bag.find(x => x.id === jid);
+          if (existing) { existing.qty++; msg += ` · ${junk.icon}${junk.name}`; }
+          else if (S.bag.length < S.bagCap) { S.bag.push({ id:jid, name:junk.name, icon:junk.icon, qty:1, value:junk.value }); msg += ` · ${junk.icon}${junk.name}`; }
+          else { S.gradus += junk.value; msg += ` · ${junk.icon}bag full→sold`; }
+        }
+      }
+    });
+    // rare weapon drop (~8%)
+    const wdrop = WEAPON_DROPS[q.monster.name];
+    if (wdrop && Math.random() < 0.08) {
+      const dropId = wdrop[Math.floor(Math.random() * wdrop.length)];
+      const dropW = WEAPONS.find(x => x.id === dropId);
+      if (dropW && !S.weapons.includes(dropId)) {
+        S.weapons.push(dropId);
+        msg += ` · ⚔️ ${dropW.name} dropped!`;
+      } else if (dropW) {
+        S.gradus += Math.round(dropW.g * 0.2);
+        msg += ` · ⚔️ ${dropW.name} (duplicate→sold)`;
+      }
+    }
+    if (q.boss && first && q.bossMsg) msg += ' ' + q.bossMsg;
+    sfx('victory');
+  } else if (fled) {
+    msg = '🏃 You escape with your life — the quest attempt is spent.';
+  } else {
+    // Death: looters take every Gradus you carry; you wake wounded.
+    const lost = S.gradus;
+    S.gradus = 0;
+    S.wounded = true;
+    S.diedOnce = true;
+    const _monName = q.monster ? q.monster.name : 'the enemy';
+    const _xpSoFar = 0; // no partial XP on death
+    sfx('defeat');
+    save(); checkAch(); renderHUD();
+    // Brief pause then death screen
+    setTimeout(() => showDeathScreen(_monName, lost, _xpSoFar), 600);
+    return; // skip normal battle-done flow
+  }
+  save();
+  checkAch();
+  $('battle-result').textContent = msg;
+  $('battle-done').style.display = 'block';
+  renderHUD();
+}
+function battleContinue() {
+  if (S.level >= 10 && !S.heroClass) showScreen('class');
+  else showScreen('tavern');
+}
+
+/* ---------------- Class choice (level 10) ---------------- */
+const CLASSES = [
+  { id:'Knight', emoji:'🛡️', desc:'+25% max HP — the unbreakable wall' },
+  { id:'Mage',   emoji:'🔮', desc:'+25% damage — raw arcane power' },
+  { id:'Archer', emoji:'🏹', desc:'Always strikes first · 15% dodge' },
+  { id:'Cleric', emoji:'⚕️', desc:'Potions 50% more effective' },
+];
+/* Active battle abilities (V1.5) — one per class, on cooldown */
+const ABILITIES = {
+  Knight: { name:'Shield Wall',    emoji:'🛡️', cd:3, desc:'Brace behind your shield — the next blow against you is halved.' },
+  Mage:   { name:'Fireball',       emoji:'🔥', cd:3, desc:'Hurl fire for 2× damage. Burns straight through armor.' },
+  Archer: { name:'Double Shot',    emoji:'🏹', cd:3, desc:'Loose two arrows in a single turn.' },
+  Cleric: { name:'Mending Prayer', emoji:'⚕️', cd:4, desc:'Restore 50% of your max HP without spending a potion.' },
+};
+function renderClass() {
+  $('class-rows').innerHTML = CLASSES.map(c =>
+    `<button class="btn-big" onclick="chooseClass('${c.id}')">${c.emoji} <b>${c.id}</b> — <span class="dim">${c.desc}</span></button>`
+  ).join('');
+}
+function chooseClass(id) {
+  S.heroClass = id; save();
+  sfx('level');
+  toast('⚜️ You are now a ' + id + '!');
+  checkAch();
+  showScreen('town');
+}
+
+/* ---------------- Save management ---------------- */
+function exportSave() {
+  const blob = new Blob([JSON.stringify(S, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'gradus-save.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function resetSave() {
+  if (!confirm('Erase your hero and start over?')) return;
+  localStorage.removeItem(saveKey(currentEmail));
+  logoutAccount();
+}
+
+/* ---------------- Boot ---------------- */
+$('ver-title').textContent = 'Gradus ' + VERSION;
+$('ver-town').textContent = 'Gradus ' + VERSION;
+$('icon-crest').innerHTML = PIX.crest;
+$('icon-sync').innerHTML = PIX.scroll;
+$('icon-tavern').innerHTML = PIX.mug;
+$('icon-inn').innerHTML = PIX.bed;
+$('icon-bank').innerHTML = PIX.vault;
+initTownMap();
+load();
+// music begins on the first interaction (browser autoplay rules)
+document.addEventListener('click', function bootMusic() {
+  document.removeEventListener('click', bootMusic);
+  if (S && S.music !== false) startMusic();
+});
+if (S) { checkAch(); showScreen('town'); }
+else { showScreen('title'); loadAccountList(); }
+</script>
+</body>
+</html>

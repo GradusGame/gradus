@@ -1,0 +1,25 @@
+# Cloudflare Workers config for Gradus device-sync backend
+# Deploy: wrangler deploy
+# Logs:   wrangler tail
+
+name            = "gradus-worker"
+main            = "worker.js"
+compatibility_date = "2024-06-01"
+account_id      = ""   # fill in from https://dash.cloudflare.com → right sidebar
+
+# KV namespace: stores activity data + cloud saves
+# Create it: wrangler kv namespace create GRADUS_KV
+# Then paste the id below
+[[kv_namespaces]]
+binding = "KV"
+id      = ""   # paste KV namespace id here
+
+# Secrets (set via CLI, never in this file):
+#   wrangler secret put TERRA_DEV_ID
+#   wrangler secret put TERRA_API_KEY
+# Get these from https://dashboard.tryterra.co → API Keys
+
+[triggers]
+# Terra webhook — configure in Terra dashboard:
+#   Webhook URL: https://gradus-worker.YOUR_SUBDOMAIN.workers.dev/terra-webhook
+routes = []
