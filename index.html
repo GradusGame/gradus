@@ -855,7 +855,7 @@ input:focus {
     <table class="mt"><tbody>
       <tr><td><b>The Two Realms</b><br><span class="dim">There are two realms. The <b>Gradus realm</b> is this one: Oppidum, the Greenwood, the hunts. The <b>real-life realm</b> is the one with sky, where your body walks. Every step taken there becomes Gradus here; every calorie burned becomes Ries. Neither realm prospers without the other.</span></td></tr>
       <tr><td><b>Gradus</b> 🪙<br><span class="dim">The realm's coin. 1 step in the other realm = 1 Gradus. Spent on gear, rooms, rumors, ventures. Looters take all carried Gradus if you fall in battle; the Bank's vault is safe.</span></td></tr>
-      <tr><td><b>Ries</b> ⚡<br><span class="dim">Your energy. 1 calorie burned = 1 Ries. Fuels quests, free hunts, life skills, crafting, and the Blacksmith's forge upgrades. When it runs dry, work in the other realm or eat a cooked meal.</span></td></tr>
+      <tr><td><b>Ries</b> ⚡<br><span class="dim">Your energy. 1 calorie burned = 1 Ries, held up to a cap of 5,000. Fuels quests, free hunts, life skills, crafting, and the Blacksmith's forge upgrades. When it runs dry, work in the other realm or eat a cooked meal; when it sits full, you are wasting calories. Spend it.</span></td></tr>
       <tr><td><b>Realm Sync</b> 📜<br><span class="dim">The Keep's ledger where the other realm's deeds are recorded: by hand, or automatically through a linked device (Garmin, Oura and kin). Daily limits: 50,000 steps, 4,000 kcal. Consecutive days build a streak worth up to +50% earnings.</span></td></tr>
       <tr><td><b>Gear grades</b><br><span class="dim">No-grade gear is available from the start. D-grade drops in the Greenwood (zone 2). Higher grades (C → B → A → S) will arrive with future zones. The forge can raise any piece to +5.</span></td></tr>
       <tr><td><b>Monster traits</b><br><span class="dim">⚡Swift strikes first · 🛡️Armored blunts your blade · ☠️Venom bleeds you each turn · 😡Frenzy rages below 30% health · 💚Regen knits its wounds.</span></td></tr>
@@ -966,7 +966,35 @@ input:focus {
 
 <script>
 'use strict';
-const VERSION = 'Alpha V1.22';
+/* ── Progressive disclosure: town locations unlock at milestones ──
+   Day one is just the Keep, Tavern, Blacksmith and Library. The rest of
+   Oppidum wakes up as the wanderer earns it. Unlocks persist in S.unlocked. */
+const UNLOCKS = {
+  armorer:    { test:s => s.questsCleared >= 1, name:'🛡️ Armorer',        hint:'Brunhild opens her door after your first hunt.' },
+  apothecary: { test:s => s.questsCleared >= 2, name:'🧪 Apothecary',     hint:'Mother Elswyth opens after your second hunt.' },
+  inn:        { test:s => s.wounded || s.level >= 3 || (s.questsToday && s.questsToday.used >= 3), name:'🛏️ Inn', hint:'The Inn opens when the road has worn you down.' },
+  bank:       { test:s => s.gradus + (s.bank || 0) >= 3000, name:'🏦 Bank', hint:'Master Aurelius opens for those carrying 3,000 Gradus worth protecting.' },
+  hunt:       { test:s => s.level >= 4,         name:'🌾 Hunting Grounds', hint:'Reach level 4 to roam the open grounds.' },
+  woodsmith:  { test:s => s.level >= 5,         name:'🏹 Woodsmith',       hint:'Aldwin opens his workshop at level 5.' },
+  craft:      { test:s => s.questsCleared >= 4, name:'🛠 Crafting Bench',  hint:'Clear 4 hunts and the bench is yours.' },
+  chapel:     { test:s => s.level >= 6,         name:'⛪ Chapel',          hint:'The chapel bell rings for those of level 6.' },
+  commons:    { test:s => s.questsCleared >= 6, name:'🧺 The Commons',     hint:'The Commons open once the Forest Troll falls.' },
+  lake:       { test:s => s.questsCleared >= 6, name:'🎣 The Lake',        hint:'The lake path opens once the Forest Troll falls.' },
+};
+function isLocked(key) { return !!(S && UNLOCKS[key] && !(S.unlocked && S.unlocked[key])); }
+function checkUnlocks(quiet) {
+  if (!S) return;
+  if (!S.unlocked) S.unlocked = {};
+  Object.entries(UNLOCKS).forEach(([k, u]) => {
+    if (!S.unlocked[k] && u.test(S)) {
+      S.unlocked[k] = true;
+      if (!quiet) { toast('🔓 New in town: ' + u.name); sfx('level'); }
+    }
+  });
+}
+const RIES_CAP = 5000;                 // energy ceiling: burn it or bank the walk
+function gainRies(n) { S.ries = Math.min(RIES_CAP, (S.ries || 0) + n); }
+const VERSION = 'Alpha V1.24';
 
 /* ---- 8-bit medieval pixel icons (inline SVG, dark palette) ---- */
 function pix(view, w, rects) {
@@ -1941,6 +1969,8 @@ function migrate(s) {
   if (!s.upgrades) s.upgrades = {};
   if (!s.investments) s.investments = [];   // {amount, date, mature}
   if (!s.rumors) s.rumors = {};
+  if (!s.unlocked) s.unlocked = {};
+  if (typeof UNLOCKS !== 'undefined') Object.entries(UNLOCKS).forEach(([k, u]) => { if (!s.unlocked[k] && u.test(s)) s.unlocked[k] = true; });
   if (s.music === undefined) s.music = true;
   if (!s.backend) s.backend = DEFAULT_BACKEND;   // live by default (analytics + cloud)
   if (!s.syncId) s.syncId = crypto.randomUUID();
@@ -2286,7 +2316,11 @@ function toast(msg) {
 }
 
 /* ---------------- Screens ---------------- */
+const SCREEN_LOCK_KEYS = { inn:'inn', bank:'bank', hunt:'hunt', craft:'craft', chapel:'chapel', commons:'commons', lake:'lake' };
 function showScreen(name) {
+  if (S) checkUnlocks();
+  const lk = SCREEN_LOCK_KEYS[name];
+  if (lk && isLocked(lk)) { toast('🔒 ' + UNLOCKS[lk].hint); return; }
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   $('screen-' + name).classList.add('active');
   if (name === 'sync') renderSync();
@@ -2352,7 +2386,7 @@ function renderHUD() {
   $('hud-ries').textContent = fmt(S.ries);
   const _maxhp = heroMaxHP(); $('hud-hp').textContent = (S.wounded ? Math.round(_maxhp * 0.25) : _maxhp) + '/' + _maxhp;
   $('hp-mini').style.width = (S.wounded ? 25 : 100) + '%';
-  $('en-mini').style.width = Math.min(100, S.ries / 4000 * 100) + '%';
+  $('en-mini').style.width = Math.min(100, S.ries / RIES_CAP * 100) + '%';
   $('hud-weapon').textContent = dispName(WEAPONS.find(w => w.id === S.equipped.weapon));
   $('hud-armor').textContent  = dispName(ARMOR.find(a => a.id === S.equipped.armor));
   $('hud-streak').textContent = streakDays();
@@ -2375,18 +2409,18 @@ function renderHUD() {
 /* Hotspots for the portrait town map (720×1280); l/t/w/h are % of the image */
 const TOWN_HOTSPOTS = [
   { l:25,   t:2,   w:36,   h:13.5, label:'📜 The Keep — Realm Sync', act:() => showScreen('sync') },
-  { l:3,    t:13,  w:30,   h:16,   label:'🏦 Bank',            act:() => showScreen('bank') },
+  { l:3,    t:13,  w:30,   h:16,   key:'bank', label:'🏦 Bank',            act:() => showScreen('bank') },
   { l:67,   t:12.5,w:30,   h:15.5, label:'📚 Library',         act:() => showScreen('library') },
   { l:3,    t:31,  w:31,   h:13,   label:'🍺 Tavern',          act:() => showScreen('tavern') },
-  { l:38.5, t:30.5,w:21,   h:13,   label:'⛪ Chapel',          act:() => showScreen('chapel') },
-  { l:63,   t:31,  w:33,   h:12.5, label:'🛏️ Inn',             act:() => showScreen('inn') },
+  { l:38.5, t:30.5,w:21,   h:13,   key:'chapel', label:'⛪ Chapel',          act:() => showScreen('chapel') },
+  { l:63,   t:31,  w:33,   h:12.5, key:'inn', label:'🛏️ Inn',             act:() => showScreen('inn') },
   { l:3,    t:46.5,w:28,   h:11.5, label:'⚒️ Blacksmith',      act:() => openShop('blacksmith') },
-  { l:33.5, t:46.5,w:21,   h:11.5, label:'🛡️ Armorer',         act:() => openShop('armorer') },
-  { l:56,   t:46,  w:23,   h:12,   label:'🏹 Woodsmith',       act:() => openShop('woodsmith') },
-  { l:79,   t:46,  w:19,   h:20,   label:'🧪 Apothecary',      act:() => openShop('apothecary') },
-  { l:1.5,  t:63.5,w:38,   h:15.5, label:'🧺 The Commons',     act:() => showScreen('commons') },
-  { l:42,   t:63.5,w:34,   h:13,   label:'🌾 Hunting Grounds', act:() => showScreen('hunt') },
-  { l:60,   t:84,  w:38,   h:15.5, label:'🎣 The Lake',        act:() => showScreen('lake') },
+  { l:33.5, t:46.5,w:21,   h:11.5, key:'armorer', label:'🛡️ Armorer',         act:() => openShop('armorer') },
+  { l:56,   t:46,  w:23,   h:12,   key:'woodsmith', label:'🏹 Woodsmith',       act:() => openShop('woodsmith') },
+  { l:79,   t:46,  w:19,   h:20,   key:'apothecary', label:'🧪 Apothecary',      act:() => openShop('apothecary') },
+  { l:1.5,  t:63.5,w:38,   h:15.5, key:'commons', label:'🧺 The Commons',     act:() => showScreen('commons') },
+  { l:42,   t:63.5,w:34,   h:13,   key:'hunt', label:'🌾 Hunting Grounds', act:() => showScreen('hunt') },
+  { l:60,   t:84,  w:38,   h:15.5, key:'lake', label:'🎣 The Lake',        act:() => showScreen('lake') },
   // Town NPCs (flavor)
   ...TOWN_NPCS.map(n => ({ l:n.l, t:n.t, w:7, h:10, label:n.label, act:() => showTownNPC(n) })),
 ];
@@ -2408,6 +2442,7 @@ function initTownMap() {
         const lbl = d.querySelector('span');
         if (lbl.style.display !== 'block') { lbl.style.display = 'block'; e.preventDefault(); return; }
       }, { passive: false });
+      if (TOWN_HOTSPOTS[i].key) { d.dataset.lockKey = TOWN_HOTSPOTS[i].key; d.dataset.baseLabel = TOWN_HOTSPOTS[i].label; }
       d.onclick = () => TOWN_HOTSPOTS[i].act();
       $('town-map').appendChild(d);
     });
@@ -2560,7 +2595,18 @@ function dungeonComplete() {
   if (doneBtn) doneBtn.onclick = () => showScreen('dsel');
 }
 
+function refreshHotspotLocks() {
+  document.querySelectorAll('#town-map .hot').forEach(d => {
+    const k = d.dataset.lockKey;
+    if (!k) return;
+    const lockedNow = isLocked(k);
+    d.style.opacity = lockedNow ? '.5' : '';
+    const sp = d.querySelector('span');
+    if (sp) sp.textContent = (lockedNow ? '🔒 ' : '') + d.dataset.baseLabel;
+  });
+}
 function renderTown() {
+  refreshHotspotLocks();
   $('stat-steps').textContent = fmt(S.lifetimeSteps);
   $('stat-cals').textContent = fmt(S.lifetimeCalories);
   // Expedition status banner (below Adventure grid)
@@ -2785,14 +2831,14 @@ function creditDay(date, rawSteps, rawCals) {
   const mult = streakMult();                       // includes the day just reported
   const g = Math.round(steps * mult), ri = Math.round(calories * mult);
   S.gradus += g;
-  S.ries += ri;
+  gainRies(ri);
   S.lifetimeSteps += steps;
   S.lifetimeCalories += calories;
   // Threshold bonuses: 7K daily goal and 10K stretch goal
   let bonusG = 0, bonusR = 0;
   if (steps >= DAILY_STEP_GOAL)   { bonusG += 2000; bonusR += 200; }
   if (steps >= STRETCH_STEP_GOAL) { bonusG += 1500; }
-  S.gradus += bonusG; S.ries += bonusR;
+  S.gradus += bonusG; gainRies(bonusR);
   return { g, ri, mult, bonusG, bonusR, capped: rawSteps > STEP_CAP || rawCals > CAL_CAP };
 }
 async function syncDay(date) {
@@ -2886,6 +2932,7 @@ let currentShop = null;
 
 const SHOP_ICONS = { blacksmith: 'anvil', woodsmith: 'bowicon', armorer: 'shield', apothecary: 'flask', general: 'mug' };
 function openShop(id) {
+  if (isLocked(id)) { toast('🔒 ' + UNLOCKS[id].hint); return; }
   currentShop = id;
   const shop = SHOPS[id];
   $('shop-title').innerHTML = PIX[SHOP_ICONS[id]] + shop.title.replace(/^[^ ]+ /, '');
@@ -3257,7 +3304,7 @@ function doRoom() {
   S.gradus -= cost;
   // A good night\'s sleep restores Ries and gives a next-quest bonus
   const riesGain = Math.round(roomCost() * 2);
-  S.ries += riesGain;
+  gainRies(riesGain);
   S.questsToday.bonus = (S.questsToday.bonus || 0) + 1;
   save(); sfx('potion');
   toast(`You wake well-rested. +${fmt(riesGain)} ⚡ Ries · +1 quest bonus slot.`);
@@ -3576,7 +3623,7 @@ function doThieve() {
   if (!spendEnergy(LS.thieving.energy, 'thieving')) return;
   const lvl = S.lifeSkills.thieving.lvl;
   const roll = Math.random();
-  if (roll < 0.5 + lvl * 0.02) { const take = 200 * lvl; S.gradus += take; S.ries += 20; sfx('coin'); toast(`🗡️ A purse, lifted clean: +${fmt(take)} Gradus · +20 ⚡ Ries.`); }
+  if (roll < 0.5 + lvl * 0.02) { const take = 200 * lvl; S.gradus += take; gainRies(20); sfx('coin'); toast(`🗡️ A purse, lifted clean: +${fmt(take)} Gradus · +20 ⚡ Ries.`); }
   else if (roll < 0.8) toast('🗡️ Too many eyes. You slip away empty-handed.');
   else { const fine = Math.min(S.gradus, 150 * lvl); S.gradus -= fine; sfx('hurt'); toast(`🗡️ Caught! The watch fines you ${fmt(fine)} Gradus.`); }
   lsGain('thieving', 35); save(); renderCommons(); renderHUD();
@@ -3585,7 +3632,7 @@ function eatMeal() {
   if (S.materials.meal < 1) { toast('No meals in the satchel.'); return; }
   S.materials.meal--;
   const gain = 300 + 10 * S.lifeSkills.cooking.lvl;
-  S.ries += gain;
+  gainRies(gain);
   sfx('potion'); toast(`🍽️ +${gain} ⚡ Ries.`);
   save(); renderHUD();
   if ($('screen-craft').classList.contains('active')) renderCraft();
@@ -3814,7 +3861,7 @@ function renderEquipAndGrid() {
 /* forge upgrades: +4% to the item\'s own stat per level, max +5 */
 function upgradeLvl(id) { return (S.upgrades && S.upgrades[id]) || 0; }
 function upMult(id) { return 1 + 0.04 * upgradeLvl(id); }
-function upgradeCost(item, next) { return Math.round(item.g * 0.03 * next); }  // Ries cost
+function upgradeCost(item, next) { return Math.min(2500, Math.max(50, Math.round(item.g * 0.01 * next))); }  // Ries; capped vs RIES_CAP
 function upgradeGoldCost(item, next) { return Math.round(item.g * 0.02 * next); }  // Gradus cost
 function dispName(it) { const l = upgradeLvl(it.id); return it.name + (l ? ' +' + l : ''); }
 function heroMaxHP() {
@@ -3959,7 +4006,7 @@ function showQuestLore(i) {
 function drinkStamina() {
   if (!S.potions['stamina']) return;
   S.potions['stamina']--;
-  S.ries += 50;
+  gainRies(50);
   save(); sfx('potion'); renderTavern(); renderHUD(); toast('+50 ⚡ Ries from the draught!');
 }
 

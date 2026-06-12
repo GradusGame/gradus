@@ -1,5 +1,21 @@
 # Gradus — Changelog
 
+## Alpha V1.24 — 2026-06-12
+Progressive disclosure: the town wakes up as you earn it.
+- Day one shows just the Keep, Tavern, Blacksmith and Library; ten locations now unlock at milestones with a 🔓 celebration: Armorer (1 hunt), Apothecary (2 hunts), Inn (level 3 / wounded / out of attempts), Bank (3,000 Gradus carried), Hunting Grounds (lv4), Woodsmith (lv5), Crafting (4 hunts), Chapel (lv6), Commons & Lake (Troll slain)
+- Locked buildings dim on the map with 🔒 and explain how to open them; guards cover the map, menu, and bottom nav
+- Existing saves unlock everything they've already earned, silently
+
+## Alpha V1.23 — 2026-06-12
+
+## Alpha V1.23 — 2026-06-12
+Energy economy: the cap.
+- **Ries capped at 5,000**: all gains (sync, thresholds, meals, draughts, thieving) clamp to the cap — energy is now a resource you spend, not hoard; a full bar means wasted calories
+- **Forge costs rescaled to the cap**: was 1% of item price per level, floor 50 / ceiling 2,500 Ries (top-tier +5 previously demanded an impossible 38K)
+- HUD energy bar and glossary updated for the cap
+
+## Alpha V1.22 — 2026-06-12
+
 ## Alpha V1.22 — 2026-06-12
 Settings, story-first quests, crits, casual-friendly leveling.
 - **⚙️ Settings screen** (gear in the top bar): sound/music toggles, account status, log out, export/import save, reset character
