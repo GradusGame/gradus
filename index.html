@@ -126,20 +126,41 @@
   .auth-form { max-width:360px; margin:18px auto 0; }
   .auth-form p { color:var(--dim); font-size:13px; margin-bottom:4px; }
   .auth-form input { width:100%; margin-bottom:8px; }
-  .auth-divider { border:none; border-top:1px solid var(--border); margin:16px 0; }
   #account-list button { margin:4px 0; width:100%; text-align:left; }
   /* ---- stat allocation ---- */
   .stat-row { display:flex; align-items:center; gap:8px; margin:4px 0; }
   .stat-row button { padding:2px 10px; font-size:13px; }
   /* ---- new equip slots ---- */
   .equip-grid { display:grid; grid-template-columns:repeat(4,68px); gap:8px; }
-  input[type=number], input[type=text], input[type=email], input[type=password] {
-    font-family: inherit; font-weight: bold; font-size: 16px; /* 16px prevents iOS zoom */
+  input[type=number] {
+    font-family: inherit; font-weight: bold; font-size: 16px;
     background: #000; color: var(--text);
     border: 3px solid var(--border); padding: 10px 8px; width: 110px;
     -webkit-appearance: none; border-radius: 0;
   }
-  input[type=text], input[type=email], input[type=password] { width: 100%; }
+/* ── Form polish ── */
+.form-group { margin-bottom: 12px; }
+.form-label {
+  display: block; font-size: 11px; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--dim); margin-bottom: 5px;
+}
+input[type=email], input[type=password], input[type=text] {
+  background: #0a0806;
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: inherit; font-weight: bold; font-size: 16px;
+  padding: 10px 12px; width: 100%;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,.5);
+  transition: border-color .15s;
+  -webkit-appearance: none;
+}
+input:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,.5), 0 0 0 1px var(--gold);
+}
+.auth-divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
   .synced { color: var(--green); }
   .toast {
     position: fixed; bottom: calc(72px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%);
@@ -258,7 +279,7 @@
 <!-- ================= HUD ================= -->
 <div id="hud">
   <div class="hud-row">
-    <span class="hud-item">🧍 <span id="hud-name"></span> <span class="dim">Lv.<span id="hud-level"></span> <span id="hud-class"></span></span> <span id="xpbar" title="XP to next level"><span id="xpfill"></span></span> <span id="hud-sp-badge" style="display:none;background:var(--gold);color:#1a1208;border-radius:3px;padding:1px 6px;font-size:11px;cursor:pointer;font-weight:bold" onclick="showScreen('stats')" title="Stat points available!"></span></span>
+    <span class="hud-item"><span id="hud-hero-icon">🧍</span> <span id="hud-name"></span> <span class="dim">Lv.<span id="hud-level"></span> <span id="hud-class"></span></span> <span id="xpbar" title="XP to next level"><span id="xpfill"></span></span> <span id="hud-sp-badge" style="display:none;background:var(--gold);color:#1a1208;border-radius:3px;padding:1px 6px;font-size:11px;cursor:pointer;font-weight:bold" onclick="showScreen('stats')" title="Stat points available!"></span></span>
     <span class="hud-item gold">🪙 <span id="hud-gradus"></span> Gradus</span>
     <span class="hud-item" title="Health">❤️<span class="minibar"><span id="hp-mini" style="background:var(--red)"></span></span> <span id="hud-hp"></span></span>
     <span class="hud-item riescol" title="Ries energy: fuels quests, hunts, crafting, the forge">⚡<span class="minibar"><span id="en-mini" style="background:var(--ries)"></span></span> <span id="hud-ries"></span></span>
@@ -295,6 +316,52 @@
     <p class="dim mt" style="max-width:420px;margin:14px auto 0;font-style:italic;">"We should take wandering outdoor walks, so that the mind might be nourished and refreshed by the open air."<br><span style="font-style:normal">— Seneca</span></p>
     <p class="dim mt footer-note" id="ver-title"></p>
 
+    <!-- Pre-login FAQ/Lore -->
+    <div class="mt" style="max-width:420px;margin:18px auto 0;text-align:left">
+      <details style="border:1px solid var(--border);border-radius:4px;margin-bottom:8px;padding:0">
+        <summary style="padding:10px 14px;cursor:pointer;font-size:13px;color:var(--gold);list-style:none;display:flex;justify-content:space-between">
+          <span>📖 What is Gradus?</span><span class="dim">▾</span>
+        </summary>
+        <div style="padding:10px 14px 14px;font-size:13px;color:var(--text);line-height:1.7;border-top:1px solid var(--border)">
+          <p><b>Gradus</b> is a medieval RPG powered by your real-world fitness.</p>
+          <p class="mt">Every step you walk becomes <b class="gold">🪙 Gradus</b> — the realm's coin. Every calorie burned becomes <b style="color:var(--ries)">⚡ Ries</b> — your energy for hunts and crafting.</p>
+          <p class="mt">Buy gear. Take quests. Fight monsters. Build your wanderer — one step at a time.</p>
+        </div>
+      </details>
+      <details style="border:1px solid var(--border);border-radius:4px;margin-bottom:8px;padding:0">
+        <summary style="padding:10px 14px;cursor:pointer;font-size:13px;color:var(--gold);list-style:none;display:flex;justify-content:space-between">
+          <span>⚔️ How does it work?</span><span class="dim">▾</span>
+        </summary>
+        <div style="padding:10px 14px 14px;font-size:13px;color:var(--text);line-height:1.7;border-top:1px solid var(--border)">
+          <p>🪙 <b>1 step = 1 Gradus</b> · ⚡ <b>1 calorie = 1 Ries</b></p>
+          <p class="mt">Go to <b>Realm Sync</b> each day and enter your steps and calories (or link your Apple Watch / Oura Ring / Garmin for automatic sync).</p>
+          <p class="mt">Hit <b>7,000 steps</b> daily to earn a streak bonus. Walk more, earn more, go further.</p>
+        </div>
+      </details>
+      <details style="border:1px solid var(--border);border-radius:4px;margin-bottom:8px;padding:0">
+        <summary style="padding:10px 14px;cursor:pointer;font-size:13px;color:var(--gold);list-style:none;display:flex;justify-content:space-between">
+          <span>🏰 The World of Oppidum</span><span class="dim">▾</span>
+        </summary>
+        <div style="padding:10px 14px 14px;font-size:13px;color:var(--text);line-height:1.7;border-top:1px solid var(--border)">
+          <p>You begin in <b>Oppidum</b> — a small fortified town at the edge of the known world.</p>
+          <p class="mt">Visit the <b>Tavern</b> for quests, the <b>Blacksmith</b> for gear, the <b>Inn</b> to rest, the <b>Bank</b> to store your wealth before a dangerous hunt. Unlock new zones by defeating zone bosses.</p>
+          <p class="mt dim" style="font-style:italic">"The gate's always open, wanderer. Whether you come back through it — that's up to you."</p>
+        </div>
+      </details>
+      <details style="border:1px solid var(--border);border-radius:4px;padding:0">
+        <summary style="padding:10px 14px;cursor:pointer;font-size:13px;color:var(--gold);list-style:none;display:flex;justify-content:space-between">
+          <span>❓ Quick FAQ</span><span class="dim">▾</span>
+        </summary>
+        <div style="padding:10px 14px 14px;font-size:13px;color:var(--text);line-height:1.7;border-top:1px solid var(--border)">
+          <p><b>Is it free?</b> Yes, completely.</p>
+          <p class="mt"><b>Does it track me automatically?</b> Only if you connect a device. Otherwise you enter your steps manually.</p>
+          <p class="mt"><b>Do I need to walk every day?</b> No — but the streak bonus (up to +50% earnings) rewards consistency.</p>
+          <p class="mt"><b>Will I lose my progress if I stop walking?</b> Your gear and level stay. Only your daily earnings depend on steps.</p>
+          <p class="mt"><b>Can I play with friends?</b> Multiplayer is on the roadmap. For now, compare your wanderer's progress!</p>
+        </div>
+      </details>
+    </div>
+
     <!-- Saved accounts quick-select -->
     <div id="account-list" class="mt" style="display:none;max-width:340px;margin:12px auto 0">
       <p class="dim" style="font-size:13px">Your wanderers:</p>
@@ -304,20 +371,32 @@
 
     <!-- Login form (shown by default; email/pass at top) -->
     <div id="login-panel" class="auth-form mt">
-      <input type="email" id="login-email" placeholder="Email" autocomplete="email">
-      <input type="password" id="login-pass" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginAccount()">
-      <button class="btn-big" onclick="loginAccount()">⚔️ Continue your journey</button>
-      <p id="login-err" class="dim" style="color:var(--red);font-size:12px;min-height:16px"></p>
-      <p style="font-size:12px;color:var(--dim);text-align:center;margin-top:6px">No account? <button class="link-btn" onclick="switchAuthPanel('register')">Create one →</button></p>
+      <div class="form-group">
+        <label class="form-label" for="login-email">Email</label>
+        <input type="email" id="login-email" placeholder="wanderer@realm.com" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="login-pass">Password</label>
+        <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginAccount()">
+      </div>
+      <button class="btn-big btn-g" onclick="loginAccount()">⚔️ Continue your journey</button>
+      <p id="login-err" class="dim" style="color:var(--red);font-size:12px;min-height:16px;margin-top:6px"></p>
+      <p style="font-size:12px;color:var(--dim);text-align:center;margin-top:8px">No account? <button class="link-btn" onclick="switchAuthPanel('register')">Create one →</button></p>
     </div>
 
     <!-- Register form (hidden; email + password only — name/sex chosen next) -->
     <div id="register-panel" class="auth-form mt" style="display:none">
-      <input type="email" id="reg-email" placeholder="Email" autocomplete="email">
-      <input type="password" id="reg-pass" placeholder="Password (min 4 chars)" autocomplete="new-password" onkeydown="if(event.key==='Enter')registerAccount()">
-      <button class="btn-big btn-g" onclick="registerAccount()">⚜️ Create account</button>
-      <p id="reg-err" class="dim" style="color:var(--red);font-size:12px;min-height:16px"></p>
-      <p style="font-size:12px;color:var(--dim);text-align:center;margin-top:6px"><button class="link-btn" onclick="switchAuthPanel('login')">← Back to login</button></p>
+      <div class="form-group">
+        <label class="form-label" for="reg-email">Email</label>
+        <input type="email" id="reg-email" placeholder="wanderer@realm.com" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="reg-pass">Password</label>
+        <input type="password" id="reg-pass" placeholder="Min 4 characters" autocomplete="new-password" onkeydown="if(event.key==='Enter')registerAccount()">
+      </div>
+      <button class="btn-big btn-g" onclick="registerAccount()">⚜️ Begin the journey</button>
+      <p id="reg-err" class="dim" style="color:var(--red);font-size:12px;min-height:16px;margin-top:6px"></p>
+      <p style="font-size:12px;color:var(--dim);text-align:center;margin-top:8px"><button class="link-btn" onclick="switchAuthPanel('login')">← Back to login</button></p>
     </div>
   </div>
 </div>
@@ -789,6 +868,18 @@ const PIX = {
     [3,0,1,1,C_WOOD],[2,1,1,2,C_WOOD],[1,3,1,3,C_WOOD],[2,6,1,2,C_WOOD],[3,8,1,1,C_WOOD],
     [4,1,1,7,C_BONE],
     [3,4,5,1,C_STEEL],[8,4,1,1,C_EDGE],[7,3,1,1,C_EDGE],[7,5,1,1,C_EDGE],
+  ]),
+  // Female hero crest — staff + crescent moon motif
+  crest_f: pix(14, 84, [
+    [3,2,8,1,C_RIM],[2,3,1,7,C_RIM],[11,3,1,7,C_RIM],[3,3,8,7,C_DARK],
+    [3,10,1,1,C_RIM],[10,10,1,1,C_RIM],[4,10,6,1,C_DARK],
+    [4,11,1,1,C_RIM],[9,11,1,1,C_RIM],[5,11,4,1,C_DARK],
+    [5,12,1,1,C_RIM],[8,12,1,1,C_RIM],[6,12,2,1,C_DARK],[6,13,2,1,C_RIM],
+    // staff (thinner, centered)
+    [6,0,2,7,C_WOOD],[6,0,1,7,C_EDGE],
+    // crescent at top
+    [5,0,4,1,C_GOLD],[4,1,1,1,C_GOLD],[9,1,1,1,C_GOLD],
+    [6,8,2,2,C_GOLD],[6,10,2,1,C_BONE],
   ]),
 };
 
@@ -1436,6 +1527,30 @@ function saveKey(email) { return SAVE_KEY_PREFIX + (email || 'offline'); }
 const LEGACY_KEY = 'gradus-save-v1';
 let S = null;
 
+/* ── Analytics (fire-and-forget, never blocks gameplay) ── */
+const _evtQ = [];
+let _evtFlushTimer = null;
+function track(event, data = {}) {
+  if (!S) return;
+  _evtQ.push({ event, ts: Date.now(), uid: S.syncId || null, lv: S.level, ...data });
+  if (!_evtFlushTimer) _evtFlushTimer = setTimeout(_flushEvents, 4000);
+}
+async function _flushEvents() {
+  _evtFlushTimer = null;
+  if (!S || !S.backend || !_evtQ.length) { _evtQ.length = 0; return; }
+  const batch = _evtQ.splice(0, _evtQ.length);
+  try {
+    await fetch(S.backend + '/events', {
+      method:'POST', headers:{'content-type':'application/json'},
+      body: JSON.stringify({ uid: S.syncId, events: batch })
+    });
+  } catch(e) { /* silent */ }
+}
+// Track JS errors
+window.onerror = (msg, src, line, col, err) => {
+  track('js_error', { msg: String(msg).slice(0, 200), src, line });
+};
+
 function freshState(name) {
   return {
     name, sex: 'm', level: 1, xp: 0, heroClass: null,
@@ -1480,6 +1595,7 @@ function migrate(s) {
   if (s.music === undefined) s.music = true;
   if (s.backend === undefined) s.backend = '';
   if (!s.syncId) s.syncId = crypto.randomUUID();
+  if (!s.durability) s.durability = {};
   if (!s.lifeSkills) s.lifeSkills = { fishing:{lvl:1,xp:0}, cooking:{lvl:1,xp:0}, woodcutting:{lvl:1,xp:0}, thieving:{lvl:1,xp:0}, gathering:{lvl:1,xp:0} };
   if (!s.lifeSkills.gathering) s.lifeSkills.gathering = {lvl:1,xp:0};
   if (!s.materials) s.materials = { fish:0, wood:0, meal:0 };
@@ -1571,6 +1687,7 @@ function setSex(s) {
   const bm = $('btn-sex-m'), bf = $('btn-sex-f');
   if (bm) bm.className = 'btn-sex' + (s === 'm' ? ' btn-sex-active' : '');
   if (bf) bf.className = 'btn-sex' + (s === 'f' ? ' btn-sex-active' : '');
+  if ($('icon-crest')) $('icon-crest').innerHTML = (s === 'f') ? PIX.crest_f : PIX.crest;
 }
 function finishCreate() {
   const name = ($('hero-name').value || '').trim() || 'Wanderer';
@@ -1642,7 +1759,60 @@ function dayLabel(dateStr, idx) {
   const d = new Date(dateStr + 'T12:00:00');
   return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
 }
-function xpForNext(level) { return level * 100; }
+/* ── Durability helpers ── */
+const DUR_MAX = 100;
+function getDur(id) {
+  if (!S.durability) S.durability = {};
+  return S.durability[id] !== undefined ? S.durability[id] : DUR_MAX;
+}
+function setDur(id, val) {
+  if (!S.durability) S.durability = {};
+  S.durability[id] = Math.max(0, Math.min(DUR_MAX, val));
+}
+function wearItem(id, amount = 1) {
+  setDur(id, getDur(id) - amount);
+  if (getDur(id) <= 0) toast('⚠️ ' + (findAnyItem(id)?.name || id) + ' is broken! Repair at the Blacksmith.');
+}
+function findAnyItem(id) {
+  return WEAPONS.find(x=>x.id===id) || ARMOR.find(x=>x.id===id) ||
+         (typeof SHIELDS!=='undefined'&&SHIELDS.find(x=>x.id===id)) ||
+         (typeof GLOVES!=='undefined'&&GLOVES.find(x=>x.id===id)) ||
+         (typeof BOOTS!=='undefined'&&BOOTS.find(x=>x.id===id)) ||
+         (typeof HELMS!=='undefined'&&HELMS.find(x=>x.id===id)) ||
+         (typeof PANTS!=='undefined'&&PANTS.find(x=>x.id===id));
+}
+function durColor(pct) {
+  if (pct > 0.6) return 'var(--green)';
+  if (pct > 0.25) return '#c4902c';
+  return 'var(--red)';
+}
+function durBar(id) {
+  const d = getDur(id); const pct = d / DUR_MAX;
+  return `<span style="display:inline-block;width:40px;height:6px;background:#000;border:1px solid var(--border);vertical-align:middle;margin-left:4px"><span style="display:block;height:100%;width:${Math.round(pct*100)}%;background:${durColor(pct)}"></span></span><span class="dim" style="font-size:10px;margin-left:3px">${d}</span>`;
+}
+function gradeRepairMulti(item) {
+  const m = { F:1, E:1.2, D:1.5, C:2, B:3, A:4, S:5 };
+  return m[item.grade || 'F'] || 1;
+}
+function repairCost(item) {
+  const missing = DUR_MAX - getDur(item.id);
+  if (missing <= 0) return 0;
+  return Math.max(50, Math.round(item.g * 0.0015 * missing * gradeRepairMulti(item)));
+}
+
+function xpForNext(level) {
+  // Tiers of 10 levels; each tier is ~3x harder than the last
+  const tier  = Math.floor((level - 1) / 10);
+  const pos   = (level - 1) % 10;
+  const bases = [80,  400,  1200, 3500, 10000];
+  const steps = [24,  72,   230,  700,  2000 ];
+  const b = bases[Math.min(tier, bases.length - 1)];
+  const s = steps[Math.min(tier, steps.length - 1)];
+  return b + pos * s;
+}
+// Level 1→10 total XP: ~1880  (fast, fun)
+// Level 10→20 total XP: ~7240
+// Level 20→30 total XP: ~22350
 
 /* ---------------- Retention: streak, daily bonus, loot ---------------- */
 // Consecutive synced days ending today (or yesterday if today isn\'t synced yet)
@@ -1698,6 +1868,7 @@ function showScreen(name) {
   if (name === 'expedition') renderExpedition();
   if (name === 'death') renderDeathScreen();
   renderHUD();
+  track('screen', { name });
   // highlight bottom nav
   const navMap = { town:'bnav-town', tavern:'bnav-tavern', hunt:'bnav-tavern',
     inv:'bnav-inv', stats:'bnav-stats', skills:'bnav-stats',
@@ -1729,6 +1900,8 @@ function renderHUD() {
   const bnav = $('bottom-nav');
   if (bnav) { bnav.classList.remove('hidden'); bnav.style.display = 'flex'; }
   $('hud-name').textContent = S.name + (S.title ? ' ' + S.title : '');
+  const heroIcon = $('hud-hero-icon');
+  if (heroIcon) heroIcon.textContent = S.sex === 'f' ? '🧍‍♀️' : '🧍';
   $('hud-sound').textContent = S.sound === false ? '🔇' : '🔊';
   $('hud-music').textContent = S.music === false ? '🎵̸' : '🎵';
   $('hud-music').style.opacity = S.music === false ? '.45' : '1';
@@ -2040,6 +2213,7 @@ async function syncDay(date) {
   sfx('coin');
   toast(`+${fmt(res.g)} Gradus · +${fmt(res.ri)} Ries${bonus}${goal}${capped}`);
   checkAch();
+  track('sync', { steps: activity.steps, calories: activity.calories });
   renderSync(); renderHUD();
 }
 
@@ -2214,6 +2388,8 @@ function renderForge() {
     const stat = it.atk !== undefined
       ? `ATK ${Math.round(it.atk * upMult(it.id))}`
       : `DEF ${Math.round(it.def * upMult(it.id))}`;
+    const durDisplay = durBar(it.id);
+    const broken = getDur(it.id) <= 0;
     let action;
     if (lvl >= 5) action = '<span class="gold">MAX +5</span>';
     else {
@@ -2222,12 +2398,36 @@ function renderForge() {
       const canUpgrade = S.ries >= riesCost && S.gradus >= goldCost;
       action = `<button class="btn-r" onclick="upgradeItem('${it.id}')" ${canUpgrade ? '' : 'disabled'}>+${lvl + 1} — 🪙${fmt(goldCost)} · ⚡${fmt(riesCost)}</button>`;
     }
-    return `<tr><td>${dispName(it)}${it.grade ? ` <span class="gold">[${it.grade}]</span>` : ''}<br><span class="dim">${stat}</span></td><td class="r">${action}</td></tr>`;
+    return `<tr><td>${dispName(it)}${it.grade ? ` <span class="gold">[${it.grade}]</span>` : ''}${broken ? ' <span style="color:var(--red);font-size:11px">BROKEN</span>' : ''}${durDisplay}<br><span class="dim">${stat}</span></td><td class="r">${action}</td></tr>`;
   }).join('');
+  // Build repair section
+  const repairItems = owned.filter(it => getDur(it.id) < DUR_MAX);
+  const repairRows = repairItems.map(it => {
+    const cost = repairCost(it);
+    const canRepair = S.gradus >= cost;
+    return `<tr><td>${dispName(it)}${durBar(it.id)}</td><td class="r"><button onclick="repairItem('${it.id}')" ${canRepair?'':'disabled'}>🔨 🪙${fmt(cost)}</button></td></tr>`;
+  }).join('');
+  const repairSection = repairItems.length
+    ? `<h2 class="mt">🔨 Repairs</h2><table><tbody>${repairRows}</tbody></table>`
+    : '';
   $('shop-extra').innerHTML = `<h2 class="mt">🔧 The Forge</h2>
     <p class="dim footer-note">"Bring me what you own — I\'ll make it bite harder." +4% per level, up to +5. The forge feeds on ⚡ Ries energy.</p>
     <table class="mt"><tbody>${rows || '<tr><td class="dim">Nothing worth the hammer yet.</td></tr>'}</tbody></table>
+    ${repairSection}
     <p class="mt"><button onclick="showScreen('craft')">🛠 Use the crafting bench</button></p>`;
+}
+function repairItem(id) {
+  const item = findAnyItem(id);
+  if (!item) return;
+  const cost = repairCost(item);
+  if (S.gradus < cost) { toast('Not enough Gradus.'); return; }
+  S.gradus -= cost;
+  setDur(id, DUR_MAX);
+  save();
+  sfx('buy');
+  toast(`🔨 ${item.name} fully repaired!`);
+  renderForge();
+  renderHUD();
 }
 /* ─── Sell section ─── */
 function renderSellSection() {
@@ -2349,6 +2549,7 @@ function buyItem(itemId, currency) {
   }
   save();
   sfx('coin');
+  track('purchase', { item: item.id, cost: item.g });
   toast(`Bought ${item.name}!`);
   renderShop(); renderHUD();
 }
@@ -2994,6 +3195,7 @@ function gainXP(rawXp) {
     S.level++;
     S.statPoints = (S.statPoints || 0) + 1;
     leveled = true;
+    track('level_up', { level: S.level });
     toast('⬆️ Level ' + S.level + '! +1 stat point');
   }
   if (leveled) { sfx('level'); if ($('screen-stats').classList.contains('active')) renderStats(); }
@@ -3161,11 +3363,13 @@ function setBars(h, m) {
   $('b-mon-hp').style.width = Math.round(m * 100) + '%';
 }
 let B = null;
-function blog(t) {
-  const div = document.createElement('div');
-  div.textContent = '▸ ' + t;
-  $('battle-log').appendChild(div);
-  $('battle-log').scrollTop = $('battle-log').scrollHeight;
+function blog(msg) {
+  const el = $('battle-log');
+  const d = document.createElement('div');
+  d.style.cssText = 'padding:2px 0;border-bottom:1px solid #1a1208;';
+  d.innerHTML = msg;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
 }
 /* ---- energy costs & free hunts ---- */
 function questEnergy(q) { return q.grind ? q.energy : (q.type === 'Legend' ? 150 : q.zone === 2 ? 80 : 40); }
@@ -3318,10 +3522,13 @@ function actAttack() {
   tickCd();
   const m = B.q.monster;
   let d = vary(heroATK(B.elixir));
+  // wear equipped weapon
+  if (S.equipped.weapon && S.equipped.weapon !== 'rusty') wearItem(S.equipped.weapon);
   if (m.armored) d = Math.round(d * 0.75);
   B.mhp = Math.max(0, B.mhp - d);
   sfx('hit');
   blog(`You strike for ${d}!${m.armored ? ' (armor absorbs some)' : ''}`);
+  track('combat_attack', { dmg: d });
   updateBars();
   if (B.mhp <= 0) { finishTB(true, false); return; }
   monsterSoon();
@@ -3361,6 +3568,7 @@ function monsterAct() {
     let d = vary(atk);
     if (B.shield) { d = Math.round(d / 2); B.shield = false; blog('🛡️ Shield Wall absorbs the blow!'); }
     B.hhp = Math.max(0, B.hhp - d);
+    if (S.equipped.armor && S.equipped.armor !== 'cloth') wearItem(S.equipped.armor);
     if (m.venom) B.venomed = true;
     sfx('hurt');
     blog(`${m.name} hits you for ${d}!${frenzied ? ' 😡 FRENZY!' : ''}`);
@@ -3391,6 +3599,7 @@ function finishTB(win, fled) {
     }
     S.gradus += g;
     gainXP(xp);
+    track('combat_win', { quest: q.name, xp: xp, g: g });
     msg = `🏆 VICTORY! ${g ? '+' + fmt(g) + ' Gradus · ' : ''}+${xp} XP`;
     if (isBonus) msg = '★ ' + msg + (first ? ' (3× daily bonus)' : ' (daily bonus payout)');
     // loot drops
@@ -3504,7 +3713,7 @@ function resetSave() {
 /* ---------------- Boot ---------------- */
 $('ver-title').textContent = 'Gradus ' + VERSION;
 $('ver-town').textContent = 'Gradus ' + VERSION;
-$('icon-crest').innerHTML = PIX.crest;
+$('icon-crest').innerHTML = (S && S.sex === 'f') ? PIX.crest_f : PIX.crest;
 $('icon-sync').innerHTML = PIX.scroll;
 $('icon-tavern').innerHTML = PIX.mug;
 $('icon-inn').innerHTML = PIX.bed;

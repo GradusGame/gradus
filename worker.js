@@ -107,6 +107,28 @@ export default {
         : json({ error: 'No cloud save yet.' }, 404);
     }
 
+    // ── Analytics events (POST /events) ───────────────────────────────────────
+    if (url.pathname === '/events' && req.method === 'POST') {
+      let body;
+      try { body = await req.json(); } catch { return json({ ok: true }); }
+      const { uid, events } = body;
+      if (!uid || !Array.isArray(events) || events.length === 0) return json({ ok: true });
+      // Store as a rotating log: keep last 500 events per user
+      const key = `evts:${uid}`;
+      let existing = [];
+      try { existing = JSON.parse((await env.KV.get(key)) || '[]'); } catch {}
+      const merged = [...existing, ...events].slice(-500);
+      await env.KV.put(key, JSON.stringify(merged), { expirationTtl: 60 * 60 * 24 * 90 });
+      return json({ ok: true });
+    }
+    // ── Analytics read (GET /events?uid=xxx) ─────────────────────────────────
+    if (url.pathname === '/events' && req.method === 'GET') {
+      const uid = url.searchParams.get('uid');
+      if (!uid) return json({ error: 'uid required' }, 400);
+      const data = JSON.parse((await env.KV.get(`evts:${uid}`)) || '[]');
+      return json(data);
+    }
+
     return new Response('Gradus worker — alive.', { headers: CORS });
   },
 };
