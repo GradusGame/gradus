@@ -1,0 +1,5 @@
+resume-deploy.command
+open-api-tokens.command
+open-chrome-tokens.command
+.DS_Store
+.wrangler/

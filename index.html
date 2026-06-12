@@ -861,6 +861,9 @@ input:focus {
       <tr><td><b>Letters of Investment</b> 📜<br><span class="dim">Seal Gradus with the Bank for 7 days (+3%) or 30 days (+5%). Sealed coin cannot be touched, by you or by looters.</span></td></tr>
       <tr><td><b>Rumors</b> ❓<br><span class="dim">Some hunts are only learned of in the Inn's common room. Buy a round; listen well.</span></td></tr>
       <tr><td><b>Free hunts</b> 🌾<br><span class="dim">Each zone keeps open ground where mobs roam. No quest needed, no daily limit: only Ries. The proving grounds of high-level wanderers.</span></td></tr>
+      <tr><td><b>Dungeons</b> ⛏️<br><span class="dim">Multi-fight delves beneath the realm, each gated by level. The first clear of a dungeon yields a unique relic: gear found nowhere else. Relics appear under Dungeon Finds in your inventory.</span></td></tr>
+      <tr><td><b>Equipment slots</b> 🛡️<br><span class="dim">Seven places to wear steel: weapon, shield, helm, armor, gloves, pants, boots. Every piece adds to your strength; the paperdoll shows what you wear.</span></td></tr>
+      <tr><td><b>Durability</b> 🔧<br><span class="dim">Gear wears down as you fight. Worn gear protects poorly; the Blacksmith repairs it for coin. Check your equipment before a boss.</span></td></tr>
     </tbody></table>
     <h2 class="mt">FAQ</h2>
     <table class="mt"><tbody>
@@ -912,6 +915,10 @@ input:focus {
   <div class="panel">
     <h2>📦 Bag <span id="inv-cap-label" class="dim" style="font-size:12px;font-weight:normal"></span></h2>
     <div class="inv-grid" id="char-grid"></div>
+    <div id="dungeon-finds-section" style="display:none">
+      <h2 class="mt">🏰 Dungeon Finds <span id="dungeon-finds-count" class="dim" style="font-size:12px;font-weight:normal"></span></h2>
+      <div class="inv-grid" id="dungeon-finds-grid"></div>
+    </div>
     <div id="inv-detail" class="mt dim">Select an item to inspect it…</div>
     <p class="dim mt footer-note">Potions drunk in battle. Junk can be sold at the General Store.</p>
     <button class="mt" onclick="showScreen('town')">← Back to town</button>
@@ -939,7 +946,7 @@ input:focus {
 
 <script>
 'use strict';
-const VERSION = 'Alpha V1.18';
+const VERSION = 'Alpha V1.19';
 
 /* ---- 8-bit medieval pixel icons (inline SVG, dark palette) ---- */
 function pix(view, w, rects) {
@@ -1206,7 +1213,7 @@ const WEAPONS = [
   { id:'ironsword', name:'Iron Sword',      atk:8,  ...prices(15000) },
   { id:'mace',      name:'Steel Mace',      atk:12, ...prices(37000) },
   { id:'longsword', name:'Steel Longsword', atk:17, ...prices(65000) },
-  { id:'knight',    name:"Knight\'s Blade",  atk:24, ...prices(125000) },
+  { id:'knight',    name:"Knight\'s Blade",  atk:24, ...prices(110000) },
   // crossbows (Blacksmith)
   { id:'lightxbow', name:'Light Crossbow', type:'crossbow', atk:10, ...prices(25000) },
   { id:'arbalest',  name:'Arbalest',       type:'crossbow', grade:'D', zone:2, atk:38, ...prices(210000) },
@@ -1432,148 +1439,148 @@ const DUNGEONS = [
    8-14 = Greenwood, 15 = Heart boss, 16 = Legend. */
 const QUESTS = [
   // ---- Zone 1: Oppidum ----
-  { name:'Rats in the Cellar', qType:'repeatable', type:'Hunt', giver:'Marta, keeper of the Resting Boar',
+  { id:'rats_in_the_cellar', name:'Rats in the Cellar', qType:'repeatable', type:'Hunt', giver:'Marta, keeper of the Resting Boar',
     desc:'Giant rats have overrun the cellar of the Resting Boar. Marta needs them cleared before tomorrow\'s guests arrive.',
     monster:{ name:'Giant Rat', emoji:'🐀', hp:28, atk:4 }, xp:22, g:500,
     flavor:'The Resting Boar\'s cellar echoes with gnawing. Marta pays in coin and stew.',
     lore:'Three weeks past, a grain barge from downriver paid Marta in sacks instead of coin, and something rode in with the sacks. First it was droppings in the flour. Then the cellar cat stopped coming up. Now the gnawing keeps the whole common room awake: beams, barrels, the leg of the spare bed, all carved like a feast. Last night it ate a wheel of cheese the size of a cartwheel, and the shelf it sat on.<br><br>”I\'ve fed half of Oppidum from that cellar through two bad winters,” Marta says, sliding the key across the bar. “The winter stores are down there. The seed grain too. One more beam and the Boar comes down on all our heads, and where will you lot drink then?” She pays from the strongbox under the floorboards, and she pays fair.' },
-  { name:'Wolves at the Gate', qType:'repeatable', type:'Hunt', giver:'Calloway the shepherd',
+  { id:'wolves_at_the_gate', name:'Wolves at the Gate', qType:'repeatable', type:'Hunt', giver:'Calloway the shepherd',
     desc:'A pack of dire wolves has been circling the town gate at night. The guards want them driven off.',
     monster:{ name:'Dire Wolf', emoji:'🐺', hp:40, atk:6, swift:true }, xp:33, g:600,
     flavor:'Three lambs in two nights. The shepherd swears the pack moves like smoke.',
     lore:'It began at the autumn shearing, when the pack stopped fearing torchlight. Calloway\'s neighbors lost a dog, then a gate, then their nerve. Most now drive their flocks to market and sell at a loss rather than winter them on the hill. Three lambs gone in two nights, and the grey wolf that leads the pack is no natural beast: it watched Calloway over the fence rail, he swears, with eyes that counted.<br><br>The old man has buried three dogs this season and will not bury a fourth. The flock is all that stands between his granddaughter and a beggar\'s winter. “My family\'s grazed this hill three hundred years,” he says. “I\'ll not be the one who hands it to wolves.” He cannot pay much. He offers it anyway. Mind yourself, the beast strikes before most folk finish drawing.' },
-  { name:'The Bandit Toll', qType:'repeatable', type:'Contract', giver:'Reeve Ostric of Oppidum',
+  { id:'the_bandit_toll', name:'The Bandit Toll', qType:'repeatable', type:'Contract', giver:'Reeve Ostric of Oppidum',
     desc:'A bold bandit has set up a toll on the road south of town, robbing merchants at knifepoint.',
     monster:{ name:'Bandit Chief', emoji:'🗡️', hp:70, atk:9, frenzy:true }, xp:44, g:700,
     flavor:'A toll where no king set one. Cornered men fight hardest when bloodied.',
     lore:'The toll began in spring as a plank across the East Road and a man with a knife; by midsummer it was six men and a ledger. The Chief, a deserter from the border war, keeps records, of all things: who paid, who argued, who he let bleed as an example. Merchants pay or turn back, and Oppidum\'s market shelves grow thinner by the week.<br><br>Ostric\'s clerks recovered a page of that ledger from a fleeing porter. The Reeve read it once, rolled it up, and doubled the bounty. The contract is sealed with his own wax and worded carefully: ended quietly and lawfully, by which he means a body in a ditch and no questions at council. They say the Chief fights like the war never ended. Cornered and bleeding, he fights worse.' },
-  { name:'Spiders of Hollow Mill', qType:'repeatable', type:'Contract', giver:'Tobias the miller',
+  { id:'spiders_of_hollow_mill', name:'Spiders of Hollow Mill', qType:'repeatable', type:'Contract', giver:'Tobias the miller',
     desc:'A brood of venomous spiders has taken over Hollow Mill. The miller can\'t work.',
     monster:{ name:'Broodmother', emoji:'🕷️', hp:85, atk:10, venom:2 }, xp:57, g:800,
     flavor:'The miller\'s boys won\'t set foot inside. Her bite festers, bring potions.',
     lore:'Hollow Mill ground Oppidum\'s grain for five generations until the webs came: sheets of silk thick as sailcloth strung between the millstones. Tobias sent his eldest in with a torch; the boy came out white-haired and will not speak of what hung from the rafters. The flour runs out in a fortnight, and with it the bread. Her venom works long after the bite, potions are not a luxury on this contract. They are the plan.' },
-  { name:'The Graveyard Shift', qType:'repeatable', type:'Hunt', giver:'Father Bede of the chapel yard',
+  { id:'the_graveyard_shift', name:'The Graveyard Shift', qType:'repeatable', type:'Hunt', giver:'Father Bede of the chapel yard',
     desc:'A restless undead has been spotted near the graveyard. The chapel wants it put to rest.',
     monster:{ name:'Restless Knight', emoji:'💀', hp:120, atk:15, armored:true }, xp:70, g:900,
     flavor:'A knight who forgot he died. Blades glance off the old plate.',
     lore:'Father Bede lights a candle for the thing in the yard every evening, and every evening it walks anyway. The armor bears the sigil of a house that fell before Oppidum had walls. A knight sworn to guard this ground, never released from the oath. Bede does not ask you to destroy it. He asks you to free it, and he is old enough to know those are the same thing. That grave-plate has turned blades for three hundred years. Strike true, and often.' },
-  { name:'The Poisoned Well', qType:'repeatable', type:'Contract', giver:'Matilda, the warden\'s wife',
+  { id:'the_poisoned_well', name:'The Poisoned Well', qType:'repeatable', type:'Contract', giver:'Matilda, the warden\'s wife',
     desc:'Someone — or something — has been fouling the eastern well. Track down the culprit.',
     monster:{ name:'Venom Cultist', emoji:'🧪', hp:95, atk:12, venom:3 }, xp:55, g:750,
     flavor:'Someone is poisoning the wells. The warden\'s wife offers double the law allows.',
     lore:'The sickness started at the eastern well: first the cattle, then a child, then three more. The town physician traced it to the water but not to its cause. Matilda\'s husband is the warden and cannot be seen to pay for a killing, so she pays herself, from the household coin she controls, and she says nothing about lawful or unlawful. Her child was the first to fall ill. It recovered. The other two did not.<br><br>The cultist is not from Oppidum — no one recognizes the mark burned into his arm. He moves at night and keeps close to the drainage channels. His venom is deliberate. Whatever he serves, it wants Oppidum weak and sick. Mind the bite: his cult uses the same poison he puts in the wells.' },
-  { name:'Iron Jaws', qType:'repeatable', type:'Hunt', giver:'Bram, miller south of the road',
+  { id:'iron_jaws', name:'Iron Jaws', qType:'repeatable', type:'Hunt', giver:'Bram, miller south of the road',
     desc:'A massive boar with iron-like tusks has gone feral and is destroying crops on the edge of town.',
     monster:{ name:'Giant Iron Boar', emoji:'🐗', hp:115, atk:14, frenzy:true }, xp:65, g:800,
     flavor:'The mill\'s waterwheel crushed every night by something huge and furious.',
     lore:'Bram rebuilt the waterwheel three times. The first time he thought it was rot. The second time he called it bad luck. The third time, he found the tracks: each hoof-print two hands across, driven so deep into the riverbank that the mud had dried around them like iron casts. Something comes up from the river at dusk, destroys the wheel with systematic fury, and returns before dawn.<br><br>”I don\'t need it dead,” Bram says. “I need it gone.” He does not believe it is possible. He is offering the coin because a debt paid is a man\'s only dignity when he has lost everything else. The boar grows fiercer the more it bleeds. Do not mistake a wound for a victory.' },
-  { name:'The Missing Merchant', qType:'sidequest',
+  { id:'the_missing_merchant', name:'The Missing Merchant', qType:'sidequest',
     type:'Hunt', zone:1, giver:'Elara, innkeeper',
     desc:'A trader named Corvin left for the mill three days ago and never returned. Find out what happened.',
     monster:{ name:'Bandit Scout', emoji:'🥷', hp:22, atk:5 },
     xp:30, g:550 },
-  { name:'Mushrooms for the Apothecary', qType:'sidequest',
+  { id:'mushrooms_for_the_apothecary', name:'Mushrooms for the Apothecary', qType:'sidequest',
     type:'Hunt', zone:1, giver:'Silas, apothecary',
     desc:'Cursed fungal crawlers have infested the mushroom groves. Cull them so Silas can harvest safely.',
     monster:{ name:'Fungal Crawler', emoji:'🍄', hp:18, atk:3, venom:1 },
     xp:25, g:480 },
-  { name:'Border Watch', qType:'optional',
+  { id:'border_watch', name:'Border Watch', qType:'optional',
     type:'Hunt', zone:1, giver:'Captain Aldric',
     desc:'Reports of goblin scouts probing Oppidum\'s western border. Intercept them before they report back.',
     monster:{ name:'Goblin Scout', emoji:'👺', hp:30, atk:6, swift:true },
     xp:40, g:620 },
-  { name:'The Deserter', qType:'optional',
+  { id:'the_deserter', name:'The Deserter', qType:'optional',
     type:'Hunt', zone:1, giver:'Innkeeper\'s board',
     desc:'A deserter from the eastern wars has taken up banditry in the fields. The garrison offers a bounty.',
     monster:{ name:'Deserter', emoji:'🗡️', hp:35, atk:7, frenzy:true },
     xp:50, g:720 },
-  { name:'Cold Trail', qType:'sidequest',
+  { id:'cold_trail', name:'Cold Trail', qType:'sidequest',
     type:'Hunt', zone:1, giver:'Marta, keeper of the Resting Boar',
     desc:'Something has been digging up graves near the chapel. The priest suspects a wight.',
     monster:{ name:'Barrow Wight', emoji:'💀', hp:26, atk:5, armored:true },
     xp:35, g:580 },
-  { name:'Overrun!', qType:'repeatable',
+  { id:'overrun', name:'Overrun!', qType:'repeatable',
     type:'Hunt', zone:1, giver:'Town guard',
     desc:'The rat population explodes weekly. The guard pays a standing bounty for pest control.',
     monster:{ name:'Plague Rat', emoji:'🐀', hp:20, atk:4, swift:true },
     xp:20, g:420 },
-  { name:'The Forest Troll', qType:'story', type:'Boss', giver:'Reeve Ostric, by emergency decree',
+  { id:'the_forest_troll', name:'The Forest Troll', qType:'story', type:'Boss', giver:'Reeve Ostric, by emergency decree',
     monster:{ name:'Forest Troll', emoji:'👹', hp:220, atk:21, regen:5 }, xp:110, g:1500, boss:true,
     flavor:'It mends as fast as you cut. Strike harder than it heals, or not at all.',
     lore:'It came down from the treeline in the night and took the toll bridge apart stone by stone, eating, the witnesses insist, the mortar. Trolls are why Oppidum\'s grandmothers say the forest is locked. Its flesh knits faster than any blade can open it; half-measures only feed it. The decree promises gold, but everyone knows what this hunt truly is: the key to the Greenwood. Beyond the troll lies the old green world, and none have walked it in a generation.',
     bossMsg:'The path to the Greenwood is open!',
     bossLoot:[{id:'troll_hide_shield', name:"Troll-Hide Shield", emoji:'🛡️', def:8, grade:'E', slot:'shield', g:1800}] },
   // ---- Zone 2: the Greenwood (D-grade hunting grounds) ----
-  { name:'Roots That Walk', qType:'optional', type:'Hunt', giver:'Warden Yvet of the Greenwood marches',
+  { id:'roots_that_walk', name:'Roots That Walk', qType:'optional', type:'Hunt', giver:'Warden Yvet of the Greenwood marches',
     monster:{ name:'Sprouting Treant', emoji:'🌱', hp:240, atk:22, regen:4 }, xp:130, g:1800, zone:2,
     flavor:'The Greenwood\'s saplings pull free of the soil and walk. The wood remembers axes.',
     lore:'Yvet has warded the forest edge since before the troll came, marking the boundary oaks with iron nails. Now the saplings pull their roots from the soil and walk the marches at dusk, and her nails turn up bent in the grass. “The wood remembers every axe we ever swung,” she says, “and something deep in the Greenwood has been reminding it.” She wants the walking ones cut down before they learn to walk in numbers.' },
-  { name:'Tusks in the Thicket', qType:'optional', type:'Hunt', giver:'Joss, huntsman of the lodge',
+  { id:'tusks_in_the_thicket', name:'Tusks in the Thicket', qType:'optional', type:'Hunt', giver:'Joss, huntsman of the lodge',
     monster:{ name:'Dire Boar', emoji:'🐗', hp:280, atk:25, frenzy:true }, xp:155, g:2000, zone:2,
     flavor:'Wounded boars don\'t run. They remember.',
     lore:'Joss has hunted boar his whole life and wears the scars like a ledger. This one is different, it gored his hunting partner of twenty years, then waited beside the body for the rest of the party to come. “A normal pig kills you because you\'re in the way,” he says, sharpening a spear he no longer trusts. “This one keeps count.” The angrier it gets, the harder it hits. Do not let the bleeding make you bold.' },
-  { name:'Lights in the Mist', qType:'optional', type:'Hunt', giver:'Wenna the charcoal-burner',
+  { id:'lights_in_the_mist', name:'Lights in the Mist', qType:'optional', type:'Hunt', giver:'Wenna the charcoal-burner',
     monster:{ name:'Forest Wisp', emoji:'✨', hp:435, atk:33, swift:true }, xp:175, g:2200, zone:2,
     flavor:'Follow the lights, lose the path. It strikes before you see it.',
     lore:'Wenna\'s camp sits deeper in the Greenwood than anyone\'s, and she keeps two rules: never whistle after dark, never count the lights. Her apprentice counted. They found his charcoal stacks still smoldering and his boots set neatly side by side at the edge of the mist. No boy. The light that took him still dances over the wet hollows, beautiful and patient, and it will have struck before you know the fight has begun. Wenna pays in coin she had saved for the boy\'s wages.' },
-  { name:'The Silken Hollow', qType:'optional', type:'Contract', giver:'Cassia, silk-trader of the southern road',
+  { id:'the_silken_hollow', name:'The Silken Hollow', qType:'optional', type:'Contract', giver:'Cassia, silk-trader of the southern road',
     monster:{ name:'Webweaver Queen', emoji:'🕸️', hp:500, atk:40, venom:6 }, xp:200, g:2400, zone:2,
     flavor:'Queen of the web-choked hollow. Her venom drips through mail. Stock the satchel.',
     lore:'Cassia built a fortune on spider-silk gathered at the hollow\'s edge, finest thread south of the mountains, and she never asked what spun it. Then her gatherers stopped coming back with silk, and then they stopped coming back at all. The contract is blunt: the Queen dies, the hollow opens, the guild pays grandly. Her venom is the worst in the Greenwood. It works through mail, through skin, through hours. Bring every potion you own. She means it.' },
-  { name:'Toll of the Greenwood', qType:'optional', type:'Contract', giver:'Captain Roderic, late of the merchant escort',
+  { id:'toll_of_the_greenwood', name:'Toll of the Greenwood', qType:'optional', type:'Contract', giver:'Captain Roderic, late of the merchant escort',
     monster:{ name:'Bandit Warlord', emoji:'⚔️', hp:545, atk:34, armored:true }, xp:220, g:2600, zone:2,
     flavor:'The Warlord wears a dead knight\'s plate. History repeats its tolls.',
     lore:'Roderic commanded twelve swords escorting the autumn caravan. He walked out of the Greenwood alone. The Warlord who broke them was a toll-bandit once. The Chief\'s own brother, some whisper. And he has done what his brother never dared: killed a knight and pried the plate off the corpse. Roderic\'s wages, his savings, and his sword-oath are yours if you put the Greenwood toll out of business for good.' },
-  { name:'The Amber Wasps', qType:'optional', type:'Contract', giver:'a guild factor, recently fled from the hollow',
+  { id:'the_amber_wasps', name:'The Amber Wasps', qType:'optional', type:'Contract', giver:'a guild factor, recently fled from the hollow',
     monster:{ name:'Amber Wasp Queen', emoji:'🪲', hp:470, atk:37, venom:5, swift:true }, xp:200, g:2600, zone:2,
     flavor:'A new hive in the silk hollow, bigger than any wasp should grow. Her venom moves fast.',
     lore:'The factor did not mention the hive when he hired the last crew of gatherers. He thought it was small. By the time the screaming started it was the size of a barn. The Amber Wasp Queen is not native to the Greenwood — no one is certain where she came from, only that she builds fast, breeds faster, and her guard wasps strike the moment anything enters range.<br><br>Her venom is quick and merciless. Unlike the Queen\'s webs, it gives no warning: one sting, then the burning starts. She moves before you think she\'s seen you. Bring potions. Drink the first one before you enter range.' },
-  { name:'The Glass Swordsman', qType:'optional', type:'Contract', giver:'a dying soldier found on the forest road',
+  { id:'the_glass_swordsman', name:'The Glass Swordsman', qType:'optional', type:'Contract', giver:'a dying soldier found on the forest road',
     monster:{ name:'Glass Swordsman', emoji:'🗡️', hp:520, atk:43, swift:true, armored:true }, xp:225, g:2800, zone:2,
     flavor:'A warrior ground to perfection. She counters everything. You must be faster.',
     lore:'The dying soldier gave one description before he stopped being able to talk: a woman in pale armour, moving so quietly the leaves didn\'t stir. She wears the glass plate of the old order — ground from forest crystal, harder than steel, lighter than leather. Her blade is the same material. It doesn\'t catch the light. It bends it.<br><br>She has no contract, no employer, no bounty posted by her hand. She simply stands on the road and waits for someone worth fighting. The soldier was not. You may be. She is armored and fast. Your first strike will tell her everything she needs to know about you. Make it count.' },
-  { name:'Heart of the Forest', qType:'story', type:'Boss', giver:'Maelo, last druid of the old circle',
+  { id:'heart_of_the_forest', name:'Heart of the Forest', qType:'story', type:'Boss', giver:'Maelo, last druid of the old circle',
     monster:{ name:'Ancient Treant', emoji:'🌳', hp:760, atk:48, regen:12 }, xp:350, g:5000, zone:2, boss:true,
     flavor:'The eldest tree walks. Bring an elixir and every potion you own.',
     lore:'Maelo remembers when the circle sang to the Eldest and it answered with good harvests. The circle is dead now; the Eldest outlived its keepers, then its patience, then its sanity. It is the thing that woke the saplings, bent Yvet\'s iron, and fattened the Queen. The druid asks not for victory but for mercy: “End the song that is left in it. It will mend faster than you can wound it. Come as a storm, or do not come.”',
     bossMsg:'The Greenwood falls silent… for now.',
     bossLoot:[{id:'verdant_bow', name:"Verdant Bow", emoji:'🏹', atk:18, grade:'D', slot:'weapon', g:4000}] },
-  { name:'✠ Echo of the First Wanderer', qType:'story', type:'Legend', giver:'a nameless pilgrim, who pays in advance',
-    monster:{ name:'The First Wanderer', emoji:'👁️', hp:680, atk:38, swift:true, frenzy:true }, xp:880, g:20000, zone:2, boss:true,
+  { id:'echo_of_the_first_wanderer', name:'✠ Echo of the First Wanderer', qType:'story', type:'Legend', giver:'a nameless pilgrim, who pays in advance',
+    monster:{ name:'The First Wanderer', emoji:'👁️', hp:780, atk:40, swift:true, frenzy:true }, xp:880, g:20000, zone:2, boss:true,
     flavor:'The first to walk ten thousand steps never stopped. It waits beyond the treeline for those who dare. Enchant your blade.',
     lore:'Before Oppidum, before the Reeve\'s wax and the Bank\'s vaults, there was only the road, and the first one to walk it. Ten thousand steps a day, the old verses say, every day, until the body wore out and the walking didn\'t. What waits beyond the treeline is not a ghost and not a god. It is the stride itself, hungry for someone worth pacing. The pilgrim who posts this bounty leaves the gold up front and does not wait for news. “Either you outwalk the legend,” she says, “or you join it.”',
     bossMsg:'The Echo bows, and walks on. You have surpassed the legend.' },
   // ── Zone 3: The Ruins (unlock at questsCleared >= 17) ──
-  { name:'Hounds of Ash', qType:'optional', type:'Hunt', zone:3, xp:200, g:1400,
+  { id:'hounds_of_ash', name:'Hounds of Ash', qType:'optional', type:'Hunt', zone:3, xp:200, g:1400,
     giver:'a scout posted at the ruins gate',
     flavor:'"They don\'t bark. They don\'t growl. They just come."',
     monster:{ name:'Ash Hound', emoji:'🐕', hp:320, atk:32, venom:2, swift:true } },
-  { name:'The Tomb Warden', qType:'optional', type:'Hunt', zone:3, xp:230, g:1600,
+  { id:'the_tomb_warden', name:'The Tomb Warden', qType:'optional', type:'Hunt', zone:3, xp:230, g:1600,
     giver:'a grave-robber who barely made it back',
     flavor:'"It stood perfectly still — until it didn\'t."',
     monster:{ name:'Tomb Warden', emoji:'⚰️', hp:420, atk:36, armored:true } },
-  { name:'Bone Archers', qType:'optional', type:'Hunt', zone:3, xp:255, g:1800,
+  { id:'bone_archers', name:'Bone Archers', qType:'optional', type:'Hunt', zone:3, xp:255, g:1800,
     giver:'Warden Yvet, second dispatch',
     flavor:'"The bolts come from everywhere. Stay moving."',
     monster:{ name:'Bone Archer', emoji:'🏹', hp:370, atk:40, swift:true } },
-  { name:'The Plague Shade', qType:'optional', type:'Contract', zone:3, xp:280, g:2000,
+  { id:'the_plague_shade', name:'The Plague Shade', qType:'optional', type:'Contract', zone:3, xp:280, g:2000,
     giver:'Father Bede, under seal of the chapel',
     lore:'"Something old woke up in those stones. It taints the air around it. Do not breathe deep." — Father Bede',
     monster:{ name:'Plague Shade', emoji:'💀', hp:480, atk:42, venom:4, regen:2 } },
-  { name:'Iron Sentinel', qType:'optional', type:'Hunt', zone:3, xp:310, g:2300,
+  { id:'iron_sentinel', name:'Iron Sentinel', qType:'optional', type:'Hunt', zone:3, xp:310, g:2300,
     giver:'a guild factor, by urgent letter',
     flavor:'"It was built to guard. Whatever it was guarding is long gone. It guards still."',
     monster:{ name:'Iron Sentinel', emoji:'🤖', hp:600, atk:40, armored:true } },
-  { name:'The Ruinborn Warlord', qType:'optional', type:'Contract', zone:3, xp:340, g:2600,
+  { id:'the_ruinborn_warlord', name:'The Ruinborn Warlord', qType:'optional', type:'Contract', zone:3, xp:340, g:2600,
     giver:'Captain Roderic, final dispatch',
     flavor:'"He remembers nothing of his old life. Only the fighting."',
     monster:{ name:'Ruinborn Warlord', emoji:'⚔️', hp:550, atk:48, frenzy:true, swift:true } },
-  { name:'✠ Cursed Colossus', qType:'story', type:'Legend', zone:3, xp:440, g:3500, boss:true,
+  { id:'cursed_colossus', name:'✠ Cursed Colossus', qType:'story', type:'Legend', zone:3, xp:440, g:3500, boss:true,
     giver:'a proclamation nailed to the ruins gate',
     lore:'"Nobody built it. Nobody remembers it being built. It simply was." — The Proclamation',
-    monster:{ name:'Cursed Colossus', emoji:'🗿', hp:600, atk:36, armored:true, regen:4 },
+    monster:{ name:'Cursed Colossus', emoji:'🗿', hp:750, atk:40, armored:true, regen:5 },
     bossMsg:'The Colossus crumbles, stone by stone, into dust.' },
-  { name:'✠ The Lich of Oppidum', qType:'story', type:'Legend', zone:3, xp:550, g:4500, boss:true,
+  { id:'the_lich_of_oppidum', name:'✠ The Lich of Oppidum', qType:'story', type:'Legend', zone:3, xp:550, g:4500, boss:true,
     giver:'the town records, a name that should not exist',
     lore:'"He was the first Reeve of Oppidum, three hundred years before Ostric. He never left." — Town Records, Vol. I',
     monster:{ name:'The Lich', emoji:'👁️', hp:750, atk:40, venom:2, regen:3, swift:true, armored:true },
@@ -1778,8 +1785,10 @@ function questDoneOnce(q) {
   return (S.doneOnce || []).includes(q.name);
 }
 function questAvailable(q) {
-  if (!q.zone || q.zone === 1) return true; // zone check handled elsewhere
-  return S.zonesUnlocked >= q.zone;
+  if (!q.zone || q.zone === 1) return true;
+  if (q.zone === 2) return S.questsCleared >= FOREST_UNLOCK;
+  if (q.zone === 3) return S.questsCleared >= RUINS_UNLOCK;
+  return false;
 }
 
 /* ── Analytics (fire-and-forget, never blocks gameplay) ── */
@@ -1880,7 +1889,30 @@ function migrate(s) {
   if (s.dailyClaimed === undefined) s.dailyClaimed = null;
   if (s.expedition === undefined) s.expedition = null;
   if (!s.sex) s.sex = 'm';
+  if (!s.inventory) s.inventory = [];
   if (typeof RUMORS !== 'undefined') RUMORS.forEach(r => { if (s.questsCleared > r.questIdx) s.rumors[r.id] = true; });
+  // Reinject dungeon-loot defs into the gear catalogs. Catalogs are rebuilt
+  // from literals every boot, so an equipped/owned loot id would otherwise
+  // resolve to undefined and crash heroATK/heroMaxHP after a reload.
+  if (typeof DUNGEONS !== 'undefined') {
+    const owned = new Set([
+      ...(s.inventory || []).map(x => x.id),
+      ...(s.weapons || []), ...(s.armor || []), ...(s.shields || []), ...(s.helms || []),
+      ...(s.gloves || []), ...(s.boots || []), ...(s.pants || []),
+      ...Object.values(s.equipped || {}),
+    ]);
+    DUNGEONS.forEach(d => {
+      const it = d.loot;
+      if (!it || !owned.has(it.id)) return;
+      const cat = { weapon:WEAPONS, armor:ARMOR, shield:SHIELDS, helm:HELMS, gloves:GLOVES, boots:BOOTS, pants:PANTS }[it.slot];
+      if (cat && !cat.some(x => x.id === it.id)) cat.push({ ...it });
+    });
+  }
+  // id-based record of cleared quests (progression stays index-based, but
+  // saves survive future quest reordering / analytics get stable keys)
+  if (!s.clearedQuestIds && typeof QUESTS !== 'undefined') {
+    s.clearedQuestIds = QUESTS.slice(0, s.questsCleared || 0).map(q => q.id).filter(Boolean);
+  }
   return s;
 }
 function load() {
@@ -2997,6 +3029,36 @@ function equipItem(itemId) {
   renderHUD();
 }
 
+function equipDungeonLoot(itemId) {
+  const idx = (S.inventory || []).findIndex(x => x.id === itemId);
+  if (idx === -1) return;
+  const it = S.inventory[idx];
+  // Register in the correct ownership array then equip
+  const slot = it.slot;
+  if (slot === 'weapon')      { if (!S.weapons.includes(itemId)) S.weapons.push(itemId); S.equipped.weapon = itemId; }
+  else if (slot === 'armor')  { if (!S.armor.includes(itemId)) S.armor.push(itemId); S.equipped.armor = itemId; }
+  else if (slot === 'shield') { if (!S.shields.includes(itemId)) S.shields.push(itemId); S.equipped.shield = itemId; }
+  else if (slot === 'helm')   { if (!S.helms.includes(itemId)) S.helms.push(itemId); S.equipped.helm = itemId; }
+  else if (slot === 'gloves') { if (!S.gloves.includes(itemId)) S.gloves.push(itemId); S.equipped.gloves = itemId; }
+  else if (slot === 'boots')  { if (!S.boots.includes(itemId)) S.boots.push(itemId); S.equipped.boots = itemId; }
+  else if (slot === 'pants')  { if (!S.pants.includes(itemId)) S.pants.push(itemId); S.equipped.pants = itemId; }
+  else { toast('Cannot equip this item.'); return; }
+  S.inventory.splice(idx, 1);
+  invSel = null;
+  save(); renderEquipAndGrid(); renderHUD();
+  toast(`${it.emoji} ${it.name} equipped!`);
+}
+
+function discardDungeonLoot(itemId) {
+  const idx = (S.inventory || []).findIndex(x => x.id === itemId);
+  if (idx === -1) return;
+  const it = S.inventory[idx];
+  S.inventory.splice(idx, 1);
+  invSel = null;
+  save(); renderEquipAndGrid();
+  toast(`${it.name} discarded.`);
+}
+
 /* ---------------- Hospitium (inn) ---------------- */
 function restCost() { return 25 * S.level; }
 function roomCost() { return 100 * S.level; }
@@ -3544,6 +3606,20 @@ function renderEquipAndGrid() {
     eqBox('boots',  S.equipped.boots,   'BOOTS')    +
     eqBox('pants',  S.equipped.pants,   'PANTS');
   if ($('inv-cap-label')) $('inv-cap-label').textContent = `${S.bag.length}/${S.bagCap} slots`;
+  // Dungeon finds grid
+  const dfSection = $('dungeon-finds-section');
+  const dfGrid    = $('dungeon-finds-grid');
+  const dfCount   = $('dungeon-finds-count');
+  if (dfSection && dfGrid) {
+    const finds = S.inventory || [];
+    dfSection.style.display = finds.length ? '' : 'none';
+    if (dfCount) dfCount.textContent = `${finds.length} item${finds.length !== 1 ? 's' : ''}`;
+    dfGrid.innerHTML = finds.map((it, i) => {
+      const sel = invSel && invSel.type === 'inv-loot' && invSel.id === it.id;
+      return `<div class="inv-slot filled${sel ? ' sel' : ''}" title="${it.name}" onclick="invSelect('inv-loot','${it.id}')">${it.emoji || '❔'}` +
+        (it.grade ? `<span class="inv-grade">${it.grade}</span>` : '') + '</div>';
+    }).join('');
+  }
   // grid boxes: unequipped gear + potion stacks + bag items
   const cells = [];
   S.weapons.filter(id => id !== S.equipped.weapon).forEach(id => cells.push({ type:'weapon', id }));
@@ -3571,6 +3647,15 @@ function renderEquipAndGrid() {
     if (invSel.type === 'junk') {
       const b = S.bag[invSel.bagIdx];
       if (b) d = `${b.icon} <b>${b.name}</b> ×${b.qty} — Junk. Sell at the General Store for <span class="gold">🪙 ${fmt(b.value * b.qty)}</span>`;
+    } else if (invSel.type === 'inv-loot') {
+      const it = (S.inventory || []).find(x => x.id === invSel.id);
+      if (it) {
+        const stat = it.atk !== undefined ? `ATK ${it.atk}` : it.def !== undefined ? `DEF ${it.def}` : '—';
+        const tag = it.grade ? ` <span class="gold">[${it.grade}]</span>` : '';
+        d = `${it.emoji} <b>${it.name}</b>${tag} — ${stat} · <span class="dim">Dungeon find</span>` +
+          `<button class="btn-eq" style="margin-left:10px" onclick="equipDungeonLoot('${it.id}')">Equip</button>` +
+          `<button class="btn-eq" style="margin-left:6px;background:var(--red)" onclick="discardDungeonLoot('${it.id}')">Discard</button>`;
+      }
     } else {
       const it = findItem(invSel.type, invSel.id);
       if (it) {
@@ -3591,7 +3676,7 @@ function upgradeCost(item, next) { return Math.round(item.g * 0.03 * next); }  /
 function upgradeGoldCost(item, next) { return Math.round(item.g * 0.02 * next); }  // Gradus cost
 function dispName(it) { const l = upgradeLvl(it.id); return it.name + (l ? ' +' + l : ''); }
 function heroMaxHP() {
-  const a     = ARMOR.find(x => x.id === S.equipped.armor);
+  const a     = ARMOR.find(x => x.id === S.equipped.armor) || ARMOR[0];
   const sh    = SHIELDS.find(x => x.id === S.equipped.shield) || SHIELDS[0];
   const helm  = HELMS.find(x => x.id === S.equipped.helm)   || HELMS[0];
   const pants = PANTS.find(x => x.id === S.equipped.pants)   || PANTS[0];
@@ -3603,7 +3688,7 @@ function heroMaxHP() {
   return Math.round(hp);
 }
 function heroATK(elixir) {
-  const w  = WEAPONS.find(x => x.id === S.equipped.weapon);
+  const w  = WEAPONS.find(x => x.id === S.equipped.weapon) || WEAPONS[0];
   const gl = GLOVES.find(x => x.id === S.equipped.gloves) || GLOVES[0];
   const str = (S.stats && S.stats.str) || 0;
   let atk = w.atk * upMult(w.id) + S.level + gl.atk + str;
@@ -4080,7 +4165,7 @@ function finishTB(win, fled) {
       const qi = QUESTS.indexOf(q);
       first = qi === S.questsCleared;
       isBonus = qi === dailyBonusIdx();
-      if (first) { g = q.g * (isBonus ? 3 : 1); xp = q.xp; S.questsCleared++; }
+      if (first) { g = q.g * (isBonus ? 3 : 1); xp = q.xp; S.questsCleared++; if (q.id) { (S.clearedQuestIds = S.clearedQuestIds || []).push(q.id); } }
       else { xp = Math.round(q.xp * 0.65); if (isBonus) g = q.g; }
     }
     S.gradus += g;

@@ -88,6 +88,7 @@ function buildContext(savedState = null) {
   ctx.window.AudioContext         = class { createOscillator(){ return { connect(){}, start(){}, stop(){}, frequency:{setValueAtTime(){}}, type:'' }; } createGain(){ return { connect(){}, gain:{ setValueAtTime(){}, exponentialRampToValueAtTime(){} } }; } destination; };
   ctx.window.webkitAudioContext   = ctx.window.AudioContext;
   ctx.window.open = () => {};
+  ctx.window.scrollTo = () => {};
 
   vm.createContext(ctx);
   return ctx;
@@ -184,7 +185,7 @@ console.log('OK\n');
 
 // ── A: Load & constants ──────────────────────────────────────────────────
 test('Load', 'Game loads without error',          () => assert(G != null));
-test('Load', 'VERSION is Alpha V1.18',            () => eq(G.VERSION, 'Alpha V1.18', 'VERSION'));
+test('Load', 'VERSION follows Alpha VX.Y format',  () => assert(/^Alpha V\d+\.\d+/.test(G.VERSION), `VERSION malformed: ${G.VERSION}`));
 test('Load', 'BACK_DAYS == 2',                    () => eq(G.BACK_DAYS, 2, 'BACK_DAYS'));
 test('Load', 'DAILY_STEP_GOAL == 7000',           () => eq(G.DAILY_STEP_GOAL, 7000));
 test('Load', 'STRETCH_STEP_GOAL == 10000',        () => eq(G.STRETCH_STEP_GOAL, 10000));
@@ -338,26 +339,33 @@ test('Economy', 'Elder Sword (top weapon) costs ≥ 200K',                   () 
   const top = G.WEAPONS.slice().sort((a,b) => b.g - a.g)[0];
   assert(top.g >= 200000, `top weapon ${top.name} costs ${top.g}G — expected ≥200K`);
 });
-test('Economy', 'Weapon progression: each tier is 1.4×–3× the previous',   () => {
-  const weapons = G.WEAPONS.filter(w => w.g > 0).sort((a,b) => a.g - b.g);
+test('Economy', 'Weapon progression: per-type tiers step ≥1.3×',           () => {
+  // Weapon types are interleaved by design (a same-tier staff/bow/sword cost
+  // about the same), so progression is judged within each type's own ladder.
   const gaps = [];
-  for (let i = 1; i < weapons.length; i++) {
-    const ratio = weapons[i].g / weapons[i-1].g;
-    if (ratio < 1.3) gaps.push(`${weapons[i-1].name}→${weapons[i].name} (×${ratio.toFixed(2)})`);
+  const types = [...new Set(G.WEAPONS.map(w => w.type || 'melee'))];
+  for (const t of types) {
+    const ladder = G.WEAPONS.filter(w => w.g > 0 && (w.type || 'melee') === t).sort((a,b) => a.g - b.g);
+    for (let i = 1; i < ladder.length; i++) {
+      const ratio = ladder[i].g / ladder[i-1].g;
+      if (ratio < 1.3) gaps.push(`[${t}] ${ladder[i-1].name}→${ladder[i].name} (×${ratio.toFixed(2)})`);
+    }
   }
-  if (gaps.length) return warn(`Tight weapon price jumps: ${gaps.join(', ')}`);
+  if (gaps.length) return warn(`Tight same-type price jumps: ${gaps.join(', ')}`);
 });
 
 // ── I: Quest data integrity ────────────────────────────────────────────────
-// NOTE: QUESTS use .name (not .id) as identifier — no id field exists
+// NOTE: quests carry stable .id slugs as of V1.19; cleared quests are also
+// recorded by id in S.clearedQuestIds
 test('Quests', 'All quests have name',                                      () => {
   const bad = G.QUESTS.filter(q => !q.name);
   assert(bad.length === 0, `${bad.length} quests missing name`);
 });
-test('Quests', 'DESIGN: quests have no .id field (name is the identifier)', () => {
-  // This is a known design fact — surfaced as a warning for future refactor consideration
-  const noId = G.QUESTS.filter(q => !q.id).length;
-  if (noId === G.QUESTS.length) return warn(`All ${noId} quests lack .id — if quest save state ever needs id-based lookup, add ids`);
+test('Quests', 'All quests have unique .id slugs',                          () => {
+  const noId = G.QUESTS.filter(q => !q.id);
+  assert(noId.length === 0, `${noId.length} quests missing .id`);
+  const ids = G.QUESTS.map(q => q.id);
+  assert(new Set(ids).size === ids.length, 'duplicate quest ids');
 });
 test('Quests', 'All quests have xp defined',                                () => {
   const bad = G.QUESTS.filter(q => q.xp === undefined);
