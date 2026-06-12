@@ -1,5 +1,12 @@
 # Gradus — Changelog
 
+## Alpha V1.29 — 2026-06-12
+Title polish.
+- Realm / Hall of Wanderers removed from the title screen completely (leaderboard remains in the Library in-game)
+- Footer order: FAQ link, then the version line, then Patch notes beneath it
+
+## Alpha V1.28 — 2026-06-12
+
 ## Alpha V1.28 — 2026-06-12
 The front door, actually calm this time.
 - First screen is now only: crest, GRADUS, your wanderers, email, password, Continue, Create

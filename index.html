@@ -455,14 +455,6 @@ input:focus {
     <p class="dim footer-note">Runs in your browser · no GPS, no location tracking · only your daily steps and calories</p>
     </div>
 
-    <div id="ttab-realm" style="display:none">
-      <p style="text-align:left"><button class="link-btn" onclick="titleTab('enter')">← Back</button></p>
-    <p class="dim footer-note" id="realm-pop"></p>
-    <p class="dim footer-note" id="realm-today"></p>
-    <p id="event-banner" class="mt" style="display:none;border:1px solid var(--gold);border-radius:4px;padding:6px 10px;font-size:12px"></p>
-    <p class="dim mt" id="npc-quip" style="font-style:italic;font-size:12px"></p>
-      <p class="mt"><button onclick="showLeaderboard()" style="font-size:12px;padding:4px 10px">🏆 Hall of Wanderers</button></p>
-    </div>
 
     <div id="ttab-enter">
 
@@ -504,11 +496,10 @@ input:focus {
       <p style="font-size:12px;color:var(--dim);text-align:center;margin-top:8px"><button class="link-btn" onclick="switchAuthPanel('login')">← Back to login</button></p>
     </div>
     <p class="dim footer-note" style="margin-top:22px">
-      <button class="link-btn" onclick="titleTab('about')">FAQ</button> ·
-      <button class="link-btn" onclick="titleTab('realm')">Realm</button> ·
-      <button class="link-btn" onclick="showPatchNotes()">Patch notes</button>
+      <button class="link-btn" onclick="titleTab('about')">FAQ</button>
     </p>
     <p class="dim footer-note" id="ver-title"></p>
+    <p class="dim footer-note"><button class="link-btn" onclick="showPatchNotes()">Patch notes</button></p>
     </div>
   </div>
 </div>
@@ -1063,7 +1054,7 @@ const PATCHNOTES = [
   ['V1.0-1.13', 'The founding: two realms, two currencies, turn-based combat, classes, the Greenwood, life skills, crafting, rumors, the Bank, and the Inn.'],
 ];
 function titleTab(name) {
-  ['enter','about','realm'].forEach(t => {
+  ['enter','about'].forEach(t => {
     $('ttab-' + t).style.display = t === name ? '' : 'none';
     const b = $('ttab-b-' + t);
     if (b && b.classList) b.classList.toggle('ttab-active', t === name);
@@ -1074,7 +1065,7 @@ function showPatchNotes() {
     `<p class="mt" style="text-align:left"><b class="gold">${v}</b><br><span class="dim" style="font-size:12px;line-height:1.6">${t}</span></p>`).join(''),
     [{ label:'Close' }]);
 }
-const VERSION = 'Alpha V1.28';
+const VERSION = 'Alpha V1.29';
 
 /* ---- 8-bit medieval pixel icons (inline SVG, dark palette) ---- */
 function pix(view, w, rects) {
@@ -4615,19 +4606,19 @@ $('icon-crest').innerHTML = (S && S.sex === 'f') ? PIX.crest_f : PIX.crest;
   try {
     const r = await fetch(DEFAULT_BACKEND + '/leaderboard');
     const rows = await r.json();
-    if (rows.length) $('realm-pop').textContent = `⚔️ ${rows.length} wanderer${rows.length === 1 ? '' : 's'} walk this realm · ${rows.reduce((a, p) => a + (p.steps || 0), 0).toLocaleString('en-US')} lifetime steps among them`;
+    if (rows.length && $('realm-pop')) $('realm-pop').textContent = `⚔️ ${rows.length} wanderer${rows.length === 1 ? '' : 's'} walk this realm · ${rows.reduce((a, p) => a + (p.steps || 0), 0).toLocaleString('en-US')} lifetime steps among them`;
   } catch(e) {}
   try {
     const t = await (await fetch(DEFAULT_BACKEND + '/today')).json();
-    if (t.steps > 0) $('realm-today').textContent = `🌅 Today across the realm: ${t.steps.toLocaleString('en-US')} steps by ${t.walkers} walker${t.walkers === 1 ? '' : 's'}`;
+    if (t.steps > 0 && $('realm-today')) $('realm-today').textContent = `🌅 Today across the realm: ${t.steps.toLocaleString('en-US')} steps by ${t.walkers} walker${t.walkers === 1 ? '' : 's'}`;
   } catch(e) {}
 })();
 // daily townsfolk line + seasonal banner
 {
   const [who, line] = dailyQuip();
-  $('npc-quip').textContent = `“${line}” — ${who}`;
+  if ($('npc-quip')) $('npc-quip').textContent = `“${line}” — ${who}`;
   const ev = activeEvent();
-  if (ev) { $('event-banner').innerHTML = ev.html; $('event-banner').style.display = 'block'; }
+  if (ev && $('event-banner')) { $('event-banner').innerHTML = ev.html; $('event-banner').style.display = 'block'; }
 }
 // title art backdrop if title.png exists (drop the generated art in the folder)
 if (typeof Image !== 'undefined') {
