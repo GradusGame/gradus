@@ -1,5 +1,14 @@
 # Gradus — Changelog
 
+## Alpha V1.21 — 2026-06-12
+Analytics you can read, auth you can trust.
+- **Visual analytics dashboard**: /admin/analytics now serves a dark-themed HTML page — stat cards (registered / saves / active / events), bar charts for actions, screens visited, and hero-level distribution, plus heroes-by-steps and recent-players tables (`&format=json` for raw data)
+- **Dashboard protected**: requires `?key=<ADMIN_KEY>` once you set the secret (`npx wrangler secret put ADMIN_KEY`); open until then
+- **Passwords never stored**: device keeps only a SHA-256 hash for offline verification (legacy plaintext entries upgrade on next login); expired cloud sessions now prompt for re-login instead of silently reusing credentials
+- **/push hardened**: uid and date format validation, step/calorie caps to keep junk out of storage
+
+## Alpha V1.20 — 2026-06-12
+
 ## Alpha V1.20 — 2026-06-12
 Going live: real accounts, cloud saves, leaderboard, new town art.
 - **Live accounts**: Create/Login now register against the worker (token auth); offline play still works and reconciles on the next login. Passwords now require 6+ chars (matching the server). Brand-new devices can log in and pull their save

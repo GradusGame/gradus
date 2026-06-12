@@ -947,7 +947,7 @@ input:focus {
 
 <script>
 'use strict';
-const VERSION = 'Alpha V1.20';
+const VERSION = 'Alpha V1.21';
 
 /* ---- 8-bit medieval pixel icons (inline SVG, dark palette) ---- */
 function pix(view, w, rects) {
@@ -1879,7 +1879,8 @@ function scheduleCloudPush() {
   if (_cloudTimer) return;
   _cloudTimer = setTimeout(cloudPush, 8000);
 }
-async function cloudPush(retried) {
+let _warnedExpired = false;
+async function cloudPush() {
   _cloudTimer = null;
   const tok = cloudToken();
   if (!tok || !S || !S.backend || _cloudBusy) return;
@@ -1889,27 +1890,17 @@ async function cloudPush(retried) {
       method:'POST', headers:{ 'content-type':'application/json', authorization:'Bearer ' + tok },
       body: JSON.stringify(S),
     });
-    if (r.status === 401 && !retried) {           // stale token: re-login once
-      const ok = await refreshToken();
-      _cloudBusy = false;
-      if (ok) return cloudPush(true);
-      return;
+    if (r.status === 401 && !_warnedExpired) {     // stale token: ask for a fresh login
+      _warnedExpired = true;
+      toast('☁️ Session expired — log out and back in to keep cloud saves flowing.');
     }
   } catch(e) { /* offline is fine; next save retries */ }
   _cloudBusy = false;
 }
-async function refreshToken() {
-  const accts = getAccounts(), a = accts[currentEmail];
-  if (!a || !a.pass) return false;
-  try {
-    const r = await fetch(S.backend + '/login', {
-      method:'POST', headers:{ 'content-type':'application/json' },
-      body: JSON.stringify({ email: currentEmail, password: a.pass }),
-    });
-    const j = await r.json();
-    if (j.token) { a.token = j.token; saveAccounts(accts); return true; }
-  } catch(e) {}
-  return false;
+/* passwords are never stored — only a local SHA-256 for offline verification */
+async function passHash(email, pass) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(email + ':' + pass));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
 }
 // flush pending cloud save when the tab hides (phones especially)
 document.addEventListener('visibilitychange', () => {
@@ -2045,7 +2036,7 @@ async function registerAccount() {
     } else { $('reg-err').textContent = j.error || 'Server rejected signup.'; return; }
   } catch(e) { /* offline: local-only account */ }
   $('reg-err').textContent = '';
-  accts[email] = { pass, token };
+  accts[email] = { hash: await passHash(email, pass), token };
   saveAccounts(accts);
   currentEmail = email;
   localStorage.setItem('gradus-session', JSON.stringify({ email }));
@@ -2071,12 +2062,14 @@ async function loginAccount() {
     if (j.token) token = j.token;
     else if (r.status === 401) { $('login-err').textContent = 'Wrong email or password.'; return; }
   } catch(e) {
-    // offline: fall back to the local account record
-    if (!accts[email]) { $('login-err').textContent = 'No connection and no local account on this device.'; return; }
-    if (accts[email].pass !== pass) { $('login-err').textContent = 'Wrong password.'; return; }
+    // offline: fall back to the local account record (hashed; legacy plaintext upgraded below)
+    const a = accts[email];
+    if (!a) { $('login-err').textContent = 'No connection and no local account on this device.'; return; }
+    const ok = a.hash ? (a.hash === await passHash(email, pass)) : (a.pass === pass);
+    if (!ok) { $('login-err').textContent = 'Wrong password.'; return; }
   }
   $('login-err').textContent = '';
-  accts[email] = { pass, token };
+  accts[email] = { hash: await passHash(email, pass), token };
   saveAccounts(accts);
   currentEmail = email;
   localStorage.setItem('gradus-session', JSON.stringify({ email }));

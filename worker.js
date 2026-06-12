@@ -35,16 +35,19 @@ export default {
     // ── Push fitness data (called by iPhone Shortcut / any automation) ───────
     // POST /push  body: { uid, date, steps, calories }
     if (url.pathname === '/push' && req.method === 'POST') {
+      // basic shape validation to keep junk out of KV
       let body;
       try { body = await req.json(); } catch { return json({ error: 'invalid json' }, 400); }
       const { uid, date, steps, calories } = body;
       if (!uid || !date) return json({ error: 'uid and date required' }, 400);
+      if (typeof uid !== 'string' || uid.length < 8 || uid.length > 64) return json({ error: 'bad uid' }, 400);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return json({ error: 'bad date' }, 400);
 
       const key = `act:${uid}:${date}`;
       const prev = JSON.parse((await env.KV.get(key)) || '{"steps":0,"calories":0}');
       await env.KV.put(key, JSON.stringify({
-        steps:    Math.max(prev.steps    || 0, Number(steps)    || 0),
-        calories: Math.max(prev.calories || 0, Number(calories) || 0),
+        steps:    Math.min(100000, Math.max(prev.steps    || 0, Number(steps)    || 0)),
+        calories: Math.min(10000,  Math.max(prev.calories || 0, Number(calories) || 0)),
       }), { expirationTtl: 60 * 60 * 24 * 45 }); // keep 45 days
       return json({ ok: true });
     }
@@ -147,7 +150,10 @@ export default {
     }
 
     // ── Admin analytics dashboard (GET /admin/analytics) ─────────────────────
+    // Protected: requires ?key=<ADMIN_KEY> (set via `wrangler secret put ADMIN_KEY`)
     if (url.pathname === '/admin/analytics' && req.method === 'GET') {
+      if (env.ADMIN_KEY && url.searchParams.get('key') !== env.ADMIN_KEY)
+        return json({ error: 'forbidden' }, 403);
       // List all event keys
       const evtList = await env.KV.list({ prefix: 'evts:' });
       const userList = await env.KV.list({ prefix: 'user:' });
@@ -190,9 +196,74 @@ export default {
       summary.total_events = totalEvents;
       summary.aggregate = eventCounts;
       summary.generated_at = new Date().toISOString();
-      return json(summary);
+
+      // also fold in save-level stats (levels, steps) for richer charts
+      const heroes = [];
+      for (const k of saveList.keys.slice(0, 200)) {
+        try {
+          const s = JSON.parse(await env.KV.get(k.name));
+          if (s) heroes.push({ name: s.name || '?', level: s.level || 1, steps: s.lifetimeSteps || 0, quests: s.questsCleared || 0 });
+        } catch {}
+      }
+      summary.heroes = heroes;
+
+      if (url.searchParams.get('format') === 'json') return json(summary);
+      return new Response(dashboardHTML(summary), { headers: { ...CORS, 'content-type': 'text/html;charset=utf-8' } });
     }
 
     return new Response('Gradus worker — alive.', { headers: CORS });
   },
 };
+
+/* ── HTML dashboard with hand-rolled bar charts (no external libs) ── */
+function dashboardHTML(s) {
+  const esc = t => String(t).replace(/[<>&]/g, c => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;' }[c]));
+  const bars = (entries, color) => {
+    const max = Math.max(1, ...entries.map(([, v]) => v));
+    return entries.map(([k, v]) =>
+      `<div class="row"><span class="lbl">${esc(k)}</span>
+       <span class="bar"><i style="width:${Math.round(v / max * 100)}%;background:${color}"></i></span>
+       <span class="val">${v}</span></div>`).join('');
+  };
+  const screens = Object.entries(s.aggregate.screen || {}).sort((a, b) => b[1] - a[1]).slice(0, 12);
+  const actions = Object.entries(s.aggregate).filter(([k, v]) => k !== 'screen' && typeof v === 'number').sort((a, b) => b[1] - a[1]);
+  // level distribution from saves
+  const lvlBuckets = {};
+  (s.heroes || []).forEach(h => { const b = h.level >= 50 ? '50+' : `${Math.floor((h.level - 1) / 10) * 10 + 1}-${Math.floor((h.level - 1) / 10) * 10 + 10}`; lvlBuckets[b] = (lvlBuckets[b] || 0) + 1; });
+  const heroRows = (s.heroes || []).sort((a, b) => b.steps - a.steps).slice(0, 25).map(h =>
+    `<tr><td>${esc(h.name)}</td><td>${h.level}</td><td>${h.quests}</td><td>${h.steps.toLocaleString('en-US')}</td></tr>`).join('');
+  const userRows = (s.users || []).sort((a, b) => (b.last_seen || '').localeCompare(a.last_seen || '')).slice(0, 25).map(u =>
+    `<tr><td>${esc(u.uid).slice(0, 8)}…</td><td>${u.event_count}</td><td>${u.max_level_seen}</td><td>${u.last_seen ? esc(u.last_seen).slice(0, 16).replace('T', ' ') : '—'}</td></tr>`).join('');
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gradus Analytics</title><style>
+body{background:#0c0a07;color:#d8c9a3;font-family:ui-monospace,Menlo,monospace;margin:0;padding:20px;max-width:860px;margin:auto}
+h1{color:#c9a227;font-size:20px}h2{color:#c9a227;font-size:15px;border-bottom:1px solid #3a2f1c;padding-bottom:4px;margin-top:28px}
+.cards{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}
+.card{background:#1a1410;border:1px solid #6b5a36;border-radius:6px;padding:12px 18px;text-align:center}
+.card b{display:block;font-size:26px;color:#c9a227}.card span{font-size:11px;color:#8a7b5e}
+.row{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:12px}
+.lbl{width:130px;text-align:right;color:#8a7b5e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar{flex:1;background:#15100a;border:1px solid #3a2f1c;border-radius:3px;height:16px;overflow:hidden}
+.bar i{display:block;height:100%}
+.val{width:56px;font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+td,th{padding:4px 8px;border-bottom:1px solid #241a10;text-align:left}th{color:#8a7b5e;font-size:10px;text-transform:uppercase}
+.foot{color:#5a4d36;font-size:10px;margin-top:30px}
+</style></head><body>
+<h1>⚔️ Gradus — Live Analytics</h1>
+<div class="cards">
+  <div class="card"><b>${s.registered_users}</b><span>registered</span></div>
+  <div class="card"><b>${s.users_with_saves}</b><span>with saves</span></div>
+  <div class="card"><b>${s.users_with_events}</b><span>active (events)</span></div>
+  <div class="card"><b>${s.total_events}</b><span>total events</span></div>
+</div>
+<h2>📊 Actions</h2>${bars(actions, '#c9a227')}
+<h2>🖥️ Screens visited</h2>${bars(screens, '#7a9145')}
+<h2>📈 Hero levels</h2>${bars(Object.entries(lvlBuckets).sort(), '#c4502c')}
+<h2>🏆 Heroes by lifetime steps</h2>
+<table><tr><th>Name</th><th>Lv</th><th>Quests</th><th>Steps</th></tr>${heroRows}</table>
+<h2>👣 Recent players</h2>
+<table><tr><th>uid</th><th>events</th><th>max lv</th><th>last seen (UTC)</th></tr>${userRows}</table>
+<p class="foot">Generated ${esc(s.generated_at)} · append &format=json for raw data</p>
+</body></html>`;
+}
