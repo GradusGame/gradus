@@ -1,5 +1,21 @@
 # Gradus — Changelog
 
+## Alpha V1.26 — 2026-06-12
+The front door, finished.
+- **Title art support**: drop the generated `title.png` in the folder and it becomes the title screen backdrop (dimmed behind the panel; silent fallback without it)
+- **🌅 Today across the realm**: live combined steps synced today by all walkers (new worker `/today` endpoint)
+- **Daily townsfolk line**: a date-rotated quip from one of ten NPCs greets visitors ("Steel doesn't care how you feel about cardio." — Wulfric)
+- **Seasonal event scaffold**: an EVENTS list renders a gold banner on the title screen during date windows; first event ready to write in one line
+
+## Alpha V1.25 — 2026-06-12
+
+## Alpha V1.25 — 2026-06-12
+Patch notes on the site, livelier front door.
+- **📜 Patch Notes** in-game: player-facing version history (internals omitted) reachable from the title screen, Library, and Settings
+- **Title screen additions**: tagline ("Your steps are gold · your sweat is power · your habit is a hero"), Patch Notes + Hall of Wanderers buttons before login, live realm population ("N wanderers walk this realm" with combined lifetime steps), and a privacy line: no GPS, no location tracking
+
+## Alpha V1.24 — 2026-06-12
+
 ## Alpha V1.24 — 2026-06-12
 Progressive disclosure: the town wakes up as you earn it.
 - Day one shows just the Keep, Tavern, Blacksmith and Library; ten locations now unlock at milestones with a 🔓 celebration: Armorer (1 hunt), Apothecary (2 hunts), Inn (level 3 / wounded / out of attempts), Bank (3,000 Gradus carried), Hunting Grounds (lv4), Woodsmith (lv5), Crafting (4 hunts), Chapel (lv6), Commons & Lake (Troll slain)

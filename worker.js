@@ -110,6 +110,18 @@ export default {
         : json({ error: 'No cloud save yet.' }, 404);
     }
 
+    // ── Today across the realm (GET /today) — combined steps synced today ────
+    if (url.pathname === '/today') {
+      const today = new Date().toISOString().slice(0, 10);
+      const acts = await env.KV.list({ prefix: 'act:' });
+      let steps = 0, walkers = 0;
+      for (const k of acts.keys) {
+        if (!k.name.endsWith(':' + today)) continue;
+        try { const v = JSON.parse(await env.KV.get(k.name)); steps += v.steps || 0; walkers++; } catch {}
+      }
+      return json({ date: today, steps, walkers });
+    }
+
     // ── Leaderboard (GET /leaderboard) — top wanderers by lifetime steps ─────
     if (url.pathname === '/leaderboard') {
       const saveList = await env.KV.list({ prefix: 'save:' });

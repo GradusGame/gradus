@@ -397,6 +397,16 @@ input:focus {
     <h1>GRADUS</h1>
     <p class="dim mt" style="max-width:420px;margin:14px auto 0;font-style:italic;">"We should take wandering outdoor walks, so that the mind might be nourished and refreshed by the open air."<br><span style="font-style:normal">— Seneca</span></p>
     <p class="dim mt footer-note" id="ver-title"></p>
+    <p class="mt" style="font-size:13px">🪙 Your steps are gold &nbsp;·&nbsp; ⚡ Your sweat is power &nbsp;·&nbsp; ⚔️ Your habit is a hero</p>
+    <p class="mt">
+      <button onclick="showPatchNotes()" style="font-size:12px;padding:4px 10px">📜 Patch notes</button>
+      <button onclick="showLeaderboard()" style="font-size:12px;padding:4px 10px">🏆 Hall of Wanderers</button>
+    </p>
+    <p class="dim footer-note" id="realm-pop"></p>
+    <p class="dim footer-note" id="realm-today"></p>
+    <p id="event-banner" class="mt" style="display:none;border:1px solid var(--gold);border-radius:4px;padding:6px 10px;font-size:12px"></p>
+    <p class="dim mt" id="npc-quip" style="font-style:italic;font-size:12px"></p>
+    <p class="dim footer-note">Runs in your browser · no GPS, no location tracking · only your daily steps and calories</p>
 
     <!-- Pre-login FAQ/Lore -->
     <div class="mt" style="max-width:420px;margin:18px auto 0;text-align:left">
@@ -849,7 +859,7 @@ input:focus {
 <div id="screen-library" class="screen">
   <div class="panel">
     <h2>📚 The Library</h2>
-    <p class="mt"><button onclick="showLeaderboard()">🏆 Hall of Wanderers — leaderboard</button></p>
+    <p class="mt"><button onclick="showLeaderboard()">🏆 Hall of Wanderers — leaderboard</button> <button onclick="showPatchNotes()">📜 Patch notes</button></p>
     <p class="dim" style="font-style:italic">"Every road in the realm ends in a book." — Brother Caedmon, archivist</p>
     <h2 class="mt">Glossary</h2>
     <table class="mt"><tbody>
@@ -893,6 +903,7 @@ input:focus {
       <label style="display:inline-block"><span class="dim" style="cursor:pointer;border:2px solid var(--border);border-radius:6px;padding:8px 14px;font-size:14px">📥 Import save</span><input type="file" accept=".json" style="display:none" onchange="importSave(event)"></label>
     </p>
     <p class="mt"><button onclick="resetSave()" style="border-color:var(--red);color:var(--red)">⚠️ Reset character</button></p>
+    <p class="mt"><button onclick="showPatchNotes()" style="font-size:12px">📜 Patch notes</button></p>
     <p class="dim mt footer-note" id="settings-ver"></p>
     <button class="mt" onclick="showScreen('town')">← Back to town</button>
   </div>
@@ -994,7 +1005,49 @@ function checkUnlocks(quiet) {
 }
 const RIES_CAP = 5000;                 // energy ceiling: burn it or bank the walk
 function gainRies(n) { S.ries = Math.min(RIES_CAP, (S.ries || 0) + n); }
-const VERSION = 'Alpha V1.24';
+/* Seasonal events: add {from:'YYYY-MM-DD', to:'YYYY-MM-DD', html:'…'} to run a banner */
+const EVENTS = [
+  // { from:'2026-10-25', to:'2026-11-02', html:'🎃 <b>The Hollow Nights</b> — double Ries from every sync until All Souls.' },
+];
+function activeEvent() {
+  const today = localDateStr(new Date());
+  return EVENTS.find(e => today >= e.from && today <= e.to) || null;
+}
+/* Daily flavor from the townsfolk (date-rotated) */
+const DAILY_QUIPS = [
+  ['Marta', 'Stew\'s hot. Roads aren\'t walking themselves.'],
+  ['Wulfric', 'Steel doesn\'t care how you feel about cardio.'],
+  ['Old Hessa', 'The lake was here before your excuses. It\'ll be here after.'],
+  ['Edwin the clerk', 'The ledger shows who walked. It never shows who meant to.'],
+  ['Father Bede', 'A thousand steps is a prayer the body says.'],
+  ['Joss', 'Track something today, even if it\'s just yourself.'],
+  ['Brunhild', 'Armor fits better on a body that moves.'],
+  ['Aldwin', 'A bow is just a walk that learned to focus.'],
+  ['Mother Elswyth', 'Most ailments fear a brisk hour outdoors.'],
+  ['Master Aurelius', 'Compound interest and daily walks: same religion.'],
+];
+function dailyQuip() {
+  const d = localDateStr(new Date());
+  let n = 0; for (const c of d) n = (n * 31 + c.charCodeAt(0)) >>> 0;
+  return DAILY_QUIPS[n % DAILY_QUIPS.length];
+}
+/* Player-facing patch notes (no internals) — newest first */
+const PATCHNOTES = [
+  ['V1.24', 'Oppidum now wakes up as you earn it: ten locations unlock at milestones, each with its own moment.'],
+  ['V1.23', 'Ries energy is capped at 5,000. Spend it or waste the calories. Forge costs rebalanced to match.'],
+  ['V1.22', 'Settings screen. Quest board reorganized: Story first, then repeatable hunts, then side quests. Critical hits (DEX and Archers crit more). Levels 1-10 come much faster.'],
+  ['V1.21', 'Account security hardened and stability improvements.'],
+  ['V1.20', 'Accounts went live: cloud saves on every device, automatic syncing, and the Hall of Wanderers leaderboard. New hand-painted town map.'],
+  ['V1.19', 'Major bugfixes (dungeon relics now survive reloads), Legend bosses rebalanced upward, smoother weapon price ladder.'],
+  ['V1.14-1.18', 'The Ruins (zone 3), six dungeons with unique relics, full 7-slot equipment, gear durability, stat points, mobile app experience, device step-sync.'],
+  ['V1.0-1.13', 'The founding: two realms, two currencies, turn-based combat, classes, the Greenwood, life skills, crafting, rumors, the Bank, and the Inn.'],
+];
+function showPatchNotes() {
+  showModal('<h2>📜 Patch Notes</h2>' + PATCHNOTES.map(([v, t]) =>
+    `<p class="mt" style="text-align:left"><b class="gold">${v}</b><br><span class="dim" style="font-size:12px;line-height:1.6">${t}</span></p>`).join(''),
+    [{ label:'Close' }]);
+}
+const VERSION = 'Alpha V1.26';
 
 /* ---- 8-bit medieval pixel icons (inline SVG, dark palette) ---- */
 function pix(view, w, rects) {
@@ -4531,6 +4584,34 @@ function resetSave() {
 $('ver-title').textContent = 'Gradus ' + VERSION;
 $('ver-town').textContent = 'Gradus ' + VERSION;
 $('icon-crest').innerHTML = (S && S.sex === 'f') ? PIX.crest_f : PIX.crest;
+(async () => {           // live realm stats (title screen, fails silent)
+  try {
+    const r = await fetch(DEFAULT_BACKEND + '/leaderboard');
+    const rows = await r.json();
+    if (rows.length) $('realm-pop').textContent = `⚔️ ${rows.length} wanderer${rows.length === 1 ? '' : 's'} walk this realm · ${rows.reduce((a, p) => a + (p.steps || 0), 0).toLocaleString('en-US')} lifetime steps among them`;
+  } catch(e) {}
+  try {
+    const t = await (await fetch(DEFAULT_BACKEND + '/today')).json();
+    if (t.steps > 0) $('realm-today').textContent = `🌅 Today across the realm: ${t.steps.toLocaleString('en-US')} steps by ${t.walkers} walker${t.walkers === 1 ? '' : 's'}`;
+  } catch(e) {}
+})();
+// daily townsfolk line + seasonal banner
+{
+  const [who, line] = dailyQuip();
+  $('npc-quip').textContent = `“${line}” — ${who}`;
+  const ev = activeEvent();
+  if (ev) { $('event-banner').innerHTML = ev.html; $('event-banner').style.display = 'block'; }
+}
+// title art backdrop if title.png exists (drop the generated art in the folder)
+if (typeof Image !== 'undefined') {
+  const probe = new Image();
+  probe.onload = () => {
+    const sc = $('screen-title');
+    sc.style.background = `linear-gradient(rgba(12,10,7,.82), rgba(12,10,7,.94)), url('title.png') center top / cover no-repeat`;
+    sc.style.minHeight = '100vh';
+  };
+  probe.src = 'title.png';
+}
 $('icon-sync').innerHTML = PIX.scroll;
 $('icon-tavern').innerHTML = PIX.mug;
 $('icon-inn').innerHTML = PIX.bed;
