@@ -107,6 +107,23 @@ export default {
         : json({ error: 'No cloud save yet.' }, 404);
     }
 
+    // ── Leaderboard (GET /leaderboard) — top wanderers by lifetime steps ─────
+    if (url.pathname === '/leaderboard') {
+      const saveList = await env.KV.list({ prefix: 'save:' });
+      const rows = [];
+      for (const k of saveList.keys.slice(0, 200)) {
+        try {
+          const s = JSON.parse(await env.KV.get(k.name));
+          if (s && s.name) rows.push({
+            name: s.name, title: s.title || '', level: s.level || 1,
+            steps: s.lifetimeSteps || 0, quests: s.questsCleared || 0,
+          });
+        } catch {}
+      }
+      rows.sort((a, b) => b.steps - a.steps);
+      return json(rows.slice(0, 20));
+    }
+
     // ── Analytics events (POST /events) ───────────────────────────────────────
     if (url.pathname === '/events' && req.method === 'POST') {
       let body;

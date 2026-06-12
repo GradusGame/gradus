@@ -848,6 +848,7 @@ input:focus {
 <div id="screen-library" class="screen">
   <div class="panel">
     <h2>📚 The Library</h2>
+    <p class="mt"><button onclick="showLeaderboard()">🏆 Hall of Wanderers — leaderboard</button></p>
     <p class="dim" style="font-style:italic">"Every road in the realm ends in a book." — Brother Caedmon, archivist</p>
     <h2 class="mt">Glossary</h2>
     <table class="mt"><tbody>
@@ -946,7 +947,7 @@ input:focus {
 
 <script>
 'use strict';
-const VERSION = 'Alpha V1.19';
+const VERSION = 'Alpha V1.20';
 
 /* ---- 8-bit medieval pixel icons (inline SVG, dark palette) ---- */
 function pix(view, w, rects) {
@@ -1841,7 +1842,79 @@ function freshState(name) {
     bpBought: {},                // backpack upgrade ids bought
   };
 }
-function save() { localStorage.setItem(saveKey(currentEmail), JSON.stringify(S)); }
+function save() {
+  if (S) S.savedAt = Date.now();
+  localStorage.setItem(saveKey(currentEmail), JSON.stringify(S));
+  scheduleCloudPush();
+}
+
+/* ── Leaderboard ── */
+async function showLeaderboard() {
+  showModal('<h2>🏆 Hall of Wanderers</h2><p class="dim">Consulting the archives…</p>', [{ label:'Close' }]);
+  try {
+    const r = await fetch((S && S.backend || DEFAULT_BACKEND) + '/leaderboard');
+    const rows = await r.json();
+    const body = rows.length
+      ? '<table>' + rows.map((p, i) =>
+          `<tr><td>${i + 1}. <b>${String(p.name).slice(0, 16)}</b> <span class="dim">${String(p.title || '').slice(0, 20)}</span><br>
+           <span class="dim">Lv.${p.level} · ${p.quests} quests</span></td>
+           <td class="r gold">${(p.steps || 0).toLocaleString('en-US')} steps</td></tr>`).join('') + '</table>'
+      : '<p class="dim">No wanderers recorded yet. Be the first.</p>';
+    showModal('<h2>🏆 Hall of Wanderers</h2><p class="dim footer-note">Lifetime steps across both realms.</p>' + body, [{ label:'Close' }]);
+  } catch(e) {
+    showModal('<h2>🏆 Hall of Wanderers</h2><p class="dim">The archive is unreachable. Try again later.</p>', [{ label:'Close' }]);
+  }
+}
+
+/* ── Cloud saves (auto, debounced; live accounts on the worker) ── */
+const DEFAULT_BACKEND = 'https://gradus-worker.gradus-game.workers.dev';
+let _cloudTimer = null, _cloudBusy = false;
+function cloudToken() {
+  if (!currentEmail) return null;
+  const a = getAccounts()[currentEmail];
+  return a && a.token || null;
+}
+function scheduleCloudPush() {
+  if (!cloudToken() || !S || !S.backend) return;
+  if (_cloudTimer) return;
+  _cloudTimer = setTimeout(cloudPush, 8000);
+}
+async function cloudPush(retried) {
+  _cloudTimer = null;
+  const tok = cloudToken();
+  if (!tok || !S || !S.backend || _cloudBusy) return;
+  _cloudBusy = true;
+  try {
+    const r = await fetch(S.backend + '/save', {
+      method:'POST', headers:{ 'content-type':'application/json', authorization:'Bearer ' + tok },
+      body: JSON.stringify(S),
+    });
+    if (r.status === 401 && !retried) {           // stale token: re-login once
+      const ok = await refreshToken();
+      _cloudBusy = false;
+      if (ok) return cloudPush(true);
+      return;
+    }
+  } catch(e) { /* offline is fine; next save retries */ }
+  _cloudBusy = false;
+}
+async function refreshToken() {
+  const accts = getAccounts(), a = accts[currentEmail];
+  if (!a || !a.pass) return false;
+  try {
+    const r = await fetch(S.backend + '/login', {
+      method:'POST', headers:{ 'content-type':'application/json' },
+      body: JSON.stringify({ email: currentEmail, password: a.pass }),
+    });
+    const j = await r.json();
+    if (j.token) { a.token = j.token; saveAccounts(accts); return true; }
+  } catch(e) {}
+  return false;
+}
+// flush pending cloud save when the tab hides (phones especially)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && _cloudTimer) { clearTimeout(_cloudTimer); _cloudTimer = null; cloudPush(); }
+});
 // Backward-compatible migration for pre-combat saves
 function migrate(s) {
   if (s.questsCleared === undefined) s.questsCleared = 0;
@@ -1859,7 +1932,7 @@ function migrate(s) {
   if (!s.investments) s.investments = [];   // {amount, date, mature}
   if (!s.rumors) s.rumors = {};
   if (s.music === undefined) s.music = true;
-  if (s.backend === undefined) s.backend = '';
+  if (!s.backend) s.backend = DEFAULT_BACKEND;   // live by default (analytics + cloud)
   if (!s.syncId) s.syncId = crypto.randomUUID();
   if (!s.durability) s.durability = {};
   if (!s.lifeSkills) s.lifeSkills = { fishing:{lvl:1,xp:0}, cooking:{lvl:1,xp:0}, woodcutting:{lvl:1,xp:0}, thieving:{lvl:1,xp:0}, gathering:{lvl:1,xp:0} };
@@ -1943,35 +2016,89 @@ function switchAuthPanel(panel) {
   $('login-panel').style.display = panel === 'login' ? '' : 'none';
   $('register-panel').style.display = panel === 'register' ? '' : 'none';
 }
-function registerAccount() {
+async function registerAccount() {
   const email = $('reg-email').value.trim().toLowerCase();
   const pass  = $('reg-pass').value;
   $('reg-err').textContent = '';
   if (!email || !email.includes('@')) { $('reg-err').textContent = 'Enter a valid email.'; return; }
-  if (pass.length < 4) { $('reg-err').textContent = 'Password must be at least 4 characters.'; return; }
+  if (pass.length < 6) { $('reg-err').textContent = 'Password must be at least 6 characters.'; return; }
   const accts = getAccounts();
   if (accts[email]) { $('reg-err').textContent = 'That email is already registered. Log in instead.'; return; }
-  accts[email] = { pass };
+  // Live account on the worker (falls back to offline-local if unreachable)
+  let token = null;
+  $('reg-err').textContent = 'Creating account…';
+  try {
+    const r = await fetch(DEFAULT_BACKEND + '/signup', {
+      method:'POST', headers:{ 'content-type':'application/json' },
+      body: JSON.stringify({ email, password: pass }),
+    });
+    const j = await r.json();
+    if (j.token) token = j.token;
+    else if (r.status === 409) {                  // exists on server: try login
+      const r2 = await fetch(DEFAULT_BACKEND + '/login', {
+        method:'POST', headers:{ 'content-type':'application/json' },
+        body: JSON.stringify({ email, password: pass }),
+      });
+      const j2 = await r2.json();
+      if (j2.token) token = j2.token;
+      else { $('reg-err').textContent = 'Account exists with a different password. Log in instead.'; return; }
+    } else { $('reg-err').textContent = j.error || 'Server rejected signup.'; return; }
+  } catch(e) { /* offline: local-only account */ }
+  $('reg-err').textContent = '';
+  accts[email] = { pass, token };
   saveAccounts(accts);
   currentEmail = email;
   localStorage.setItem('gradus-session', JSON.stringify({ email }));
+  if (!token) toast('No connection — playing offline. Your save goes online next time you log in.');
   showScreen('create');  // name + sex chosen on next screen
+  setTimeout(() => track('signup', { online: !!token }), 1000);
 }
-function loginAccount() {
+async function loginAccount() {
   const email = $('login-email').value.trim().toLowerCase();
   const pass  = $('login-pass').value;
   $('login-err').textContent = '';
   if (!email) { $('login-err').textContent = 'Enter your email.'; return; }
   const accts = getAccounts();
-  if (!accts[email]) { $('login-err').textContent = 'No account found for that email.'; return; }
-  if (accts[email].pass !== pass) { $('login-err').textContent = 'Wrong password.'; return; }
+  let token = accts[email] && accts[email].token || null;
+  $('login-err').textContent = 'Signing in…';
+  // Try the live account first (works on a brand-new device too)
+  try {
+    const r = await fetch(DEFAULT_BACKEND + '/login', {
+      method:'POST', headers:{ 'content-type':'application/json' },
+      body: JSON.stringify({ email, password: pass }),
+    });
+    const j = await r.json();
+    if (j.token) token = j.token;
+    else if (r.status === 401) { $('login-err').textContent = 'Wrong email or password.'; return; }
+  } catch(e) {
+    // offline: fall back to the local account record
+    if (!accts[email]) { $('login-err').textContent = 'No connection and no local account on this device.'; return; }
+    if (accts[email].pass !== pass) { $('login-err').textContent = 'Wrong password.'; return; }
+  }
+  $('login-err').textContent = '';
+  accts[email] = { pass, token };
+  saveAccounts(accts);
   currentEmail = email;
   localStorage.setItem('gradus-session', JSON.stringify({ email }));
-  const data = JSON.parse(localStorage.getItem(saveKey(email)));
-  if (data) { S = migrate(data); }
+  // Pick the newer of local vs cloud save
+  let data = JSON.parse(localStorage.getItem(saveKey(email)) || 'null');
+  if (token) {
+    try {
+      const r = await fetch(DEFAULT_BACKEND + '/load', { headers:{ authorization:'Bearer ' + token } });
+      if (r.ok) {
+        const cloud = await r.json();
+        if (cloud && cloud.name && (!data || (cloud.savedAt || 0) > (data.savedAt || 0))) {
+          data = cloud;
+          toast('☁️ Cloud save loaded.');
+        }
+      }
+    } catch(e) {}
+  }
+  if (data) { S = migrate(data); save(); }
   else { S = migrate(freshState(email.split('@')[0])); save(); }
   checkAch();
   showScreen('town');
+  track('login', { online: !!token });
 }
 function setHair(h) {
   if (S) S.hair = h;

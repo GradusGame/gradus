@@ -1,5 +1,14 @@
 # Gradus — Changelog
 
+## Alpha V1.20 — 2026-06-12
+Going live: real accounts, cloud saves, leaderboard, new town art.
+- **Live accounts**: Create/Login now register against the worker (token auth); offline play still works and reconciles on the next login. Passwords now require 6+ chars (matching the server). Brand-new devices can log in and pull their save
+- **Automatic cloud saves**: every save debounce-pushes to the worker (8s, flushed when the tab hides); on login the newer of local vs cloud wins (savedAt timestamp); stale tokens silently re-authenticate
+- **Backend on by default**: the worker URL ships baked in, so friends' analytics and saves flow without setup
+- **🏆 Hall of Wanderers**: live leaderboard (lifetime steps, level, quests) in the Library; new GET /leaderboard worker endpoint
+- **New portrait town map** (720×1280, 16-bit): all 13 hotspots remapped and visually verified, town NPCs repositioned, map capped at 520px on desktop
+- signup/login analytics events
+
 ## Alpha V1.19 — 2026-06-12
 Review pass: critical loot fix, save robustness, balance, docs.
 - **Fixed (critical): equipping dungeon loot crashed the game after reload.** Gear catalogs rebuild from code on every boot, so an equipped relic id (e.g. lich_staff) resolved to nothing and heroATK/heroMaxHP threw. `migrate()` now reinjects owned/equipped dungeon-loot defs into the catalogs on every load path; stat functions also gained starter-item fallbacks as a safety net
