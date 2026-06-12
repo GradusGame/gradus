@@ -1,7 +1,7 @@
 # Gradus Automated Test Report
 
-**Date:** 2026-06-12T19:21:21.683Z  
-**Version:** Alpha V1.26  
+**Date:** 2026-06-12T19:40:47.783Z  
+**Version:** Alpha V1.27  
 
 ## Summary
 
@@ -133,9 +133,9 @@
 ## Play Simulation (100 sessions)
 
 - Sessions: 100
-- Days simulated: 2133
-- Avg daily earnings: **6,261G**
-- Range: 1G – 19,781G
+- Days simulated: 2097
+- Avg daily earnings: **6,242G**
+- Range: 1G – 18,957G
 - Days hitting 7K goal: 31%
 - Threshold bonus rate: 31%
 

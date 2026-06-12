@@ -1,5 +1,12 @@
 # Gradus — Changelog
 
+## Alpha V1.27 — 2026-06-12
+A calm front door.
+- **Title screen reorganized into tabs**: ⚔️ Enter (crest, title, login/create — nothing else), 📖 About (Seneca, tagline, FAQ, privacy, patch notes), 🏆 Realm (live population, today's steps, event banner, townsfolk quip, leaderboard)
+- First impression is now just the game's name and the door in
+
+## Alpha V1.26 — 2026-06-12
+
 ## Alpha V1.26 — 2026-06-12
 The front door, finished.
 - **Title art support**: drop the generated `title.png` in the folder and it becomes the title screen backdrop (dimmed behind the panel; silent fallback without it)

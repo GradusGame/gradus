@@ -219,6 +219,13 @@ input:focus {
     border-radius: 4px; border: 1px solid var(--border); display: none; white-space: nowrap; pointer-events: none;
   }
   .hot:hover span { display: block; }
+  /* ---------- title tabs ---------- */
+  .ttab {
+    background: transparent; border: none; border-bottom: 2px solid transparent;
+    border-radius: 0; box-shadow: none; color: var(--dim); padding: 8px 14px; font-size: 13px;
+  }
+  .ttab:hover:not(:disabled) { background: transparent; color: var(--gold); border-color: transparent; }
+  .ttab-active { color: var(--gold); border-bottom-color: var(--gold); }
   /* ---------- modal ---------- */
   .modal-back {
     position: fixed; inset: 0; background: rgba(0,0,0,.78);
@@ -395,19 +402,15 @@ input:focus {
   <div class="panel center">
     <div id="icon-crest" class="mt"></div>
     <h1>GRADUS</h1>
-    <p class="dim mt" style="max-width:420px;margin:14px auto 0;font-style:italic;">"We should take wandering outdoor walks, so that the mind might be nourished and refreshed by the open air."<br><span style="font-style:normal">— Seneca</span></p>
-    <p class="dim mt footer-note" id="ver-title"></p>
-    <p class="mt" style="font-size:13px">🪙 Your steps are gold &nbsp;·&nbsp; ⚡ Your sweat is power &nbsp;·&nbsp; ⚔️ Your habit is a hero</p>
-    <p class="mt">
-      <button onclick="showPatchNotes()" style="font-size:12px;padding:4px 10px">📜 Patch notes</button>
-      <button onclick="showLeaderboard()" style="font-size:12px;padding:4px 10px">🏆 Hall of Wanderers</button>
-    </p>
-    <p class="dim footer-note" id="realm-pop"></p>
-    <p class="dim footer-note" id="realm-today"></p>
-    <p id="event-banner" class="mt" style="display:none;border:1px solid var(--gold);border-radius:4px;padding:6px 10px;font-size:12px"></p>
-    <p class="dim mt" id="npc-quip" style="font-style:italic;font-size:12px"></p>
-    <p class="dim footer-note">Runs in your browser · no GPS, no location tracking · only your daily steps and calories</p>
+    <div class="mt" id="title-tabs">
+      <button class="ttab ttab-active" id="ttab-b-enter" onclick="titleTab('enter')">⚔️ Enter</button>
+      <button class="ttab" id="ttab-b-about" onclick="titleTab('about')">📖 About</button>
+      <button class="ttab" id="ttab-b-realm" onclick="titleTab('realm')">🏆 Realm</button>
+    </div>
 
+    <div id="ttab-about" style="display:none">
+    <p class="dim mt" style="max-width:420px;margin:14px auto 0;font-style:italic;">"We should take wandering outdoor walks, so that the mind might be nourished and refreshed by the open air."<br><span style="font-style:normal">— Seneca</span></p>
+    <p class="mt" style="font-size:13px">🪙 Your steps are gold &nbsp;·&nbsp; ⚡ Your sweat is power &nbsp;·&nbsp; ⚔️ Your habit is a hero</p>
     <!-- Pre-login FAQ/Lore -->
     <div class="mt" style="max-width:420px;margin:18px auto 0;text-align:left">
       <details style="border:1px solid var(--border);border-radius:4px;margin-bottom:8px;padding:0">
@@ -453,6 +456,20 @@ input:focus {
         </div>
       </details>
     </div>
+    <p class="dim footer-note">Runs in your browser · no GPS, no location tracking · only your daily steps and calories</p>
+      <p class="mt"><button onclick="showPatchNotes()" style="font-size:12px;padding:4px 10px">📜 Patch notes</button></p>
+    </div>
+
+    <div id="ttab-realm" style="display:none">
+    <p class="dim footer-note" id="realm-pop"></p>
+    <p class="dim footer-note" id="realm-today"></p>
+    <p id="event-banner" class="mt" style="display:none;border:1px solid var(--gold);border-radius:4px;padding:6px 10px;font-size:12px"></p>
+    <p class="dim mt" id="npc-quip" style="font-style:italic;font-size:12px"></p>
+      <p class="mt"><button onclick="showLeaderboard()" style="font-size:12px;padding:4px 10px">🏆 Hall of Wanderers</button></p>
+    </div>
+
+    <div id="ttab-enter">
+
 
     <!-- Saved accounts quick-select -->
     <div id="account-list" class="mt" style="display:none;max-width:340px;margin:12px auto 0">
@@ -489,6 +506,8 @@ input:focus {
       <button class="btn-big btn-g" onclick="registerAccount()">⚜️ Begin the journey</button>
       <p id="reg-err" class="dim" style="color:var(--red);font-size:12px;min-height:16px;margin-top:6px"></p>
       <p style="font-size:12px;color:var(--dim);text-align:center;margin-top:8px"><button class="link-btn" onclick="switchAuthPanel('login')">← Back to login</button></p>
+    </div>
+    <p class="dim mt footer-note" id="ver-title"></p>
     </div>
   </div>
 </div>
@@ -1042,12 +1061,18 @@ const PATCHNOTES = [
   ['V1.14-1.18', 'The Ruins (zone 3), six dungeons with unique relics, full 7-slot equipment, gear durability, stat points, mobile app experience, device step-sync.'],
   ['V1.0-1.13', 'The founding: two realms, two currencies, turn-based combat, classes, the Greenwood, life skills, crafting, rumors, the Bank, and the Inn.'],
 ];
+function titleTab(name) {
+  ['enter','about','realm'].forEach(t => {
+    $('ttab-' + t).style.display = t === name ? '' : 'none';
+    $('ttab-b-' + t).classList.toggle('ttab-active', t === name);
+  });
+}
 function showPatchNotes() {
   showModal('<h2>📜 Patch Notes</h2>' + PATCHNOTES.map(([v, t]) =>
     `<p class="mt" style="text-align:left"><b class="gold">${v}</b><br><span class="dim" style="font-size:12px;line-height:1.6">${t}</span></p>`).join(''),
     [{ label:'Close' }]);
 }
-const VERSION = 'Alpha V1.26';
+const VERSION = 'Alpha V1.27';
 
 /* ---- 8-bit medieval pixel icons (inline SVG, dark palette) ---- */
 function pix(view, w, rects) {
