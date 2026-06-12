@@ -1,5 +1,13 @@
 # Gradus — Changelog
 
+## Alpha V1.28 — 2026-06-12
+The front door, actually calm this time.
+- First screen is now only: crest, GRADUS, your wanderers, email, password, Continue, Create
+- Everything else lives behind three quiet footer links: FAQ (quote, tagline, accordions, privacy), Realm (population, today's steps, quip, leaderboard), Patch notes
+- Hall of Wanderers removed from the first impression entirely; tab bar replaced by text links
+
+## Alpha V1.27 — 2026-06-12
+
 ## Alpha V1.27 — 2026-06-12
 A calm front door.
 - **Title screen reorganized into tabs**: ⚔️ Enter (crest, title, login/create — nothing else), 📖 About (Seneca, tagline, FAQ, privacy, patch notes), 🏆 Realm (live population, today's steps, event banner, townsfolk quip, leaderboard)
