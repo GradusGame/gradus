@@ -1,5 +1,15 @@
 # Gradus — Changelog
 
+## Alpha V1.22 — 2026-06-12
+Settings, story-first quests, crits, casual-friendly leveling.
+- **⚙️ Settings screen** (gear in the top bar): sound/music toggles, account status, log out, export/import save, reset character
+- **Quest board reorganized**: each zone now shows 📖 THE STORY OF THE REALM first (highlighted; story quests complete once), then ⚔️ HUNTS & CONTRACTS (repeatable), then 🗺️ SIDE QUESTS (once each)
+- **💥 Critical hits**: 5% base chance, +0.5% per DEX, Archers +5%; crits deal ×1.5 with their own flair; chance shown on the Stats screen
+- **Casual-friendly early game**: levels 1–10 need ~38% less XP (tier-1 base 80→50); class choice arrives much sooner
+- Restored save import; logout now lives in Settings (it had become hard to find)
+
+## Alpha V1.21 — 2026-06-12
+
 ## Alpha V1.21 — 2026-06-12
 Analytics you can read, auth you can trust.
 - **Visual analytics dashboard**: /admin/analytics now serves a dark-themed HTML page — stat cards (registered / saves / active / events), bar charts for actions, screens visited, and hero-level distribution, plus heroes-by-steps and recent-players tables (`&format=json` for raw data)

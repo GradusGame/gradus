@@ -376,6 +376,7 @@ input:focus {
       <span class="hud-item dim" id="hud-clock" style="font-size:12px"></span>
       <button id="hud-sound" onclick="toggleSound()" style="padding:3px 8px;font-size:12px" title="Sound on/off">🔊</button>
       <button id="hud-music" onclick="toggleMusic()" style="padding:3px 8px;font-size:12px" title="Music on/off">🎵</button>
+      <button onclick="showScreen('settings')" style="padding:3px 8px;font-size:12px" title="Settings">⚙️</button>
     </span>
   </div>
 </div>
@@ -879,6 +880,24 @@ input:focus {
   </div>
 </div>
 
+<!-- ================= SETTINGS ================= -->
+<div id="screen-settings" class="screen">
+  <div class="panel">
+    <h2>⚙️ Settings</h2>
+    <table class="mt"><tbody id="settings-rows"></tbody></table>
+    <h2 class="mt">Account</h2>
+    <p class="dim footer-note" id="settings-acct"></p>
+    <p class="mt">
+      <button onclick="logoutAccount()">🚪 Log out</button>
+      <button onclick="exportSave()">📤 Export save</button>
+      <label style="display:inline-block"><span class="dim" style="cursor:pointer;border:2px solid var(--border);border-radius:6px;padding:8px 14px;font-size:14px">📥 Import save</span><input type="file" accept=".json" style="display:none" onchange="importSave(event)"></label>
+    </p>
+    <p class="mt"><button onclick="resetSave()" style="border-color:var(--red);color:var(--red)">⚠️ Reset character</button></p>
+    <p class="dim mt footer-note" id="settings-ver"></p>
+    <button class="mt" onclick="showScreen('town')">← Back to town</button>
+  </div>
+</div>
+
 <!-- ================= STATS ================= -->
 <div id="screen-stats" class="screen">
   <div class="panel">
@@ -947,7 +966,7 @@ input:focus {
 
 <script>
 'use strict';
-const VERSION = 'Alpha V1.21';
+const VERSION = 'Alpha V1.22';
 
 /* ---- 8-bit medieval pixel icons (inline SVG, dark palette) ---- */
 function pix(view, w, rects) {
@@ -2224,7 +2243,7 @@ function xpForNext(level) {
   // Tiers of 10 levels; each tier is ~3x harder than the last
   const tier  = Math.floor((level - 1) / 10);
   const pos   = (level - 1) % 10;
-  const bases = [80,  400,  1200, 3500, 10000];
+  const bases = [50,  400,  1200, 3500, 10000];
   const steps = [24,  72,   230,  700,  2000 ];
   const b = bases[Math.min(tier, bases.length - 1)];
   const s = steps[Math.min(tier, steps.length - 1)];
@@ -2275,6 +2294,7 @@ function showScreen(name) {
   if (name === 'tavern') renderTavern();
   if (name === 'class') renderClass();
   if (name === 'stats') renderStats();
+  if (name === 'settings') renderSettings();
   if (name === 'inv') renderEquipAndGrid();
   if (name === 'skills') renderSkills();
   if (name === 'inn') renderInn();
@@ -3628,6 +3648,7 @@ function renderStats() {
     row('Experience', `${fmt(S.xp)} / ${fmt(xpForNext(S.level))} XP`) +
     row('Max HP', heroMaxHP()) +
     row('Attack', `${heroATK(false)} <span class="dim">(${WEAPONS.find(w => w.id === S.equipped.weapon).name}${S.enchants[S.equipped.weapon] ? ' ✨' : ''})</span>`) +
+    row('Critical hit', `${Math.round(critChance() * 100)}% chance · ×1.5 damage`) +
     row('Stats', `<span class="dim">${statsLine}</span>`) +
     row('Stat points', S.statPoints > 0 ? `<span class="gold">✨ ${S.statPoints} unspent — scroll up to allocate</span>` : '0') +
     row('Sync streak', `🔥 ${streakDays()} day(s) · +${Math.round((streakMult() - 1) * 100)}% earnings`) +
@@ -3878,7 +3899,8 @@ function renderTavern() {
   if (!ruinsUnlocked && questZoneTab === 2) questZoneTab = 0;
 
   const bonusIdx = dailyBonusIdx();
-  const rows = [];
+  const buckets = { story: [], rep: [], side: [] };
+  const bucketOf = q => q.qType === 'story' ? 'story' : (q.qType === 'repeatable' ? 'rep' : 'side');
   QUESTS.forEach((q, i) => {
     const qZone = q.zone || 1;
     if (questZoneTab === 0 && qZone !== 1) return;
@@ -3887,7 +3909,7 @@ function renderTavern() {
     const cleared = i < S.questsCleared;
     const available = i <= S.questsCleared;
     if (!cleared && rumorLocked(i)) {                        // lore-locked: heard of at the Inn
-      rows.push(`<tr><td>❓ <span class="dim">[${q.type.toUpperCase()}]</span> <b>A hunt not yet known</b><br>
+      buckets[bucketOf(q)].push(`<tr><td>❓ <span class="dim">[${q.type.toUpperCase()}]</span> <b>A hunt not yet known</b><br>
         <span class="dim" style="font-style:italic">“Someone in the Inn\'s common room knows more of this…”</span></td>
         <td class="r"><button disabled>❓ Rumor</button></td></tr>`);
       return;
@@ -3897,7 +3919,7 @@ function renderTavern() {
     const isDoneOnce = available && questDoneOnce(q);
     let btn;
     if (!available) btn = `<button disabled>🔒 Locked</button>`;
-    else if (isDoneOnce && q.qType !== 'repeatable' && q.qType !== 'story') btn = `<button disabled>✔ Completed</button>`;
+    else if (isDoneOnce && q.qType !== 'repeatable') btn = `<button disabled>✔ Completed</button>`;
     else if (S.wounded) btn = `<button disabled>🩸 Wounded</button>`;
     else if (budget <= 0) btn = `<button disabled>😴 Spent</button>`;
     else btn = `<button onclick="startPrep(${i})">${cleared ? '↻ Repeat' : '⚔️ Take'}</button>`;
@@ -3913,13 +3935,17 @@ function renderTavern() {
       sidequest:  '<span style="background:#2a1a3a;color:#c4a0e8;font-size:10px;padding:1px 5px;border-radius:2px;margin-left:4px">SIDE</span>',
     }[q.qType || 'repeatable'] || '';
     const loreBtn = q.lore ? `<button class="dim" style="font-size:11px;padding:1px 6px;margin-left:6px" onclick="showQuestLore(${i})">📜 lore</button>` : '';
-    rows.push(`<tr><td>${cleared ? '✔ ' : ''}${typeTag} ${q.name}${badge}${loreBtn}
+    buckets[bucketOf(q)].push(`<tr${q.qType === 'story' ? ' style="background:rgba(201,162,39,.06)"' : ''}><td>${cleared ? '✔ ' : ''}${typeTag} ${q.name}${badge}${loreBtn}
       ${q.giver ? `<br><span class="dim" style="font-size:12px">— ${q.giver}</span>` : ''}
       ${q.desc ? `<br><span class="dim" style="font-size:12px;font-style:italic">${q.desc}</span>` : (available && q.flavor ? `<br><span class="dim" style="font-style:italic">"${q.flavor}"</span>` : '')}
       <br><span class="dim">${star}${q.monster.emoji} ${q.monster.name} · HP ${q.monster.hp} · ATK ${q.monster.atk}${traits ? ' · ' + traits : ''} · ⚡${questEnergy(q)}</span></td>
       <td class="r">${btn}</td></tr>`);
   });
-  $('quest-rows').innerHTML = rows.join('');
+  const sect = (label, arr) => arr.length ? `<tr><td colspan="2" class="gold" style="border-bottom:1px solid #3a2f1c">${label}</td></tr>` + arr.join('') : '';
+  $('quest-rows').innerHTML =
+    sect('📖 THE STORY OF THE REALM', buckets.story) +
+    sect('⚔️ HUNTS & CONTRACTS <span class="dim" style="font-weight:normal">— repeatable</span>', buckets.rep) +
+    sect('🗺️ SIDE QUESTS <span class="dim" style="font-weight:normal">— once each</span>', buckets.side);
 }
 function showQuestLore(i) {
   const q = QUESTS[i];
@@ -4200,6 +4226,10 @@ function actGuard() {
   monsterSoon();
 }
 
+/* crit: 5% base, +0.5%/DEX, Archers +5%; crits deal 1.5x */
+function critChance() {
+  return 0.05 + ((S.stats && S.stats.dex) || 0) * 0.005 + (S.heroClass === 'Archer' ? 0.05 : 0);
+}
 function actAttack() {
   if (!B || B.over || B.busy) return;
   if (venomTick()) return;
@@ -4209,9 +4239,11 @@ function actAttack() {
   // wear equipped weapon
   if (S.equipped.weapon && S.equipped.weapon !== 'rusty') wearItem(S.equipped.weapon);
   if (m.armored) d = Math.round(d * 0.75);
+  const crit = Math.random() < critChance();
+  if (crit) d = Math.round(d * 1.5);
   B.mhp = Math.max(0, B.mhp - d);
-  sfx('hit');
-  blog(`You strike for ${d}!${m.armored ? ' (armor absorbs some)' : ''}`);
+  sfx(crit ? 'ability' : 'hit');
+  blog(crit ? `💥 CRITICAL! You strike for ${d}!` : `You strike for ${d}!${m.armored ? ' (armor absorbs some)' : ''}`);
   track('combat_attack', { dmg: d });
   updateBars();
   if (B.mhp <= 0) { finishTB(true, false); return; }
@@ -4408,6 +4440,32 @@ function chooseClass(id) {
 }
 
 /* ---------------- Save management ---------------- */
+function renderSettings() {
+  const tog = (label, on, fn) =>
+    `<tr><td>${label}</td><td class="r"><button onclick="${fn}();renderSettings()">${on ? '🔔 On' : '🔕 Off'}</button></td></tr>`;
+  $('settings-rows').innerHTML =
+    tog('🔊 Sound effects', S.sound !== false, 'toggleSound') +
+    tog('🎵 Music', S.music !== false, 'toggleMusic');
+  $('settings-acct').textContent = currentEmail
+    ? `Signed in as ${currentEmail}` + (cloudToken() ? ' · ☁️ cloud saves active' : ' · offline (log in with connection for cloud saves)')
+    : 'Playing offline — no account.';
+  $('settings-ver').textContent = 'Gradus ' + VERSION;
+}
+function importSave(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data.name) throw new Error('bad');
+      S = migrate(data); save();
+      toast('Save imported. Welcome back, ' + S.name + '.');
+      showScreen('town');
+    } catch(e) { toast('Invalid save file.'); }
+  };
+  reader.readAsText(file);
+}
 function exportSave() {
   const blob = new Blob([JSON.stringify(S, null, 2)], { type:'application/json' });
   const a = document.createElement('a');
