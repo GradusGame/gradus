@@ -129,6 +129,53 @@ export default {
       return json(data);
     }
 
+    // ── Admin analytics dashboard (GET /admin/analytics) ─────────────────────
+    if (url.pathname === '/admin/analytics' && req.method === 'GET') {
+      // List all event keys
+      const evtList = await env.KV.list({ prefix: 'evts:' });
+      const userList = await env.KV.list({ prefix: 'user:' });
+      const saveList = await env.KV.list({ prefix: 'save:' });
+
+      const summary = {
+        registered_users: userList.keys.length,
+        users_with_saves: saveList.keys.length,
+        users_with_events: evtList.keys.length,
+        users: []
+      };
+
+      // Aggregate events per user
+      const eventCounts = { screen: {}, combat_attack: 0, combat_win: 0,
+        purchase: 0, level_up: 0, sync: 0, js_error: 0 };
+      let totalEvents = 0;
+
+      for (const k of evtList.keys) {
+        const uid = k.name.replace('evts:', '');
+        const raw = await env.KV.get(k.name);
+        const events = JSON.parse(raw || '[]');
+        totalEvents += events.length;
+
+        const userSummary = { uid, event_count: events.length, events_by_type: {} };
+        let maxLevel = 0;
+        let lastSeen = null;
+
+        for (const e of events) {
+          userSummary.events_by_type[e.event] = (userSummary.events_by_type[e.event] || 0) + 1;
+          if (e.event === 'screen') eventCounts.screen[e.name] = (eventCounts.screen[e.name] || 0) + 1;
+          else if (eventCounts[e.event] !== undefined) eventCounts[e.event]++;
+          if (e.lv > maxLevel) maxLevel = e.lv;
+          if (!lastSeen || e.ts > lastSeen) lastSeen = e.ts;
+        }
+        userSummary.max_level_seen = maxLevel;
+        userSummary.last_seen = lastSeen ? new Date(lastSeen).toISOString() : null;
+        summary.users.push(userSummary);
+      }
+
+      summary.total_events = totalEvents;
+      summary.aggregate = eventCounts;
+      summary.generated_at = new Date().toISOString();
+      return json(summary);
+    }
+
     return new Response('Gradus worker — alive.', { headers: CORS });
   },
 };
