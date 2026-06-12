@@ -210,7 +210,7 @@ input:focus {
   }
   #battle-scene .vs { color: var(--dim); align-self: center; font-size: 18px; }
   /* ---------- clickable town map ---------- */
-  #town-map { position: relative; border: 3px double var(--border); border-radius: 4px; overflow: hidden; }
+  #town-map { position: relative; border: 3px double var(--border); border-radius: 4px; overflow: hidden; max-width: 520px; margin: 0 auto; }
   #town-map img { width: 100%; display: block; }
   .hot { position: absolute; cursor: pointer; border: 2px solid transparent; border-radius: 8px; }
   .hot span {
@@ -1658,17 +1658,17 @@ function innFolkToday() {
 
 /* ─── Town NPCs: flavor dialog hotspots ─── */
 const TOWN_NPCS = [
-  { l:35, t:72, label:'👴 Elder Croft', lines:[
+  { l:46, t:25, label:'👴 Elder Croft', lines:[
     '"Walk ten thousand steps today. The road doesn\'t care about excuses."',
     '"In forty years I\'ve seen three trolls come down from the treeline. No wanderer came back looking the same."',
     '"Bank your Gradus before you fight anything with a name. The vault remembers you. The grave doesn\'t."',
   ]},
-  { l:50, t:80, label:'🧑 Tobias\' Boy', lines:[
+  { l:33, t:59, label:'🧑 Tobias\' Boy', lines:[
     '"Pa says the mill\'s running again! Proper flour at last."',
     '"I counted forty wolves from the roof last night. Pa says I can\'t count. I say Pa can\'t sleep."',
     '"The blacksmith lets me pump the bellows sometimes. It\'s very hot. I love it."',
   ]},
-  { l:75, t:75, label:'🛒 Peddler', lines:[
+  { l:35, t:79, label:'🛒 Peddler', lines:[
     '"Buy something or move along. I\'ve got a quota."',
     '"Elswyth\'s prices went up again. Everything goes up. My cart wheel went up a ditch last week."',
     '"Three wanderers came through this morning. None of them came back this afternoon."',
@@ -2232,20 +2232,21 @@ function renderHUD() {
    Drop the painted town image into the game folder as `town.png` and the
    map takes over; without it, the classic menu shows. Hotspot positions
    are percentages of the 1280×720 art. */
+/* Hotspots for the portrait town map (720×1280); l/t/w/h are % of the image */
 const TOWN_HOTSPOTS = [
-  { l:4,    t:3.5, w:18,   h:29, label:'🏦 Bank',            act:() => showScreen('bank') },
-  { l:26.5, t:3.5, w:20,   h:28, label:'🍺 Tavern',          act:() => showScreen('tavern') },
-  { l:33,   t:13,  w:28,   h:45, label:'📜 The Keep — Realm Sync', act:() => showScreen('sync') },
-  { l:54.5, t:2,   w:16.5, h:24, label:'🛡️ Armorer',         act:() => openShop('armorer') },
-  { l:71.5, t:16,  w:14.5, h:21, label:'⚒️ Blacksmith',      act:() => openShop('blacksmith') },
-  { l:85.5, t:7.5, w:13,   h:52, label:'🧪 Apothecary',      act:() => openShop('apothecary') },
-  { l:68,   t:53,  w:16,   h:26, label:'🛏️ Inn',             act:() => showScreen('inn') },
-  { l:84.5, t:62,  w:15.5, h:36, label:'🏹 Woodsmith',       act:() => openShop('woodsmith') },
-  { l:10,   t:37,  w:23,   h:56, label:'🧺 The Commons',     act:() => showScreen('commons') },
-  { l:42.5, t:64,  w:14.5, h:34, label:'⛪ Chapel',          act:() => showScreen('chapel') },
-  { l:0,    t:53,  w:9.5,  h:40, label:'📚 Library',         act:() => showScreen('library') },
-  { l:24,   t:90.5,w:17,   h:9,  label:'🌾 Hunting Grounds', act:() => showScreen('hunt') },
-  { l:58,   t:90.5,w:16,   h:9,  label:'🎣 Lake Path',       act:() => showScreen('lake') },
+  { l:25,   t:2,   w:36,   h:13.5, label:'📜 The Keep — Realm Sync', act:() => showScreen('sync') },
+  { l:3,    t:13,  w:30,   h:16,   label:'🏦 Bank',            act:() => showScreen('bank') },
+  { l:67,   t:12.5,w:30,   h:15.5, label:'📚 Library',         act:() => showScreen('library') },
+  { l:3,    t:31,  w:31,   h:13,   label:'🍺 Tavern',          act:() => showScreen('tavern') },
+  { l:38.5, t:30.5,w:21,   h:13,   label:'⛪ Chapel',          act:() => showScreen('chapel') },
+  { l:63,   t:31,  w:33,   h:12.5, label:'🛏️ Inn',             act:() => showScreen('inn') },
+  { l:3,    t:46.5,w:28,   h:11.5, label:'⚒️ Blacksmith',      act:() => openShop('blacksmith') },
+  { l:33.5, t:46.5,w:21,   h:11.5, label:'🛡️ Armorer',         act:() => openShop('armorer') },
+  { l:56,   t:46,  w:23,   h:12,   label:'🏹 Woodsmith',       act:() => openShop('woodsmith') },
+  { l:79,   t:46,  w:19,   h:20,   label:'🧪 Apothecary',      act:() => openShop('apothecary') },
+  { l:1.5,  t:63.5,w:38,   h:15.5, label:'🧺 The Commons',     act:() => showScreen('commons') },
+  { l:42,   t:63.5,w:34,   h:13,   label:'🌾 Hunting Grounds', act:() => showScreen('hunt') },
+  { l:60,   t:84,  w:38,   h:15.5, label:'🎣 The Lake',        act:() => showScreen('lake') },
   // Town NPCs (flavor)
   ...TOWN_NPCS.map(n => ({ l:n.l, t:n.t, w:7, h:10, label:n.label, act:() => showTownNPC(n) })),
 ];
