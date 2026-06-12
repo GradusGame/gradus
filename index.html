@@ -304,8 +304,11 @@ input:focus {
   font-size: 20px;
   padding: 10px 4px 6px;
   cursor: pointer;
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
   transition: border-color .15s, background .15s;
+  height: 80px;
+  overflow: hidden;
+  position: relative;
 }
 .town-btn span {
   font-size: 11px;
@@ -316,6 +319,39 @@ input:focus {
 .town-btn:active, .town-btn:hover {
   border-color: var(--gold);
   background: #1a1610;
+}
+
+/* ── Expedition status banner ── */
+#exped-status-banner {
+  font-size: 11px; color: var(--dim); text-align: center;
+  padding: 5px 8px; margin-top: -2px; margin-bottom: 6px;
+  border: 1px solid var(--border); border-top: none;
+  border-radius: 0 0 6px 6px; background: #0e0c09;
+  display: none;
+}
+#exped-status-banner.active { display: block; }
+
+/* ── Dungeon screens ── */
+.dung-card {
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 12px 14px; margin-bottom: 10px;
+  background: #0e0c09; cursor: pointer;
+  transition: border-color .15s;
+}
+.dung-card:hover { border-color: var(--gold); }
+.dung-card.locked { opacity: 0.45; cursor: default; }
+.dung-card.locked:hover { border-color: var(--border); }
+.dung-floor-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+.dung-floor-row:last-child { border-bottom: none; }
+.dung-hp-bar {
+  height: 10px; background: #0a0806; border: 1px solid var(--border);
+  border-radius: 3px; overflow: hidden; margin: 6px 0;
+}
+.dung-hp-bar-fill {
+  height: 100%; background: var(--green); transition: width .3s;
 }
 </style>
 </head>
@@ -481,6 +517,7 @@ input:focus {
     <h2>🏰 Oppidum</h2>
     <div id="town-map" style="display:none"><img id="town-img" alt="Oppidum"></div>
     <div id="town-menu">
+        <div id="town-hint" style="display:none;background:#1a1208;border:1px solid var(--gold);border-radius:4px;padding:8px 12px;margin-bottom:10px;font-size:12px;color:var(--text)"></div>
         <!-- ⚔️ Adventure -->
         <p class="town-section-label">⚔️ Adventure</p>
         <div class="town-grid">
@@ -490,7 +527,9 @@ input:focus {
           <button class="town-btn" id="town-exped-btn" onclick="showScreen('expedition')">⛺<span>Expedition</span></button>
           <button class="town-btn" onclick="showScreen('lake')">🎣<span>Lake</span></button>
           <button class="town-btn" onclick="showScreen('inn')">🛏️<span>Inn</span></button>
+          <button class="town-btn" id="town-dun-btn" onclick="showScreen('dsel')">⛏️<span>Dungeons</span></button>
         </div>
+    <div id="exped-status-banner"></div>
         <!-- 🏪 Shops -->
         <p class="town-section-label" style="margin-top:14px">🏪 Shops</p>
         <div class="town-grid">
@@ -741,6 +780,30 @@ input:focus {
     <p class="dim" style="font-style:italic">"The wild pays in blood and hide. No contracts out here." — Joss</p>
     <table class="mt"><tbody id="hunt-rows"></tbody></table>
     <button class="mt" onclick="showScreen('town')">← Back to town</button>
+  </div>
+</div>
+
+<!-- ================= DUNGEON SELECT ================= -->
+<div id="screen-dsel" class="screen">
+  <div class="panel">
+    <h2>⚔️ Dungeons</h2>
+    <p class="dim" style="font-style:italic">"Most who enter don't come out. The ones who do don't come back the same." — Aldric</p>
+    <div id="dsel-list" class="mt"></div>
+    <button class="mt" onclick="showScreen('town')">← Back to town</button>
+  </div>
+</div>
+
+<!-- ================= DUNGEON REST (between floors) ================= -->
+<div id="screen-drest" class="screen">
+  <div class="panel">
+    <h2 id="drest-title">⚔️ Floor Complete</h2>
+    <p class="dim mt" id="drest-floor-label"></p>
+    <div class="dung-hp-bar mt" style="width:100%">
+      <div class="dung-hp-bar-fill" id="drest-hp-bar" style="width:100%"></div>
+    </div>
+    <p id="drest-hp-label" class="dim" style="font-size:12px;text-align:center"></p>
+    <p class="mt dim" id="drest-next-label" style="font-style:italic"></p>
+    <div class="mt" id="drest-actions"></div>
   </div>
 </div>
 
@@ -1287,6 +1350,80 @@ const BACKPACKS = [
   { id:'bp3', name:'Satchel Upgrade III',slots:5,  cost:70000 },
 ];
 
+/* ════════════════════════════════════════════════════════════
+   DUNGEONS  — sequential multi-floor combat (tower mode)
+   Each dungeon has 3 floors: 2 normal mobs + 1 boss floor.
+   HP carries over between floors. Retreat available between floors.
+   ════════════════════════════════════════════════════════════ */
+const DUNGEONS = [
+  { id:'rat_warrens',   name:'Rat Warrens',       emoji:'🕳️',  minLevel:5,  zone:1,
+    desc:'A network of tunnels beneath Oppidum, teeming with giant rats and festering plague.',
+    tip:'Bring Minor Potions. The Rat King regenerates HP.',
+    floors:[
+      { name:'Entrance',   monster:{ name:'Giant Rat Swarm',  emoji:'🐀', hp:45,  atk:6,  swift:true } },
+      { name:'Deep Tunnel',monster:{ name:'Plague Rat',       emoji:'🐀', hp:60,  atk:8,  venom:1   } },
+      { name:'The Nest',   monster:{ name:'Rat King',         emoji:'👑', hp:110, atk:12, regen:4   }, boss:true },
+    ],
+    xp:220, g:3500,
+    loot:{ id:'rat_king_fang', name:"Rat King's Fang", emoji:'🗡️', atk:12, grade:'E', slot:'weapon', g:2200 }
+  },
+  { id:'bandit_den',    name:"Bandit's Den",       emoji:'⚔️',  minLevel:15, zone:1,
+    desc:'A fortified hill-fort where outlaws have levied tolls on travelers for years.',
+    tip:'The Bandit Lord goes into a frenzy at low HP. Use Guard to survive the burst.',
+    floors:[
+      { name:'Outer Watch',  monster:{ name:'Bandit Grunt',    emoji:'🥷', hp:65,  atk:11 } },
+      { name:'Barracks',     monster:{ name:'Bandit Veteran',  emoji:'⚔️', hp:85,  atk:15, armored:true } },
+      { name:'Vault Room',   monster:{ name:'Bandit Lord',     emoji:'👑', hp:160, atk:20, frenzy:true  }, boss:true },
+    ],
+    xp:550, g:8500,
+    loot:{ id:'bandit_lord_blade', name:"Bandit Lord's Blade", emoji:'⚔️', atk:24, grade:'D', slot:'weapon', g:6000 }
+  },
+  { id:'verdant_depths',name:'Verdant Depths',     emoji:'🌲',  minLevel:25, zone:2,
+    desc:'The heart of the Greenwood, sealed since the First Age. Ancient spirits do not welcome intruders.',
+    tip:'The Elder Treant regenerates rapidly. Use Power Strike to burn it down fast.',
+    floors:[
+      { name:'Tangled Roots', monster:{ name:'Root Sprite',  emoji:'🌿', hp:95,  atk:16, venom:2 } },
+      { name:'Mossy Hall',    monster:{ name:'Stone Golem',  emoji:'🪨', hp:120, atk:19, armored:true } },
+      { name:'Ancient Grove', monster:{ name:'Elder Treant', emoji:'🌳', hp:240, atk:26, regen:10 }, boss:true },
+    ],
+    xp:1100, g:18000,
+    loot:{ id:'elder_bark_shield', name:'Elder Bark Shield', emoji:'🛡️', def:16, grade:'C', slot:'shield', g:13000 }
+  },
+  { id:'ruined_fortress',name:'Ruined Fortress',   emoji:'🏚️', minLevel:35, zone:2,
+    desc:'A crumbling keep staffed by undead soldiers, still standing watch centuries after their deaths.',
+    tip:'Armored enemies everywhere. Stack STR upgrades or rely on Power Strike.',
+    floors:[
+      { name:'Gatehouse',   monster:{ name:'Skeleton Guard',  emoji:'💀', hp:110, atk:21, armored:true } },
+      { name:'Great Hall',  monster:{ name:'Wight Knight',    emoji:'⚔️', hp:140, atk:26, frenzy:true  } },
+      { name:'Throne Room', monster:{ name:'Undead Warlord',  emoji:'👑', hp:300, atk:34, armored:true }, boss:true },
+    ],
+    xp:2200, g:35000,
+    loot:{ id:'warlord_helm', name:"Warlord's Helm", emoji:'⛑️', def:14, grade:'C', slot:'helm', g:22000 }
+  },
+  { id:'catacombs',     name:'The Catacombs',      emoji:'⛏️', minLevel:45, zone:3,
+    desc:'Beneath the ruins, an endless maze of bone and shadow stretches into the earth.',
+    tip:'The Lich Sorcerer poisons AND regenerates. Bring Health Potions.',
+    floors:[
+      { name:'First Tier',  monster:{ name:'Bone Crawler',   emoji:'🦴', hp:130, atk:28, venom:3 } },
+      { name:'The Depths',  monster:{ name:'Shadow Wraith',  emoji:'👻', hp:155, atk:33, swift:true } },
+      { name:'The Pit',     monster:{ name:'Lich Sorcerer',  emoji:'💀', hp:360, atk:44, regen:12, venom:2 }, boss:true },
+    ],
+    xp:4200, g:65000,
+    loot:{ id:'lich_staff', name:"Lich's Staff", emoji:'🪄', atk:50, grade:'B', slot:'weapon', g:50000 }
+  },
+  { id:'necro_tower',   name:"Necromancer's Tower",emoji:'🗼', minLevel:55, zone:3,
+    desc:'A dark spire where the Arch-Necromancer raises the dead to wage endless war on the living.',
+    tip:'Final boss has every status effect. Max potions, use Guard before each of his turns.',
+    floors:[
+      { name:'First Floor',      monster:{ name:'Risen Soldier',     emoji:'⚔️', hp:160, atk:38, armored:true } },
+      { name:'Ritual Chamber',   monster:{ name:'Death Knight',       emoji:'🗡️', hp:195, atk:46, frenzy:true  } },
+      { name:'The Summit',       monster:{ name:'Arch-Necromancer',   emoji:'🧙', hp:480, atk:58, venom:4, regen:14 }, boss:true },
+    ],
+    xp:8500, g:120000,
+    loot:{ id:'necro_robe', name:"Necromancer's Robe", emoji:'🧥', def:22, grade:'A', slot:'armor', g:90000 }
+  },
+];
+
 /* Quests — Witcher-style contracts, L2-style grind, one Elden-style legend.
    Monster traits: swift (strikes first) · armored (your damage −25%) ·
    venom N (N dmg at the start of your turns once bitten) · frenzy (atk +50%
@@ -1630,6 +1767,7 @@ function saveKey(email) { return SAVE_KEY_PREFIX + (email || 'offline'); }
 // Backward compat: migrate old single-save to 'offline' account slot
 const LEGACY_KEY = 'gradus-save-v1';
 let S = null;
+let D = null; // active dungeon run: { dungeon, floor, hhp, maxHp }
 
 function questDoneOnce(q) {
   // story quests: done if behind questsCleared AND it's a story quest
@@ -1733,6 +1871,7 @@ function migrate(s) {
   if (!s.stats) s.stats = { str:0, dex:0, int:0, vit:0, end:0 };
   if (s.statPoints === undefined) s.statPoints = 0;
   if (!s.doneOnce) s.doneOnce = [];
+  if (!s.clearedDungeons) s.clearedDungeons = [];
   if (!s.hair) s.hair = 'brown';
   // bag
   if (!s.bag) s.bag = [];
@@ -1995,6 +2134,7 @@ function showScreen(name) {
   if (name === 'hunt') renderHunt();
   if (name === 'craft') renderCraft();
   if (name === 'expedition') renderExpedition();
+  if (name === 'dsel') renderDungeonSelect();
   if (name === 'death') renderDeathScreen();
   renderHUD();
   track('screen', { name });
@@ -2105,21 +2245,179 @@ function initTownMap() {
   };
   img.src = 'town.png';
 }
+
+/* ════════════════ DUNGEON SYSTEM ════════════════ */
+function renderDungeonSelect() {
+  const rows = DUNGEONS.map(dun => {
+    const unlocked = S.level >= dun.minLevel;
+    const cleared  = (S.clearedDungeons || []).includes(dun.id);
+    const lockMsg  = unlocked ? '' : `<span class="dim" style="font-size:11px">🔒 Requires level ${dun.minLevel}</span>`;
+    const clearedBadge = cleared ? '<span style="color:var(--gold);font-size:11px;margin-left:6px">✓ Cleared</span>' : '';
+    const floorPips = dun.floors.map((f,i) =>
+      `<span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:${f.boss?'#5a1a1a':'#1a2a1a'};border:1px solid var(--border);margin-right:3px;font-size:9px;line-height:14px;text-align:center">${f.boss?'☠':'⚔'}</span>`
+    ).join('');
+    return `<div class="dung-card ${unlocked?'':'locked'}" ${unlocked?`onclick="enterDungeon('${dun.id}')"`:''}>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:18px">${dun.emoji} <b>${dun.name}</b>${clearedBadge}</span>
+        ${lockMsg || `<span class="dim" style="font-size:11px">Lv ${dun.minLevel}+</span>`}
+      </div>
+      <p class="dim mt" style="font-size:12px">${dun.desc}</p>
+      <p class="dim" style="font-size:11px;margin-top:6px">💡 ${dun.tip}</p>
+      <div style="margin-top:8px">${floorPips}</div>
+      <div style="margin-top:6px;font-size:11px;color:var(--dim)">Reward: 🪙${fmt(dun.g)} · ✨${fmt(dun.xp)} XP · ${dun.loot.emoji} ${dun.loot.name}</div>
+    </div>`;
+  }).join('');
+  $('dsel-list').innerHTML = rows;
+}
+
+function enterDungeon(id) {
+  if (S.wounded) { toast('You are wounded — rest at the Inn first.'); return; }
+  const dun = DUNGEONS.find(d => d.id === id);
+  if (!dun || S.level < dun.minLevel) return;
+  D = { dungeon: dun, floor: 0, hhp: heroMaxHP(), maxHp: heroMaxHP() };
+  sfx('quest');
+  launchDungeonFloor();
+}
+
+function launchDungeonFloor() {
+  const floor = D.dungeon.floors[D.floor];
+  // Build a synthetic quest object for the battle system
+  const syntheticQ = {
+    name: D.dungeon.name + ' — ' + floor.name,
+    monster: { ...floor.monster },
+    xp: 0, g: 0,  // rewards handled by dungeonFloorWin
+    _dungeon: true
+  };
+  // Override starting HP to carry-over HP
+  launchBattleWithHP(syntheticQ, false, D.hhp);
+}
+
+// Modified battle launcher that accepts a starting HP override
+function launchBattleWithHP(q, elixir, startHp) {
+  const m = q.monster;
+  B = { q, maxH: heroMaxHP(), hhp: startHp || heroMaxHP(), maxM: m.hp, mhp: m.hp,
+        elixir: !!elixir, venomed: false, over: false, busy: false,
+        cd: 0, shield: false, guardNext: false, psCD: 0 };
+  _monName = m.name;
+  _xpSoFar = 0;
+  showScreen('battle');
+  blog(`<b>Floor ${D.floor + 1}/${D.dungeon.floors.length} — ${D.dungeon.floors[D.floor].name}</b>`);
+  blog(`You face the <b>${m.name}</b> ${m.emoji}`);
+  renderBattle();
+  renderActions();
+  updateBars();
+}
+
+function dungeonFloorWin() {
+  D.hhp = B.hhp; // carry over HP
+  D.floor++;
+  if (D.floor >= D.dungeon.floors.length) {
+    dungeonComplete();
+  } else {
+    showDungeonRest();
+  }
+}
+
+function showDungeonRest() {
+  const nextFloor = D.dungeon.floors[D.floor];
+  $('drest-title').textContent = `✅ Floor ${D.floor} Cleared`;
+  $('drest-floor-label').textContent = `Next: Floor ${D.floor + 1} — ${nextFloor.name}`;
+  const hpPct = Math.round(D.hhp / D.maxHp * 100);
+  $('drest-hp-bar').style.width = hpPct + '%';
+  $('drest-hp-bar').style.background = hpPct > 50 ? 'var(--green)' : hpPct > 25 ? '#c4902c' : 'var(--red)';
+  $('drest-hp-label').textContent = `HP: ${D.hhp} / ${D.maxHp}`;
+  const nextMon = nextFloor.monster;
+  $('drest-next-label').textContent = `"${nextMon.name} ${nextMon.emoji} — ${nextFloor.boss ? '☠️ BOSS FLOOR' : 'Standard floor'}"`;
+  const minor  = S.potions['minor']  || 0;
+  const health = S.potions['health'] || 0;
+  $('drest-actions').innerHTML =
+    `<button class="btn-big btn-g" onclick="dungeonContinue()">⚔️ Advance to floor ${D.floor + 1}</button>` +
+    `<button class="mt" onclick="dungeonRetreat()">🏃 Retreat (keep your life)</button>` +
+    (minor  ? `<button class="mt" onclick="dungeonPotion('minor')"  >🧪 Use Minor Potion ×${minor} (+30 HP)</button>` : '') +
+    (health ? `<button class="mt" onclick="dungeonPotion('health')" >⚗️ Use Health Potion ×${health} (+80 HP)</button>` : '');
+  showScreen('drest');
+}
+
+function dungeonPotion(type) {
+  const heal = type === 'health' ? 80 : 30;
+  if (!(S.potions[type] > 0)) return;
+  S.potions[type]--;
+  D.hhp = Math.min(D.maxHp, D.hhp + heal);
+  save();
+  showDungeonRest(); // re-render
+  toast(`Used ${type} potion: +${heal} HP`);
+}
+
+function dungeonContinue() {
+  launchDungeonFloor();
+}
+
+function dungeonRetreat() {
+  const name = D.dungeon.name;
+  D = null;
+  toast(`You retreated from ${name}.`);
+  showScreen('town');
+}
+
+function dungeonComplete() {
+  const dun = D.dungeon;
+  S.gradus += dun.g;
+  gainXP(dun.xp);
+  // Award unique loot (once only)
+  if (!(S.clearedDungeons || []).includes(dun.id)) {
+    if (!S.clearedDungeons) S.clearedDungeons = [];
+    S.clearedDungeons.push(dun.id);
+    // Add loot to correct inventory slot
+    const loot = { ...dun.loot };
+    if (loot.slot === 'weapon') { if (!WEAPONS.find(w=>w.id===loot.id)) WEAPONS.push(loot); S.inventory.push(loot); }
+    else if (loot.slot === 'shield') { if (!SHIELDS.find(w=>w.id===loot.id)) SHIELDS.push(loot); S.inventory.push(loot); }
+    else if (loot.slot === 'helm')   { if (!HELMS.find(w=>w.id===loot.id)) HELMS.push(loot); S.inventory.push(loot); }
+    else if (loot.slot === 'armor')  { if (!ARMOR.find(w=>w.id===loot.id)) ARMOR.push(loot); S.inventory.push(loot); }
+    else S.inventory.push(loot);
+    toast(`🎁 First clear! Received: ${loot.emoji} ${loot.name}`);
+  }
+  sfx('victory');
+  save(); checkAch(); renderHUD();
+  D = null;
+  // Show result
+  $('battle-result').textContent = `🏆 DUNGEON CLEARED — ${dun.name}! +🪙${fmt(dun.g)} +✨${fmt(dun.xp)} XP`;
+  $('battle-done').style.display = 'block';
+  // Override the "done" button to go back to dungeon select
+  const doneBtn = document.querySelector('#battle-done button');
+  if (doneBtn) doneBtn.onclick = () => showScreen('dsel');
+}
+
 function renderTown() {
   $('stat-steps').textContent = fmt(S.lifetimeSteps);
   $('stat-cals').textContent = fmt(S.lifetimeCalories);
-  // Expedition return indicator on button
-  const eb = $('town-exped-btn');
-  if (eb && S.expedition) {
-    const ready = Date.now() >= S.expedition.returns;
-    eb.innerHTML = ready
-      ? '⛺ Expedition — <span style="color:var(--gold);font-weight:bold">✅ Returned! Collect rewards</span>'
-      : '⛺ Expedition — <span class="dim">away: ' + S.expedition.label + '</span>';
-  } else if (eb) {
-    eb.innerHTML = '⛺ Expedition — <span class="dim">passive income while away</span>';
+  // Expedition status banner (below Adventure grid)
+  const banner = $('exped-status-banner');
+  if (banner) {
+    if (S.expedition) {
+      const ready = Date.now() >= S.expedition.returns;
+      banner.className = 'active';
+      banner.innerHTML = ready
+        ? '⛺ Expedition — <b style="color:var(--gold)">✅ Returned! Collect rewards</b>'
+        : '⛺ Expedition — away: <span class="dim">' + S.expedition.label + '</span>';
+    } else {
+      banner.className = '';
+      banner.innerHTML = '';
+    }
   }
   // Daily reward: show once per calendar day
   checkDailyClaim();
+  // "Next step" hint for new players
+  const hint = $('town-hint');
+  if (hint) {
+    let msg = '';
+    if (!S.backend) msg = '📡 Set up <b>Realm Sync</b> to earn Gradus from your steps.';
+    else if (S.level < 2) msg = '🍺 Visit the <b>Tavern</b> to take your first quest.';
+    else if (S.statPoints > 0) msg = '⬆️ You have <b>' + S.statPoints + ' unspent stat point' + (S.statPoints>1?'s':'') + '</b> — visit <b>Me → Stats</b>.';
+    else if (S.expedition && Date.now() >= S.expedition.returns) msg = '⛺ Your <b>Expedition returned</b> — collect rewards!';
+    else if (S.level >= 5 && !(S.clearedDungeons||[]).length) msg = '⚔️ <b>Dungeons</b> are now available — try the Rat Warrens!';
+    hint.innerHTML = msg;
+    hint.style.display = msg ? 'block' : 'none';
+  }
 }
 
 /* ---------------- Daily Login Reward ---------------- */
@@ -3773,6 +4071,8 @@ function finishTB(win, fled) {
   const q = B.q;
   let msg;
   if (win) {
+    // ── Dungeon floor win ──
+    if (B.q._dungeon) { dungeonFloorWin(); return; }
     let g = 0, xp, isBonus = false, first = false;
     if (q.grind) {                               // free hunt: flat reward, no quest bookkeeping
       g = q.g; xp = q.xp;
@@ -3848,6 +4148,7 @@ function finishTB(win, fled) {
     sfx('victory');
   } else if (fled) {
     msg = '🏃 You escape with your life — the quest attempt is spent.';
+    if (B.q._dungeon) { D = null; }
   } else {
     // Death: looters take every Gradus you carry; you wake wounded.
     const lost = S.gradus;
