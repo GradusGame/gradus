@@ -14,6 +14,9 @@ const vm   = require('vm');
 
 // ─── Config ───────────────────────────────────────────────────────────────
 const GAME_FILE    = path.join(__dirname, 'index.html');
+// The game keys syncLog by LOCAL date (localDateStr); building fixtures with
+// toISOString() (UTC) flakes by one day for part of each day. Match the game.
+const localKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const REPORT_FILE  = path.join(__dirname, 'test-report.md');
 const LOOP_ITERS   = parseInt(process.argv.find(a => a.match(/^\d+$/)) || '100');
 
@@ -236,7 +239,7 @@ test('creditDay', 'streak mult applied (10-day streak → ×1.5)', () => {
   const now = new Date();
   for (let i = 1; i <= 10; i++) {
     const d = new Date(now); d.setDate(d.getDate() - i);
-    syncLog[d.toISOString().slice(0,10)] = { steps: 7000, calories: 0 };
+    syncLog[localKey(d)] = { steps: 7000, calories: 0 };
   }
   const st = freshState({ syncLog });
   const g  = loadGame(st); g.setS(st);
@@ -253,7 +256,7 @@ function runStreak(syncLogEntries) {
   const now = new Date();
   syncLogEntries.forEach(([daysAgo, steps]) => {
     const d = new Date(now); d.setDate(d.getDate() - daysAgo);
-    syncLog[d.toISOString().slice(0,10)] = { steps, calories: 0 };
+    syncLog[localKey(d)] = { steps, calories: 0 };
   });
   const st = freshState({ syncLog });
   const g  = loadGame(st); g.setS(st);
@@ -280,7 +283,7 @@ function runMult(days7K) {
   const now = new Date();
   for (let i = 0; i < days7K; i++) {
     const d = new Date(now); d.setDate(d.getDate() - i);
-    syncLog[d.toISOString().slice(0,10)] = { steps: 7000, calories: 0 };
+    syncLog[localKey(d)] = { steps: 7000, calories: 0 };
   }
   const st = freshState({ syncLog });
   const g  = loadGame(st); g.setS(st);

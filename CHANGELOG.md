@@ -1,5 +1,14 @@
 # Gradus — Changelog
 
+## Alpha V1.30 — 2026-06-12
+Life skills cost real sweat; fishing earns it back.
+- **Life-skill energy costs raised**: Fishing 20→60, Woodcutting 20→50, Gathering 15→40, Cooking 10→25, Thieving 25→70 — skills are now meaningful Ries sinks against the 5,000 cap
+- **🎣 Fishing rework**: requires a **Fishing Rod** crafted at the bench (3 🪵 + ⚡30 + 100G); better catch rate (65%+), multi-fish hauls (double and rare triple catches), fishing XP 25→40; rods snap ~6% of casts, so keep timber for spares
+- **Meals matter more**: eating restores 500 + 15/cooking-level Ries (was 300+10)
+- The Lake shows rod status and points rodless anglers to the bench — crafting is now the gateway to the realm's best energy economy
+
+## Alpha V1.29 — 2026-06-12
+
 ## Alpha V1.29 — 2026-06-12
 Title polish.
 - Realm / Hall of Wanderers removed from the title screen completely (leaderboard remains in the Library in-game)

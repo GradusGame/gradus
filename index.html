@@ -203,12 +203,26 @@ input:focus {
   #inv-detail { min-height: 44px; }
   /* ---------- battle scene ---------- */
   #battle-scene {
-    display: flex; justify-content: space-between; align-items: flex-end;
+    display: flex; justify-content: space-between; align-items: flex-end; position: relative;
     background: linear-gradient(#070503 0%, #110c07 60%, #1d150c 85%, #261c10 100%);
     border: 2px solid var(--panel-dark); border-radius: 4px;
     padding: 14px 30px 8px; margin-top: 8px;
   }
   #battle-scene .vs { color: var(--dim); align-self: center; font-size: 18px; }
+  /* ---- concept-art icons (Grok) ---- */
+  .ic-coin { height: 1.05em; vertical-align: -0.18em; image-rendering: pixelated; }
+  .ic-item { height: 1.5em; vertical-align: middle; image-rendering: pixelated; }
+  .keep-hd { display: block; width: 100%; max-width: 340px; margin: 2px auto 6px; image-rendering: pixelated; filter: drop-shadow(0 3px 6px #000a); }
+  /* ---- mini battle FX ---- */
+  .b-spr { display: inline-block; will-change: transform, filter; }
+  .b-spr.lungeR { animation: b-lungeR .3s ease; }
+  .b-spr.lungeL { animation: b-lungeL .3s ease; }
+  .b-spr.hit    { animation: b-hit .34s ease; }
+  @keyframes b-lungeR { 0%,100%{transform:translateX(0)} 45%{transform:translateX(20px)} }
+  @keyframes b-lungeL { 0%,100%{transform:translateX(0)} 45%{transform:translateX(-20px)} }
+  @keyframes b-hit { 0%,100%{transform:translateX(0);filter:none} 12%{filter:brightness(2.4) sepia(1) saturate(6) hue-rotate(-25deg)} 25%{transform:translateX(-5px)} 45%{transform:translateX(5px)} 65%{transform:translateX(-3px)} 85%{transform:translateX(3px)} }
+  .dmg-num { position: absolute; font-weight: bold; font-size: 21px; pointer-events: none; text-shadow: 0 2px 3px #000, 0 0 6px #000; animation: b-dmg .9s ease-out forwards; z-index: 3; }
+  @keyframes b-dmg { 0%{opacity:0;transform:translateY(2px) scale(.6)} 18%{opacity:1;transform:translateY(-6px) scale(1.15)} 100%{opacity:0;transform:translateY(-46px) scale(1)} }
   /* ---------- clickable town map ---------- */
   #town-map { position: relative; border: 3px double var(--border); border-radius: 4px; overflow: hidden; max-width: 520px; margin: 0 auto; }
   #town-map img { width: 100%; display: block; }
@@ -360,6 +374,28 @@ input:focus {
 .dung-hp-bar-fill {
   height: 100%; background: var(--green); transition: width .3s;
 }
+/* ============ Guided tutorial ============ */
+#tut-spot {
+  position: fixed; border-radius: 8px; pointer-events: none; z-index: 9998;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,.72), 0 0 0 3px var(--gold), 0 0 18px 4px rgba(201,162,39,.6);
+  transition: all .25s ease; display: none;
+}
+#tut-dim {
+  position: fixed; inset: 0; background: rgba(0,0,0,.72); z-index: 9997; display: none;
+}
+#tut-bubble {
+  position: fixed; z-index: 9999; max-width: 320px; width: calc(100vw - 32px);
+  background: var(--panel); border: 2px solid var(--gold); border-radius: 8px;
+  padding: 14px 16px; box-shadow: 0 6px 30px rgba(0,0,0,.7); display: none;
+  font-family: 'Courier New', monospace;
+}
+#tut-bubble h3 { color: var(--gold); font-family: Georgia, serif; font-size: 16px; margin: 0 0 6px; }
+#tut-bubble p { font-size: 13px; line-height: 1.6; margin: 0 0 12px; color: var(--text); }
+#tut-bubble .tut-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+#tut-bubble .tut-skip { background: none; border: none; color: var(--dim); text-decoration: underline; font-size: 11px; padding: 4px; cursor: pointer; font-family: inherit; }
+#tut-bubble .tut-step { color: var(--dim); font-size: 11px; }
+#tut-bubble .tut-next { font-size: 13px; }
+.tut-pulse [data-tut] { }
 </style>
 </head>
 <body>
@@ -368,7 +404,7 @@ input:focus {
 <div id="hud">
   <div class="hud-row">
     <span class="hud-item"><span id="hud-hero-icon">🧍</span> <span id="hud-name"></span> <span class="dim">Lv.<span id="hud-level"></span> <span id="hud-class"></span></span> <span id="xpbar" title="XP to next level"><span id="xpfill"></span></span> <span id="hud-sp-badge" style="display:none;background:var(--gold);color:#1a1208;border-radius:3px;padding:1px 6px;font-size:11px;cursor:pointer;font-weight:bold" onclick="showScreen('stats')" title="Stat points available!"></span></span>
-    <span class="hud-item gold">🪙 <span id="hud-gradus"></span> Gradus</span>
+    <span class="hud-item gold"><img src="art/coin.png" class="ic-coin" alt="🪙"> <span id="hud-gradus"></span> Gradus</span>
     <span class="hud-item" title="Health">❤️<span class="minibar"><span id="hp-mini" style="background:var(--red)"></span></span> <span id="hud-hp"></span></span>
     <span class="hud-item riescol" title="Ries energy: fuels quests, hunts, crafting, the forge">⚡<span class="minibar"><span id="en-mini" style="background:var(--ries)"></span></span> <span id="hud-ries"></span></span>
     <span class="hud-item" style="color:#f8a030" title="Sync streak">🔥<span id="hud-streak">0</span>-day</span>
@@ -406,7 +442,7 @@ input:focus {
     <div id="ttab-about" style="display:none">
       <p style="text-align:left"><button class="link-btn" onclick="titleTab('enter')">← Back</button></p>
     <p class="dim mt" style="max-width:420px;margin:14px auto 0;font-style:italic;">"We should take wandering outdoor walks, so that the mind might be nourished and refreshed by the open air."<br><span style="font-style:normal">— Seneca</span></p>
-    <p class="mt" style="font-size:13px">🪙 Your steps are gold &nbsp;·&nbsp; ⚡ Your sweat is power &nbsp;·&nbsp; ⚔️ Your habit is a hero</p>
+    <p class="mt" style="font-size:13px"><img src="art/coin.png" class="ic-coin" alt="Gradus"> Your steps are gold &nbsp;·&nbsp; ⚡ Your sweat is power &nbsp;·&nbsp; ⚔️ Your habit is a hero</p>
     <!-- Pre-login FAQ/Lore -->
     <div class="mt" style="max-width:420px;margin:18px auto 0;text-align:left">
       <details style="border:1px solid var(--border);border-radius:4px;margin-bottom:8px;padding:0">
@@ -415,8 +451,8 @@ input:focus {
         </summary>
         <div style="padding:10px 14px 14px;font-size:13px;color:var(--text);line-height:1.7;border-top:1px solid var(--border)">
           <p><b>Gradus</b> is a medieval RPG powered by your real-world fitness.</p>
-          <p class="mt">Every step you walk becomes <b class="gold">🪙 Gradus</b> — the realm's coin. Every calorie burned becomes <b style="color:var(--ries)">⚡ Ries</b> — your energy for hunts and crafting.</p>
-          <p class="mt">Buy gear. Take quests. Fight monsters. Build your wanderer — one step at a time.</p>
+          <p class="mt">In the world of <b>Viatera</b>, the dawn voice that once blessed every life has turned cruel, and toil now only drains the faithful. You are the exception: a <b>vessel</b>, whose effort returns as power. Every step you walk becomes <b class="gold"><img src="art/coin.png" class="ic-coin" alt="Gradus"> Gradus</b> — the coin struck in the name of the one mortal who ever defied a god and was not broken. Every calorie burned becomes <b style="color:var(--ries)">⚡ Ries</b>, the breath of that same defiance.</p>
+          <p class="mt">Buy gear. Take quests. Fight monsters. Walk the Road. Build your wanderer — one step at a time.</p>
         </div>
       </details>
       <details style="border:1px solid var(--border);border-radius:4px;margin-bottom:8px;padding:0">
@@ -424,7 +460,7 @@ input:focus {
           <span>⚔️ How does it work?</span><span class="dim">▾</span>
         </summary>
         <div style="padding:10px 14px 14px;font-size:13px;color:var(--text);line-height:1.7;border-top:1px solid var(--border)">
-          <p>🪙 <b>1 step = 1 Gradus</b> · ⚡ <b>1 calorie = 1 Ries</b></p>
+          <p><img src="art/coin.png" class="ic-coin" alt="Gradus"> <b>1 step = 1 Gradus</b> · ⚡ <b>1 calorie = 1 Ries</b></p>
           <p class="mt">Go to <b>Realm Sync</b> each day and enter your steps and calories (or link your Apple Watch / Oura Ring / Garmin for automatic sync).</p>
           <p class="mt">Hit <b>7,000 steps</b> daily to earn a streak bonus. Walk more, earn more, go further.</p>
         </div>
@@ -434,8 +470,8 @@ input:focus {
           <span>🏰 The World of Oppidum</span><span class="dim">▾</span>
         </summary>
         <div style="padding:10px 14px 14px;font-size:13px;color:var(--text);line-height:1.7;border-top:1px solid var(--border)">
-          <p>You begin in <b>Oppidum</b> — a small fortified town at the edge of the known world.</p>
-          <p class="mt">Visit the <b>Tavern</b> for quests, the <b>Blacksmith</b> for gear, the <b>Inn</b> to rest, the <b>Bank</b> to store your wealth before a dangerous hunt. Unlock new zones by defeating zone bosses.</p>
+          <p>You begin in <b>Oppidum</b> — a small walled waystation on a grey lake at the head of the ancient Road, where the dawn Litany has begun to lie.</p>
+          <p class="mt">Take quests at the <b>Foundered Horse</b>, arm yourself at the <b>Blacksmith</b>, rest at <b>Maren's</b>, store your coin at the <b>Bank</b> before a dangerous hunt, and lay your real steps on the <b>Milestone</b> at the Keep. Defeat a Reach's boss to take the Road on to the next.</p>
           <p class="mt dim" style="font-style:italic">"The gate's always open, wanderer. Whether you come back through it — that's up to you."</p>
         </div>
       </details>
@@ -543,12 +579,12 @@ input:focus {
         <!-- ⚔️ Adventure -->
         <p class="town-section-label">⚔️ Adventure</p>
         <div class="town-grid">
-          <button class="town-btn" onclick="showScreen('sync')">📜<span>Realm Sync</span></button>
-          <button class="town-btn" onclick="showScreen('tavern')">🍺<span>Tavern</span></button>
+          <button class="town-btn" data-tut="keep" onclick="showScreen('sync')">📜<span>The Keep</span></button>
+          <button class="town-btn" data-tut="tavern" onclick="showScreen('tavern')">🍺<span>Foundered Horse</span></button>
           <button class="town-btn" onclick="showScreen('hunt')">🌾<span>Hunt</span></button>
           <button class="town-btn" id="town-exped-btn" onclick="showScreen('expedition')">⛺<span>Expedition</span></button>
           <button class="town-btn" onclick="showScreen('lake')">🎣<span>Lake</span></button>
-          <button class="town-btn" onclick="showScreen('inn')">🛏️<span>Inn</span></button>
+          <button class="town-btn" onclick="showScreen('inn')">🛏️<span>Maren's</span></button>
           <button class="town-btn" id="town-dun-btn" onclick="showScreen('dsel')">⛏️<span>Dungeons</span></button>
         </div>
     <div id="exped-status-banner"></div>
@@ -567,6 +603,7 @@ input:focus {
         <div class="town-grid">
           <button class="town-btn" onclick="showScreen('commons')">🧺<span>Commons</span></button>
           <button class="town-btn" onclick="showScreen('woodcutting')">🪓<span>Forest Edge</span></button>
+          <button class="town-btn" onclick="enterCave('the_hollow')">🕳️<span>The Hollow</span></button>
           <button class="town-btn" onclick="showScreen('chapel')">⛪<span>Chapel</span></button>
           <button class="town-btn" onclick="showScreen('library')">📚<span>Library</span></button>
         </div>
@@ -583,8 +620,9 @@ input:focus {
 <!-- ================= SYNC ================= -->
 <div id="screen-sync" class="screen">
   <div class="panel">
-    <h2><span id="icon-sync"></span>Realm Sync</h2>
-    <p class="dim footer-note" style="font-style:italic">"Every step in the other realm is recorded here." — Edwin, the Reeve's clerk</p>
+    <img src="art/keep.png" class="keep-hd" alt="The Wayward Keep">
+    <h2><span id="icon-sync"></span>The Wayward Keep — the Milestone</h2>
+    <p class="dim footer-note" style="font-style:italic">"The stone drinks the miles you truly walk and pays them back. It has done so since before the gods had names. It hums for you, wanderer. It hums for no one else." — the Vagabond</p>
     <p class="dim">Report today and yesterday's travel. 1 step = 1 Gradus · 1 kcal = 1 Ries.<br>
     Daily limit: 50,000 steps / 4,000 kcal. Each day can only be reported once.<br>
     Reach <b>7,000 steps</b> for 🎯 streak credit + 2,000G bonus · <b>10,000</b> for ⭐ extra 1,500G.</p>
@@ -660,7 +698,7 @@ input:focus {
     <h2 id="shop-title"></h2>
     <div id="shop-vendor"></div>
     <table class="mt">
-      <thead><tr><th>Item</th><th></th><th class="r">🪙 Price</th><th></th></tr></thead>
+      <thead><tr><th>Item</th><th></th><th class="r"><img src="art/coin.png" class="ic-coin" alt="Gradus"> Price</th><th></th></tr></thead>
       <tbody id="shop-rows"></tbody>
     </table>
     <div id="shop-extra"></div>
@@ -671,7 +709,9 @@ input:focus {
 <!-- ================= TAVERN ================= -->
 <div id="screen-tavern" class="screen">
   <div class="panel">
-    <h2><span id="icon-tavern"></span>The Resting Boar</h2>
+    <h2><span id="icon-tavern"></span>The Foundered Horse</h2>
+    <p class="dim" style="font-style:italic;line-height:1.5;margin-top:-4px">Smoke, stew, spilled ale, and music done badly and loudly. The sign out front is a horse flat on its back, legs in the air, looking delighted to be done. Nobody agrees why. The one room in Oppidum that is not afraid of anything.</p>
+    <p id="tavern-vignette" class="dim" style="line-height:1.5;border-left:2px solid var(--gold,#c8a45a);padding-left:10px;margin:10px 0"></p>
     <p class="dim" id="quest-stamina-row" style="display:none"><button id="btn-stamina" onclick="drinkStamina()"></button></p>
     <div class="zone-tabs mt">
       <button id="qtab-0" class="zone-tab zt-active" onclick="setQuestZone(0)">🏘️ Oppidum</button>
@@ -721,8 +761,8 @@ input:focus {
 <!-- ================= HOSPITIUM (inn) ================= -->
 <div id="screen-inn" class="screen">
   <div class="panel">
-    <h2><span id="icon-inn"></span>Inn</h2>
-    <p class="dim" style="font-style:italic">“Beds for the broken, stew for the brave.” — Osgar the keeper</p>
+    <h2><span id="icon-inn"></span>Maren's</h2>
+    <p class="dim" style="font-style:italic">“A bed, a bowl, and no questions you can't pay for. The boy's room is shut. Don't ask.” — Maren, who keeps the Inn and her grief in the same locked drawer</p>
     <div id="inn-body" class="mt"></div>
     <div id="inn-folk" class="mt"></div>
     <button class="mt" onclick="showScreen('town')">← Back to town</button>
@@ -732,8 +772,8 @@ input:focus {
 <!-- ================= ARGENTARIA (bank) ================= -->
 <div id="screen-bank" class="screen">
   <div class="panel">
-    <h2><span id="icon-bank"></span>Bank</h2>
-    <p class="dim" style="font-style:italic">“What the vault holds, the grave cannot take.” — Master Aurelius, coinkeeper</p>
+    <h2><span id="icon-bank"></span>The Bank</h2>
+    <p class="dim" style="font-style:italic">“We store the one name the High Crown swore to unmake, by the strongbox-load, and we charge for the privilege. What the vault holds, the grave cannot take.” — Master Aurelius, coinkeeper</p>
     <table class="mt"><tbody id="bank-rows"></tbody></table>
     <div class="mt">
       <input type="number" min="1" id="bank-amt" placeholder="amount">
@@ -788,8 +828,8 @@ input:focus {
 <!-- ================= CHAPEL ================= -->
 <div id="screen-chapel" class="screen">
   <div class="panel">
-    <h2>⛪ Chapel of St. Cedd</h2>
-    <p class="dim" style="font-style:italic">"The road is long. Rest your burdens here." — Father Bede</p>
+    <h2>⛪ The Chapel</h2>
+    <p class="dim" style="font-style:italic">"Kneel. Hear the Litany at dawn and obey it, as your fathers did. The voice has never once been wrong. To doubt it is the only sickness." — Choirmaster Vane, of the Hollow Choir</p>
     <div id="chapel-body" class="mt"></div>
     <button class="mt" onclick="showScreen('town')">← Back to town</button>
   </div>
@@ -826,6 +866,21 @@ input:focus {
     <p id="drest-hp-label" class="dim" style="font-size:12px;text-align:center"></p>
     <p class="mt dim" id="drest-next-label" style="font-style:italic"></p>
     <div class="mt" id="drest-actions"></div>
+  </div>
+</div>
+
+<!-- ================= CAVE (the Hollow — explorable descent) ================= -->
+<div id="screen-cave" class="screen">
+  <div class="panel">
+    <h2 id="cave-title">🕳️ The Hollow</h2>
+    <p id="cave-light" class="dim" style="font-size:13px"></p>
+    <div class="dung-hp-bar mt" style="width:100%">
+      <div class="dung-hp-bar-fill" id="cave-hp-bar" style="width:100%"></div>
+    </div>
+    <p id="cave-hp-label" class="dim" style="font-size:12px;text-align:center"></p>
+    <p id="cave-scene" class="mt" style="line-height:1.7;font-style:italic;border-left:2px solid var(--border);padding-left:10px"></p>
+    <div class="mt" id="cave-actions"></div>
+    <button class="mt" onclick="caveFlee()" style="margin-top:16px">🏃 Climb back out (abandon the descent)</button>
   </div>
 </div>
 
@@ -871,12 +926,73 @@ input:focus {
   <div class="panel">
     <h2>📚 The Library</h2>
     <p class="mt"><button onclick="showLeaderboard()">🏆 Hall of Wanderers — leaderboard</button> <button onclick="showPatchNotes()">📜 Patch notes</button></p>
-    <p class="dim" style="font-style:italic">"Every road in the realm ends in a book." — Brother Caedmon, archivist</p>
-    <h2 class="mt">Glossary</h2>
+
+    <!-- ============ HOW TO PLAY (plain-language guide) ============ -->
+    <div style="border:2px solid var(--gold);border-radius:6px;padding:12px 14px;margin-top:12px;background:#140f06">
+      <h2 style="margin:0 0 4px">📖 How to Play</h2>
+      <p class="dim" style="font-size:12px;margin:0 0 10px">New here? You don't need the story to play. Just follow the loop. <button class="link-btn" onclick="startTutorial(true)">▶ Replay the guided tutorial</button></p>
+
+      <p style="font-size:14px;margin:0 0 10px"><b>The core loop:</b> Walk → Sync → Earn → Spend → Grow. Walk in real life, sync your steps &amp; calories, spend the currency on quests and gear, and your hero grows stronger.</p>
+
+      <details style="border:1px solid var(--border);border-radius:4px;margin-bottom:6px">
+        <summary style="padding:9px 12px;cursor:pointer;font-size:13px;color:var(--gold);list-style:none">🪙 The two currencies</summary>
+        <div style="padding:8px 12px 12px;font-size:13px;line-height:1.7;border-top:1px solid var(--border)">
+          <p><b>🪙 Gradus — coin, from steps.</b> 1 step = 1 Gradus. Spend it on gear, repairs, and rooms. <b>Warning:</b> Gradus you're <i>carrying</i> is lost if your hero dies — coin in the Bank is safe.</p>
+          <p class="mt"><b>⚡ Ries — energy, from calories.</b> 1 calorie = 1 Ries (cap 5,000). Every quest, hunt, and forge upgrade costs Ries. Out? Move in real life or eat a cooked meal.</p>
+        </div>
+      </details>
+
+      <details style="border:1px solid var(--border);border-radius:4px;margin-bottom:6px">
+        <summary style="padding:9px 12px;cursor:pointer;font-size:13px;color:var(--gold);list-style:none">📜 Realm Sync — do this first</summary>
+        <div style="padding:8px 12px 12px;font-size:13px;line-height:1.7;border-top:1px solid var(--border)">
+          <p>Open <b>Realm Sync</b> at the Keep and enter (or simulate) today's steps and calories — that's how real activity becomes currency. Limits: 50,000 steps / 4,000 kcal per day; you can back-fill the last 2 days.</p>
+          <p class="mt"><b>Daily goal 7,000 steps</b> pays a bonus (+2,000 Gradus, +200 Ries) and extends your streak. <b>10,000</b> adds +1,500 Gradus. Each streak day adds +5% earnings, up to +50%.</p>
+        </div>
+      </details>
+
+      <details style="border:1px solid var(--border);border-radius:4px;margin-bottom:6px">
+        <summary style="padding:9px 12px;cursor:pointer;font-size:13px;color:var(--gold);list-style:none">🏰 The town — what each building does</summary>
+        <div style="padding:8px 12px 12px;font-size:13px;line-height:1.7;border-top:1px solid var(--border)">
+          <p><b>Keep</b> — Realm Sync. <b>Foundered Horse</b> — quests &amp; fights. <b>Maren's (Inn)</b> — heal, rent a room (restores Ries + a quest slot), hear rumors. <b>Bank</b> — store coin safely + investments. <b>Blacksmith/Woodsmith/Armorer</b> — buy &amp; repair gear. <b>Apothecary</b> — potions &amp; enchantments. <b>Hunt</b> — free grinding. <b>Lake/Commons</b> — life skills. <b>Library</b> — this guide &amp; the lore.</p>
+        </div>
+      </details>
+
+      <details style="border:1px solid var(--border);border-radius:4px;margin-bottom:6px">
+        <summary style="padding:9px 12px;cursor:pointer;font-size:13px;color:var(--gold);list-style:none">⚔️ Combat basics</summary>
+        <div style="padding:8px 12px 12px;font-size:13px;line-height:1.7;border-top:1px solid var(--border)">
+          <p>Fights are turn-based: <b>Attack</b>, <b>class ability</b> (cooldown), <b>Potion</b> (buy at the Apothecary first), or <b>Flee</b>. Every fight costs Ries.</p>
+          <p class="mt"><b>Monster traits:</b> ⚡Swift strikes first · 🛡️Armored cuts your damage · ☠️Venom bleeds you · 😡Frenzy rages below 30% · 💚Regen self-heals.</p>
+          <p class="mt"><b>Death</b> loses all <i>carried</i> Gradus and wounds you (rest at the Inn). <b>Always bank before a boss.</b></p>
+        </div>
+      </details>
+
+      <details style="border:1px solid var(--border);border-radius:4px;margin-bottom:6px">
+        <summary style="padding:9px 12px;cursor:pointer;font-size:13px;color:var(--gold);list-style:none">🧭 Your character &amp; quests</summary>
+        <div style="padding:8px 12px 12px;font-size:13px;line-height:1.7;border-top:1px solid var(--border)">
+          <p>You start as a <b>Wanderer</b>. At <b>level 10</b> you pick a class (Knight, Mage, Archer, Cleric). Spend stat points under <b>Me → Stats</b>.</p>
+          <p class="mt"><b>Quests</b> pay once; <b>Free Hunts</b> are unlimited grinding (Ries only); <b>Dungeons</b> are level-gated delves that drop unique relics. Can't take a quest? You're wounded, out of Ries, or it's still a locked rumor.</p>
+        </div>
+      </details>
+
+      <details style="border:1px solid var(--border);border-radius:4px">
+        <summary style="padding:9px 12px;cursor:pointer;font-size:13px;color:var(--gold);list-style:none">❓ Quick FAQ</summary>
+        <div style="padding:8px 12px 12px;font-size:13px;line-height:1.7;border-top:1px solid var(--border)">
+          <p><b>How do I get rich?</b> Walk. Quests pay once; walking pays every day.</p>
+          <p class="mt"><b>I died and lost everything!</b> You lost what you <i>carried</i>. Bank before bosses; the Inn heals you.</p>
+          <p class="mt"><b>I'm confused by the story.</b> You don't need it. Follow the loop. The lore is optional flavor.</p>
+        </div>
+      </details>
+
+      <p class="mt" style="margin-top:12px"><a href="wiki.html" target="_blank" rel="noopener" style="display:inline-block;border:2px solid var(--border);border-radius:6px;padding:8px 14px;color:var(--gold);text-decoration:none;font-size:13px">📚 Open the full Wiki →</a></p>
+    </div>
+    <!-- ============ /HOW TO PLAY ============ -->
+
+    <p class="dim" style="font-style:italic;margin-top:14px">"Salvaged books and pinned testimonies, and no two of them agree. The Crownsong calls him a damned god-killer; the Footsworn call him the only man who ever stood up to a god. I keep both. The truth is in here somewhere, smudged. Some of these pages only read clear for those with the clear sight." — the archivist, who is careful never to say which side she keeps for</p>
+    <h2 class="mt">The Accounts &amp; Glossary</h2>
     <table class="mt"><tbody>
-      <tr><td><b>The Two Realms</b><br><span class="dim">There are two realms. The <b>Gradus realm</b> is this one: Oppidum, the Greenwood, the hunts. The <b>real-life realm</b> is the one with sky, where your body walks. Every step taken there becomes Gradus here; every calorie burned becomes Ries. Neither realm prospers without the other.</span></td></tr>
-      <tr><td><b>Gradus</b> 🪙<br><span class="dim">The realm's coin. 1 step in the other realm = 1 Gradus. Spent on gear, rooms, rumors, ventures. Looters take all carried Gradus if you fall in battle; the Bank's vault is safe.</span></td></tr>
-      <tr><td><b>Ries</b> ⚡<br><span class="dim">Your energy. 1 calorie burned = 1 Ries, held up to a cap of 5,000. Fuels quests, free hunts, life skills, crafting, and the Blacksmith's forge upgrades. When it runs dry, work in the other realm or eat a cooked meal; when it sits full, you are wasting calories. Spend it.</span></td></tr>
+      <tr><td><b>The Realms</b><br><span class="dim">You play in <b>Viatera, the Trodden Lands</b>: Oppidum, the Road, the Reaches. Your body walks in the <b>Realm of Toil</b>, the world with sky. For a thousand years the Litany blessed every life and toil drained no one; now the dawn voice lies, and most who toil only tire. You are the exception: your effort returns as power. Every step taken in the Realm of Toil becomes Gradus here; every calorie burned becomes Ries. (A third realm, the <b>Sunless Court</b> of the dead and the gods, waits past the Road's end.)</span></td></tr>
+      <tr><td><b>Gradus</b> <img src="art/coin.png" class="ic-coin" alt="Gradus"><br><span class="dim">The realm's coin, struck in the name of the one mortal who ever defied a god and was not broken — the name the High Crown swore to erase. To earn and spend it is a small act of defiance. 1 step in the Realm of Toil = 1 Gradus. Looters take all carried Gradus if you fall; the Bank's vault is safe.</span></td></tr>
+      <tr><td><b>Ries</b> ⚡<br><span class="dim">From the old tongue <i>ríes</i>, "breath" or "spent fire": the energy of the same defiance. 1 calorie burned = 1 Ries, held to a cap of 5,000. Fuels quests, free hunts, life skills, crafting, and forge upgrades. Runs dry? Toil, or eat a cooked meal. Sits full? You're wasting breath. Spend it.</span></td></tr>
       <tr><td><b>Realm Sync</b> 📜<br><span class="dim">The Keep's ledger where the other realm's deeds are recorded: by hand, or automatically through a linked device (Garmin, Oura and kin). Daily limits: 50,000 steps, 4,000 kcal. Consecutive days build a streak worth up to +50% earnings.</span></td></tr>
       <tr><td><b>Gear grades</b><br><span class="dim">No-grade gear is available from the start. D-grade drops in the Greenwood (zone 2). Higher grades (C → B → A → S) will arrive with future zones. The forge can raise any piece to +5.</span></td></tr>
       <tr><td><b>Monster traits</b><br><span class="dim">⚡Swift strikes first · 🛡️Armored blunts your blade · ☠️Venom bleeds you each turn · 😡Frenzy rages below 30% health · 💚Regen knits its wounds.</span></td></tr>
@@ -894,7 +1010,7 @@ input:focus {
       <tr><td><b>What is the wanderer's daily minimum?</b><br><span class="dim">7,000 steps — the road's daily toll. Hit it to advance your sync streak (+5% per day, up to +50%) and earn a 🎯 bonus of +2,000G and +200R. Push to 10,000 steps for an extra ⭐ 1,500G. Your daily login reward also scales with yesterday's effort.</span></td></tr>
       <tr><td><b>I died and lost everything.</b><br><span class="dim">You lost everything you <i>carried</i>. Bank before bosses. The Inn will mend you.</span></td></tr>
       <tr><td><b>Why can't I take quests?</b><br><span class="dim">You are wounded (rest at the Inn), out of Ries (move in the other realm), or the hunt is still a rumor. Renting a room at the Inn restores Ries and adds a bonus quest slot.</span></td></tr>
-      <tr><td><b>How do I open the Greenwood?</b><br><span class="dim">Fell the Forest Troll at the end of the Oppidum board.</span></td></tr>
+      <tr><td><b>How do I open the Greenwood?</b><br><span class="dim">Lay Brand the Returned to rest at the end of the Oppidum board, then take the Road south.</span></td></tr>
       <tr><td><b>What should I spend Ries on?</b><br><span class="dim">Hunts and the forge, mostly. High-level wanderers live in the free hunts; their Ries is never idle.</span></td></tr>
     </tbody></table>
     <button class="mt" onclick="showScreen('town')">← Back to town</button>
@@ -906,6 +1022,12 @@ input:focus {
   <div class="panel">
     <h2>⚙️ Settings</h2>
     <table class="mt"><tbody id="settings-rows"></tbody></table>
+    <h2 class="mt">Help</h2>
+    <p class="mt">
+      <button onclick="startTutorial(true)">▶️ Replay tutorial</button>
+      <button onclick="showScreen('library')">📖 How to Play</button>
+      <a href="wiki.html" target="_blank" rel="noopener" style="display:inline-block;border:2px solid var(--border);border-radius:6px;padding:8px 14px;color:var(--gold);text-decoration:none;font-size:14px">📚 Wiki</a>
+    </p>
     <h2 class="mt">Account</h2>
     <p class="dim footer-note" id="settings-acct"></p>
     <p class="mt">
@@ -994,14 +1116,14 @@ input:focus {
 const UNLOCKS = {
   armorer:    { test:s => s.questsCleared >= 1, name:'🛡️ Armorer',        hint:'Brunhild opens her door after your first hunt.' },
   apothecary: { test:s => s.questsCleared >= 2, name:'🧪 Apothecary',     hint:'Mother Elswyth opens after your second hunt.' },
-  inn:        { test:s => s.wounded || s.level >= 3 || (s.questsToday && s.questsToday.used >= 3), name:'🛏️ Inn', hint:'The Inn opens when the road has worn you down.' },
+  inn:        { test:s => s.wounded || s.level >= 3 || (s.questsToday && s.questsToday.used >= 3), name:'🛏️ Maren\'s', hint:'Maren opens her door when the road has worn you down.' },
   bank:       { test:s => s.gradus + (s.bank || 0) >= 3000, name:'🏦 Bank', hint:'Master Aurelius opens for those carrying 3,000 Gradus worth protecting.' },
   hunt:       { test:s => s.level >= 4,         name:'🌾 Hunting Grounds', hint:'Reach level 4 to roam the open grounds.' },
   woodsmith:  { test:s => s.level >= 5,         name:'🏹 Woodsmith',       hint:'Aldwin opens his workshop at level 5.' },
   craft:      { test:s => s.questsCleared >= 4, name:'🛠 Crafting Bench',  hint:'Clear 4 hunts and the bench is yours.' },
-  chapel:     { test:s => s.level >= 6,         name:'⛪ Chapel',          hint:'The chapel bell rings for those of level 6.' },
-  commons:    { test:s => s.questsCleared >= 6, name:'🧺 The Commons',     hint:'The Commons open once the Forest Troll falls.' },
-  lake:       { test:s => s.questsCleared >= 6, name:'🎣 The Lake',        hint:'The lake path opens once the Forest Troll falls.' },
+  chapel:     { test:s => s.level >= 6,         name:'⛪ Chapel',          hint:'The Hollow Choir tolls the dawn bell; the Chapel opens at level 6.' },
+  commons:    { test:s => s.questsCleared >= 6, name:'🧺 The Commons',     hint:'The Commons open once you\'ve proven yourself on six hunts.' },
+  lake:       { test:s => s.questsCleared >= 6, name:'🎣 The Lake',        hint:'The lake shore opens once you\'ve proven yourself on six hunts.' },
 };
 function isLocked(key) { return !!(S && UNLOCKS[key] && !(S.unlocked && S.unlocked[key])); }
 function checkUnlocks(quiet) {
@@ -1026,17 +1148,32 @@ function activeEvent() {
 }
 /* Daily flavor from the townsfolk (date-rotated) */
 const DAILY_QUIPS = [
-  ['Marta', 'Stew\'s hot. Roads aren\'t walking themselves.'],
-  ['Wulfric', 'Steel doesn\'t care how you feel about cardio.'],
+  ['Big Doll', 'The ale\'s watered. Say so again and you\'ll leave under my arm.'],
+  ['Sweet Lyle', 'I\'ll sing you the TRUE ballad of the Strider. Mind the crusts.'],
+  ['Wick', 'Gorn\'s losing. He\'ll tell you different. He\'s losing.'],
+  ['Gorn', 'Wick can\'t count past his own fingers and he\'s short two of those.'],
+  ['Pinch', 'Tell me everything. No reason. I\'m only curious, friend.'],
   ['Old Hessa', 'The lake was here before your excuses. It\'ll be here after.'],
-  ['Edwin the clerk', 'The ledger shows who walked. It never shows who meant to.'],
-  ['Father Bede', 'A thousand steps is a prayer the body says.'],
+  ['Wulfric', 'Steel doesn\'t care how you feel about cardio.'],
   ['Joss', 'Track something today, even if it\'s just yourself.'],
   ['Brunhild', 'Armor fits better on a body that moves.'],
   ['Aldwin', 'A bow is just a walk that learned to focus.'],
   ['Mother Elswyth', 'Most ailments fear a brisk hour outdoors.'],
-  ['Master Aurelius', 'Compound interest and daily walks: same religion.'],
 ];
+/* The Foundered Horse, alive — a date-rotated scene shown on the quest board */
+const TAVERN_SCENES = [
+  'Big Doll carries two brawlers out under her arms, one in each, still arguing. The embers she poured them sit untouched and, you note, watered.',
+  'Wick and Gorn hunch over their endless game of stones. Neither has won in living memory. Both are certain they are winning.',
+  'Sweet Lyle murders the Ballad of the Strider in a key no one has heard before. A crust of bread catches him over the ear. He does not stop.',
+  'Pinch leans in with friendly questions for everyone. The regulars feed him magnificent lies and watch him scurry off to carry them to the Choir.',
+  'Captain — the three-legged dog who belongs to everyone and no one — makes off with half a sausage. No one objects. He is the most respected patron in the house.',
+  'Someone braves one of Big Doll\'s embers. The froth is the kind part. What waits under it has put bigger souls than you on the floor and written to their mothers about it.',
+];
+function tavernScene() {
+  const d = localDateStr(new Date());
+  let n = 7; for (const c of d) n = (n * 33 + c.charCodeAt(0)) >>> 0;
+  return TAVERN_SCENES[n % TAVERN_SCENES.length];
+}
 function dailyQuip() {
   const d = localDateStr(new Date());
   let n = 0; for (const c of d) n = (n * 31 + c.charCodeAt(0)) >>> 0;
@@ -1044,6 +1181,7 @@ function dailyQuip() {
 }
 /* Player-facing patch notes (no internals) — newest first */
 const PATCHNOTES = [
+  ['V1.31', 'Oppidum is now the true Waking Town: the Foundered Horse and its regulars, the Wayward Keep & the Milestone, Maren\'s Inn, the Hollow Choir\'s chapel, the Footsworn, Orris the Inkfinger, the Vagabond. The questline follows the Dawn That Lied arc — face the Tithe-Eater in the Hollow, then Brand the Returned, and take the Road south.'],
   ['V1.24', 'Oppidum now wakes up as you earn it: ten locations unlock at milestones, each with its own moment.'],
   ['V1.23', 'Ries energy is capped at 5,000. Spend it or waste the calories. Forge costs rebalanced to match.'],
   ['V1.22', 'Settings screen. Quest board reorganized: Story first, then repeatable hunts, then side quests. Critical hits (DEX and Archers crit more). Levels 1-10 come much faster.'],
@@ -1065,7 +1203,7 @@ function showPatchNotes() {
     `<p class="mt" style="text-align:left"><b class="gold">${v}</b><br><span class="dim" style="font-size:12px;line-height:1.6">${t}</span></p>`).join(''),
     [{ label:'Close' }]);
 }
-const VERSION = 'Alpha V1.29';
+const VERSION = 'Alpha V1.30';
 
 /* ---- 8-bit medieval pixel icons (inline SVG, dark palette) ---- */
 function pix(view, w, rects) {
@@ -1276,37 +1414,9 @@ const MON_BUILDERS = {
   wanderer: () => [[6,1,5,3,C_BONE],[7,3,3,2,'#120d08'],[8,4,1,1,C_GOLD],[5,5,7,7,'#3a3530'],[6,12,2,3,C_DARK],[9,12,2,3,C_DARK],[3,3,1,9,C_WOOD],[2,2,1,1,C_GOLD]],
 };
 // One entry per QUEST (indices 0-16)
-const MON_SCENE = [
-  ['rat', SPR_FUR],                       // 0  Giant Rat
-  ['wolf', '#6a6a74'],                    // 1  Dire Wolf
-  ['humanoid', '#5a4630'],                // 2  Bandit Chief
-  ['spider', '#3a2c40'],                  // 3  Broodmother
-  ['skeleton'],                           // 4  Restless Knight
-  ['humanoid', '#3a4a2a'],               // 5  Venom Cultist
-  ['boar', '#4a3a28'],                    // 6  Giant Iron Boar
-  ['brute', '#5a7a3a', '#46602e'],        // 7  Forest Troll
-  ['brute', '#6e5638', '#54421f', true],  // 8  Sprouting Treant
-  ['boar', '#5f4326'],                    // 9  Dire Boar
-  ['wisp'],                               // 10 Forest Wisp
-  ['spider', '#503050'],                  // 11 Webweaver Queen
-  ['humanoid', '#55555e'],               // 12 Bandit Warlord
-  ['spider', '#6a5020'],                  // 13 Amber Wasp Queen
-  ['humanoid', '#8a8090'],               // 14 Glass Swordsman
-  ['brute', '#4a3a20', '#352a13', true],  // 15 Ancient Treant
-  ['wanderer'],                           // 16 Echo of First Wanderer
-  // Zone 3: The Ruins
-  ['wolf','#6a5c50'],                     // 17 Ash Hound
-  ['skeleton'],                           // 18 Tomb Warden
-  ['humanoid',C_BONE],                    // 19 Bone Archer
-  ['wisp'],                               // 20 Plague Shade
-  ['brute',C_IRON,C_STEEL],               // 21 Iron Sentinel
-  ['humanoid','#4a3a28'],                 // 22 Ruinborn Warlord
-  ['brute','#6a6260','#4a4240',true],     // 23 Cursed Colossus
-  ['skeleton'],                           // 24 The Lich
-];
-function monsterSpriteSVG(qi) {
-  const [kind, ...args] = MON_SCENE[qi] || ['rat', SPR_FUR];
-  return pix(16, 90, MON_BUILDERS[kind](...args));
+function monSprite(m) {
+  const s = (m && m.spr) || ['rat', SPR_FUR];
+  return pix(16, 90, MON_BUILDERS[s[0]](...s.slice(1)));
 }
 /* =====================================================
    GRADUS v1 skeleton — per DESIGN.md
@@ -1320,8 +1430,9 @@ const DAILY_STEP_GOAL   = 7000;  // minimum daily steps for streak + tier reward
 const STRETCH_STEP_GOAL = 10000; // stretch goal for bonus tier
 const RIES_DIVISOR = 5;   // Ries price = Gradus price / 5
 const QUESTS_PER_DAY = 999; // effectively unlimited
-const FOREST_UNLOCK = 8;    // quests cleared to open the Greenwood
-const RUINS_UNLOCK  = 17;   // quests cleared to open The Ruins
+// FOREST_UNLOCK / RUINS_UNLOCK are computed from the QUESTS array (= first
+// zone-2 / zone-3 index) right after it is defined, so inserting or reordering
+// quests can never desync the unlock gates. (Defined below the QUESTS array.)
 
 /* ---------------- Item catalog (DESIGN.md §3) ---------------- */
 function prices(g) { return { g, r: Math.round(g / RIES_DIVISOR) }; }
@@ -1554,170 +1665,256 @@ const DUNGEONS = [
    Monster traits: swift (strikes first) · armored (your damage −25%) ·
    venom N (N dmg at the start of your turns once bitten) · frenzy (atk +50%
    below 30% HP) · regen N (heals N after its turn). Balance simulated.
-   Quest indices: 0-6 = Oppidum, 7 = Forest Troll boss (FOREST_UNLOCK=8),
-   8-14 = Greenwood, 15 = Heart boss, 16 = Legend. */
+   Quest indices: 0-13 = Oppidum (12 = the Tithe-Eater, 13 = Brand the Returned,
+   the gate boss; FOREST_UNLOCK=14). 14-22 = Greenwood (14 = Forest Troll,
+   21 = Heart boss, 22 = Legend). 23-30 = the Ruins (RUINS_UNLOCK=23). */
 const QUESTS = [
-  // ---- Zone 1: Oppidum ----
-  { id:'rats_in_the_cellar', name:'Rats in the Cellar', qType:'repeatable', type:'Hunt', giver:'Marta, keeper of the Resting Boar',
-    desc:'Giant rats have overrun the cellar of the Resting Boar. Marta needs them cleared before tomorrow\'s guests arrive.',
-    monster:{ name:'Giant Rat', emoji:'🐀', hp:28, atk:4 }, xp:22, g:500,
-    flavor:'The Resting Boar\'s cellar echoes with gnawing. Marta pays in coin and stew.',
-    lore:'Three weeks past, a grain barge from downriver paid Marta in sacks instead of coin, and something rode in with the sacks. First it was droppings in the flour. Then the cellar cat stopped coming up. Now the gnawing keeps the whole common room awake: beams, barrels, the leg of the spare bed, all carved like a feast. Last night it ate a wheel of cheese the size of a cartwheel, and the shelf it sat on.<br><br>”I\'ve fed half of Oppidum from that cellar through two bad winters,” Marta says, sliding the key across the bar. “The winter stores are down there. The seed grain too. One more beam and the Boar comes down on all our heads, and where will you lot drink then?” She pays from the strongbox under the floorboards, and she pays fair.' },
-  { id:'wolves_at_the_gate', name:'Wolves at the Gate', qType:'repeatable', type:'Hunt', giver:'Calloway the shepherd',
-    desc:'A pack of dire wolves has been circling the town gate at night. The guards want them driven off.',
-    monster:{ name:'Dire Wolf', emoji:'🐺', hp:40, atk:6, swift:true }, xp:33, g:600,
-    flavor:'Three lambs in two nights. The shepherd swears the pack moves like smoke.',
-    lore:'It began at the autumn shearing, when the pack stopped fearing torchlight. Calloway\'s neighbors lost a dog, then a gate, then their nerve. Most now drive their flocks to market and sell at a loss rather than winter them on the hill. Three lambs gone in two nights, and the grey wolf that leads the pack is no natural beast: it watched Calloway over the fence rail, he swears, with eyes that counted.<br><br>The old man has buried three dogs this season and will not bury a fourth. The flock is all that stands between his granddaughter and a beggar\'s winter. “My family\'s grazed this hill three hundred years,” he says. “I\'ll not be the one who hands it to wolves.” He cannot pay much. He offers it anyway. Mind yourself, the beast strikes before most folk finish drawing.' },
-  { id:'the_bandit_toll', name:'The Bandit Toll', qType:'repeatable', type:'Contract', giver:'Reeve Ostric of Oppidum',
-    desc:'A bold bandit has set up a toll on the road south of town, robbing merchants at knifepoint.',
-    monster:{ name:'Bandit Chief', emoji:'🗡️', hp:70, atk:9, frenzy:true }, xp:44, g:700,
-    flavor:'A toll where no king set one. Cornered men fight hardest when bloodied.',
-    lore:'The toll began in spring as a plank across the East Road and a man with a knife; by midsummer it was six men and a ledger. The Chief, a deserter from the border war, keeps records, of all things: who paid, who argued, who he let bleed as an example. Merchants pay or turn back, and Oppidum\'s market shelves grow thinner by the week.<br><br>Ostric\'s clerks recovered a page of that ledger from a fleeing porter. The Reeve read it once, rolled it up, and doubled the bounty. The contract is sealed with his own wax and worded carefully: ended quietly and lawfully, by which he means a body in a ditch and no questions at council. They say the Chief fights like the war never ended. Cornered and bleeding, he fights worse.' },
-  { id:'spiders_of_hollow_mill', name:'Spiders of Hollow Mill', qType:'repeatable', type:'Contract', giver:'Tobias the miller',
-    desc:'A brood of venomous spiders has taken over Hollow Mill. The miller can\'t work.',
-    monster:{ name:'Broodmother', emoji:'🕷️', hp:85, atk:10, venom:2 }, xp:57, g:800,
-    flavor:'The miller\'s boys won\'t set foot inside. Her bite festers, bring potions.',
-    lore:'Hollow Mill ground Oppidum\'s grain for five generations until the webs came: sheets of silk thick as sailcloth strung between the millstones. Tobias sent his eldest in with a torch; the boy came out white-haired and will not speak of what hung from the rafters. The flour runs out in a fortnight, and with it the bread. Her venom works long after the bite, potions are not a luxury on this contract. They are the plan.' },
-  { id:'the_graveyard_shift', name:'The Graveyard Shift', qType:'repeatable', type:'Hunt', giver:'Father Bede of the chapel yard',
-    desc:'A restless undead has been spotted near the graveyard. The chapel wants it put to rest.',
-    monster:{ name:'Restless Knight', emoji:'💀', hp:120, atk:15, armored:true }, xp:70, g:900,
-    flavor:'A knight who forgot he died. Blades glance off the old plate.',
-    lore:'Father Bede lights a candle for the thing in the yard every evening, and every evening it walks anyway. The armor bears the sigil of a house that fell before Oppidum had walls. A knight sworn to guard this ground, never released from the oath. Bede does not ask you to destroy it. He asks you to free it, and he is old enough to know those are the same thing. That grave-plate has turned blades for three hundred years. Strike true, and often.' },
-  { id:'the_poisoned_well', name:'The Poisoned Well', qType:'repeatable', type:'Contract', giver:'Matilda, the warden\'s wife',
-    desc:'Someone — or something — has been fouling the eastern well. Track down the culprit.',
-    monster:{ name:'Venom Cultist', emoji:'🧪', hp:95, atk:12, venom:3 }, xp:55, g:750,
-    flavor:'Someone is poisoning the wells. The warden\'s wife offers double the law allows.',
-    lore:'The sickness started at the eastern well: first the cattle, then a child, then three more. The town physician traced it to the water but not to its cause. Matilda\'s husband is the warden and cannot be seen to pay for a killing, so she pays herself, from the household coin she controls, and she says nothing about lawful or unlawful. Her child was the first to fall ill. It recovered. The other two did not.<br><br>The cultist is not from Oppidum — no one recognizes the mark burned into his arm. He moves at night and keeps close to the drainage channels. His venom is deliberate. Whatever he serves, it wants Oppidum weak and sick. Mind the bite: his cult uses the same poison he puts in the wells.' },
-  { id:'iron_jaws', name:'Iron Jaws', qType:'repeatable', type:'Hunt', giver:'Bram, miller south of the road',
-    desc:'A massive boar with iron-like tusks has gone feral and is destroying crops on the edge of town.',
-    monster:{ name:'Giant Iron Boar', emoji:'🐗', hp:115, atk:14, frenzy:true }, xp:65, g:800,
-    flavor:'The mill\'s waterwheel crushed every night by something huge and furious.',
-    lore:'Bram rebuilt the waterwheel three times. The first time he thought it was rot. The second time he called it bad luck. The third time, he found the tracks: each hoof-print two hands across, driven so deep into the riverbank that the mud had dried around them like iron casts. Something comes up from the river at dusk, destroys the wheel with systematic fury, and returns before dawn.<br><br>”I don\'t need it dead,” Bram says. “I need it gone.” He does not believe it is possible. He is offering the coin because a debt paid is a man\'s only dignity when he has lost everything else. The boar grows fiercer the more it bleeds. Do not mistake a wound for a victory.' },
-  { id:'the_missing_merchant', name:'The Missing Merchant', qType:'sidequest',
-    type:'Hunt', zone:1, giver:'Elara, innkeeper',
-    desc:'A trader named Corvin left for the mill three days ago and never returned. Find out what happened.',
-    monster:{ name:'Bandit Scout', emoji:'🥷', hp:22, atk:5 },
-    xp:30, g:550 },
-  { id:'mushrooms_for_the_apothecary', name:'Mushrooms for the Apothecary', qType:'sidequest',
-    type:'Hunt', zone:1, giver:'Silas, apothecary',
-    desc:'Cursed fungal crawlers have infested the mushroom groves. Cull them so Silas can harvest safely.',
-    monster:{ name:'Fungal Crawler', emoji:'🍄', hp:18, atk:3, venom:1 },
-    xp:25, g:480 },
-  { id:'border_watch', name:'Border Watch', qType:'optional',
-    type:'Hunt', zone:1, giver:'Captain Aldric',
-    desc:'Reports of goblin scouts probing Oppidum\'s western border. Intercept them before they report back.',
-    monster:{ name:'Goblin Scout', emoji:'👺', hp:30, atk:6, swift:true },
-    xp:40, g:620 },
+  // ---- Zone 1: Oppidum (the Waking Town — the Dawn That Lied arc) ----
+  { id:'dawn_that_lied', name:'The Dawn That Lied', qType:'story', kind:'scene', type:'Story', icon:'🌅',
+    giver:'the dawn Litany, read by Choirmaster Vane',
+    desc:'The town gathers at the chapel steps for the dawn Litany. The voice names a sickness — and a mercy.',
+    xp:18, g:300,
+    scene:{ text:'The bell rings wrong, the way it has all season. Oppidum gathers at the chapel steps in the grey light, and Choirmaster Vane lifts his face to the east and reads the dawn voice aloud.<br><br>It names a sickness in the west well. It names those who drank from it. And it calls for them to be cast out through the walls and into the Hollow, and the Hollow sealed behind them — <i>to spare the rest</i>. The townsfolk bow their heads. They have never once disobeyed a dawn. Beside you a woman begins, dull-eyed, to nod.',
+      choices:[
+        { label:'“That is not mercy. That is murder.”', line:'You say it before you have decided to. The square goes still. Vane’s eyes find you and do not blink. You are now the only soul in Oppidum who called the dawn a liar to its face — and the first the Choir will remember.' },
+        { label:'Say nothing — but do not bow your head', line:'You keep your eyes open while the town closes theirs. A small defiance. Vane marks it anyway. He marks everything.' },
+      ] } },
+  { id:'the_first_mile', name:'The First Mile', qType:'story', kind:'milestone', type:'Story', icon:'🚶',
+    giver:'the Vagabond, by the Keep',
+    desc:'The Vagabond nods at the Milestone. Lay a true day’s walking on the old stone and see what it gives back.',
+    xp:24, g:0,
+    milestone:{ type:'sync', value:1, board:'Sync a day at the Milestone', hint:'Report a day’s steps at the Keep (Realm Sync), then return here.' },
+    scene:{ line:'“Where everyone else slumps, you light up,” the Vagabond says, watching the stone take your day and give it back as power. “That is the whole of it. That is what you are. You carry Gradus.”' } },
+  { id:'rats_in_the_cellar', name:'Rats in the Cellar', qType:'sidequest', repeatable:true, type:'Hunt', giver:'Big Doll, keeper of the Foundered Horse',
+    desc:'Something has overrun the cellar of the Foundered Horse. Big Doll needs it cleared before the stores are gone.',
+    monster:{ spr:['rat', SPR_FUR], name:'Cellar Rat', emoji:'🐀', hp:28, atk:4 }, xp:22, g:500,
+    flavor:'The Foundered Horse\'s cellar echoes with gnawing. Big Doll pays in coin and stew, and dares you to mention the gnawing again.',
+    lore:'They are only rats. That is what Big Doll keeps saying, loudly, to the common room. Bigger than they ought to be, and bolder, and they came up the same season the east well went sour and the dawn bell started ringing wrong, but they are only rats.<br><br>”I\'ve fed half of Oppidum from that cellar through two bad winters,” she says, sliding the key across the bar without quite letting go of it. “The seed grain\'s down there. One more chewed beam and the Horse comes down on our heads, and where will you lot drink then?” She pays fair, from the strongbox under the floorboards. She does not go down the cellar steps herself anymore. She does not say why.' },
+  { id:'wolves_at_the_wall', name:'Wolves at the Wall', qType:'sidequest', repeatable:true, type:'Hunt', giver:'Calloway, a shepherd at the gate',
+    desc:'Gaunt wolves circle the town wall at dawn, bolder than any winter explains. Drive them off.',
+    monster:{ spr:['wolf','#6a6a74'], name:'Gaunt Wolf', emoji:'🐺', hp:40, atk:6, swift:true }, xp:33, g:600,
+    flavor:'Three lambs in two nights. The shepherd swears the pack moves like smoke and waits for the dawn bell.',
+    lore:'For a thousand years the Litany told folk when to fold the flock and the wild kept its distance, because the world ran like clockwork under the dawn voice. The clockwork is broken now. The wolves came down with the first hard chill, gaunt and unafraid, and they gather at the wall when the bell rings, as if the lie in it calls to something in them.<br><br>Calloway has buried three dogs and will not bury a fourth. The flock is all that stands between his granddaughter and a beggar\'s winter. He cannot pay much. He offers it anyway. Mind yourself, the lead wolf strikes before most folk finish drawing.' },
+  { id:'the_choirs_toll', name:'The Choir\'s Toll', qType:'sidequest', repeatable:true, type:'Contract', giver:'Maren, who keeps the Inn (quietly, of the Footsworn)',
+    desc:'A quisling has set himself on the south Road, taking a "tithe" from pilgrims at knifepoint in the Choir\'s name.',
+    monster:{ spr:['humanoid','#5a4630'], name:'Quisling Tithe-man', emoji:'🗡️', hp:70, atk:9, frenzy:true }, xp:44, g:700,
+    flavor:'A toll where no god set one. He robs in a holy voice, which is the worst kind.',
+    lore:'He was nobody before the dawn voice turned. Now he wears a scrap of Choir cloth and stands on the south Road with two knives and a ledger, taking a "tithe for the protection of the faithful" from every pilgrim who passes, and bleeding the ones who argue as an example. He keeps records of who paid. The Choir lets him; a frightened, fleeced town kneels easier.<br><br>Maren slid the contract across the bar with her thumb over the wax. "We can\'t be seen to pay for it," she said. "So I\'m not paying you. We never spoke. End it quietly, and remember whose coin you carry when you do." Cornered, the man fights like he has nothing left, because by now he hasn\'t.' },
+  { id:'the_web_in_the_mill', name:'The Web in Hollow Mill', qType:'sidequest', repeatable:true, type:'Contract', giver:'Tobias the miller',
+    desc:'Wrong, swollen spiders have choked Hollow Mill in silk. The miller can\'t work and won\'t go back in.',
+    monster:{ spr:['spider','#3a2c40'], name:'Brood-Spinner', emoji:'🕷️', hp:85, atk:10, venom:2 }, xp:57, g:800,
+    flavor:'The miller\'s boys won\'t set foot inside. Her bite festers for hours, bring potions.',
+    lore:'Hollow Mill ground Oppidum\'s grain for five generations. The webs came this spring, sheets of silk thick as sailcloth, and the things that spin them are too big and too pale and too many for any season Tobias has lived through. He sent his eldest in with a torch. The boy came out white-haired and will not speak of what hung from the rafters.<br><br>The flour runs out in a fortnight, and with it the bread, in a town where bread is the one comfort still holding. Her venom works long after the bite. Potions are not a luxury on this contract. They are the plan.' },
+  { id:'the_unburied', name:'The Unburied', qType:'sidequest', repeatable:true, type:'Hunt', giver:'the sexton, who will not say which Choirman sent him',
+    desc:'A dead knight walks the chapel yard at dawn, in plate from a war older than the town walls. Lay it to rest.',
+    monster:{ spr:['skeleton'], name:'Restless Knight', emoji:'💀', hp:120, atk:15, armored:true }, xp:70, g:900,
+    flavor:'A knight who forgot he died. Blades glance off the old plate. Strike true, and often.',
+    lore:'The dead used to stay down. They do not, anymore, not since the dawn voice turned and something in the ground stopped resting easy. There are plate-boot prints in the frost inside the chapel yard each morning, in a yard that has not been opened since the old wars, and the Choir lights a candle and reads over them and pretends that is enough.<br><br>The sexton drinks because it is not enough. He found you because he cannot ask the Choir for help with a thing the Choir is busy denying. He does not ask you to destroy the knight. He asks you to free it, and he is old enough to know those are the same word. (Heard of only in the Inn\'s common room, over a bought round.)' },
+  { id:'the_poisoned_well', name:'The Poisoned Well', qType:'sidequest', repeatable:true, type:'Contract', giver:'the warden\'s wife',
+    desc:'Someone is fouling the east well, the way the wells were fouled in the old story. Track the poisoner down.',
+    monster:{ spr:['humanoid','#3a4a2a'], name:'Well-Poisoner', emoji:'🧪', hp:95, atk:12, venom:3 }, xp:55, g:750,
+    flavor:'A sickness in the water, and a coin in it for whoever ends it. The warden\'s wife pays double the law allows.',
+    lore:'It is in the oldest story there is: the god who ruined a good man\'s life soured his well first, with the hands of men who served a god for favor. The folk of Oppidum do not all remember the story, but their bodies do. Nobody draws from the east well now. It went sour like milk on the turn the same season the bell did.<br><br>This poisoner is no devil out of legend, only a quisling with a burned mark on his arm and a grudge for hire, doing the Choir\'s patient work: a weak, sick town kneels easier. The warden cannot be seen to pay for a killing, so his wife pays from her own coin and says nothing about lawful or unlawful. Her child was the first to sicken. It lived. Two others did not. Mind the bite; it is the same poison he puts in the water.' },
+  { id:'iron_jaws', name:'Iron Jaws', qType:'sidequest', repeatable:true, type:'Hunt', giver:'Bram, miller south of the road',
+    desc:'A maddened boar with iron-hard tusks smashes the waterwheel nightly. Bram is ruined unless it stops.',
+    monster:{ spr:['boar','#4a3a28'], name:'Iron-Tusk Boar', emoji:'🐗', hp:115, atk:14, frenzy:true }, xp:65, g:800,
+    flavor:'Something huge comes up from the river at dusk, furious at nothing, and is gone by dawn.',
+    lore:'Bram rebuilt the waterwheel three times. The first time he blamed rot, the second bad luck. The third time he found the tracks, hoof-prints two hands across driven so deep the mud dried around them like iron casts. The beasts have been wrong since the chill came. This one comes up from the river at dusk and destroys the wheel with a patient, systematic fury, as if something has soured its temper past any natural reason, and returns before light.<br><br>”I don\'t need it dead,” Bram says. “I need it gone.” He doesn\'t believe it can be done. He offers the coin anyway, because a debt paid is a man\'s last dignity when he\'s lost the rest. The boar grows fiercer the more it bleeds. Do not mistake a wound for a victory.' },
+  { id:'the_taken', name:'The Taken', qType:'sidequest',
+    type:'Hunt', zone:1, giver:'Maren, who keeps the Inn',
+    desc:'One of Maren\'s lodgers was named on the dawn-list and walked toward the Hollow alone. Find what found him.',
+    monster:{ spr:['humanoid','#5a4630'], name:'Hollow-Struck Wretch', emoji:'🥷', hp:22, atk:5 },
+    xp:30, g:550,
+    flavor:'The dawn voice names the sick. The named ones walk to the Hollow and don\'t come back. This one nearly did.' },
+  { id:'groves_for_the_apothecary', name:'Groves for the Apothecary', qType:'sidequest',
+    type:'Hunt', zone:1, giver:'Mother Elswyth, apothecary',
+    desc:'The blight has reached the herb groves; pale crawlers nest where the medicine grows. Cull them.',
+    monster:{ spr:['spider','#5a7a3a'], name:'Blight Crawler', emoji:'🍄', hp:18, atk:3, venom:1 },
+    xp:25, g:480,
+    flavor:'"Half my remedies grow in those groves. The other half won\'t be enough for what\'s coming." — Elswyth' },
+  { id:'elswyths_antidote', name:'Mother Elswyth’s Antidote', qType:'sidequest', kind:'gather', type:'Contract', icon:'🧪', zone:1,
+    giver:'Mother Elswyth, apothecary',
+    desc:'The well-sickness spreads faster than Elswyth can brew. Bring her herbs and she’ll make enough to matter.',
+    need:[{ mat:'herb', qty:5 }], xp:35, g:600,
+    scene:{ text:'“Half my remedies grow in the groves the blight is eating,” Elswyth says, “and the other half I cannot brew without herbs in my hands. Bring me five good bundles and I’ll have something for the next family the dawn names. Bring me none and I’ll have a queue at my door and nothing in the pot.”',
+      line:'Elswyth grinds the herbs without looking up. “It won’t cure what the Choir is doing. But it’ll keep a child breathing till someone braver than me ends it. That’ll have to be enough.”' } },
+  { id:'the_choirs_eyes', name:'The Choir\'s Eyes', qType:'optional',
+    type:'Hunt', zone:1, giver:'a frightened Footsworn',
+    desc:'Choir informers are watching who comes and goes from the Footsworn\'s door. Intercept them before they report.',
+    monster:{ spr:['humanoid','#3a4a2a'], name:'Choir Informer', emoji:'👁️', hp:30, atk:6, swift:true },
+    xp:40, g:620,
+    flavor:'The Choir hears everything said in the cell. That means someone is carrying it to them. Stop the carriers.' },
   { id:'the_deserter', name:'The Deserter', qType:'optional',
-    type:'Hunt', zone:1, giver:'Innkeeper\'s board',
-    desc:'A deserter from the eastern wars has taken up banditry in the fields. The garrison offers a bounty.',
-    monster:{ name:'Deserter', emoji:'🗡️', hp:35, atk:7, frenzy:true },
-    xp:50, g:720 },
-  { id:'cold_trail', name:'Cold Trail', qType:'sidequest',
-    type:'Hunt', zone:1, giver:'Marta, keeper of the Resting Boar',
-    desc:'Something has been digging up graves near the chapel. The priest suspects a wight.',
-    monster:{ name:'Barrow Wight', emoji:'💀', hp:26, atk:5, armored:true },
-    xp:35, g:580 },
-  { id:'overrun', name:'Overrun!', qType:'repeatable',
-    type:'Hunt', zone:1, giver:'Town guard',
-    desc:'The rat population explodes weekly. The guard pays a standing bounty for pest control.',
-    monster:{ name:'Plague Rat', emoji:'🐀', hp:20, atk:4, swift:true },
-    xp:20, g:420 },
-  { id:'the_forest_troll', name:'The Forest Troll', qType:'story', type:'Boss', giver:'Reeve Ostric, by emergency decree',
-    monster:{ name:'Forest Troll', emoji:'👹', hp:220, atk:21, regen:5 }, xp:110, g:1500, boss:true,
-    flavor:'It mends as fast as you cut. Strike harder than it heals, or not at all.',
-    lore:'It came down from the treeline in the night and took the toll bridge apart stone by stone, eating, the witnesses insist, the mortar. Trolls are why Oppidum\'s grandmothers say the forest is locked. Its flesh knits faster than any blade can open it; half-measures only feed it. The decree promises gold, but everyone knows what this hunt truly is: the key to the Greenwood. Beyond the troll lies the old green world, and none have walked it in a generation.',
-    bossMsg:'The path to the Greenwood is open!',
-    bossLoot:[{id:'troll_hide_shield', name:"Troll-Hide Shield", emoji:'🛡️', def:8, grade:'E', slot:'shield', g:1800}] },
+    type:'Hunt', zone:1, giver:'the gate watch',
+    desc:'A soldier broken by the eastern wars has turned to banditry in the fields. The watch posts a quiet bounty.',
+    monster:{ spr:['humanoid','#4a4030'], name:'War-Broken Deserter', emoji:'🗡️', hp:35, atk:7, frenzy:true },
+    xp:50, g:720,
+    flavor:'Not a monster. A man the world used up and threw down the Road. He fights like he\'s already lost.' },
+  { id:'the_dreaming_dead', name:'The Dreaming Dead', qType:'sidequest',
+    type:'Hunt', zone:1, giver:'Big Doll, keeper of the Foundered Horse',
+    desc:'Something digs in the barrows near the chapel by night, and the diggers wear the dreaming look. End it.',
+    monster:{ spr:['skeleton'], name:'Barrow-Dreamer', emoji:'💀', hp:26, atk:5, armored:true },
+    xp:35, g:580,
+    flavor:'They lie down in the cold with a small smile, as if something whispered that it was all right to stop. It is not.' },
+  { id:'timber_for_the_gate', name:'Timber for the Gate', qType:'sidequest', kind:'gather', type:'Contract', icon:'🪵', zone:1,
+    giver:'the gate watch',
+    desc:'The Road-gate is half-rotted and something is coming up the Road. Bring timber to shore it up before it does.',
+    need:[{ mat:'wood', qty:6 }], xp:45, g:700,
+    scene:{ text:'“I don’t know what’s walking up from the south,” the watch-sergeant says, “but the gate won’t hold a hard shove, and I’ve had the wrong kind of dream three nights running. Six good beams from the Commons. I’d cut them myself if I could leave the post.”',
+      line:'They set the beams that evening, hammering against the dark. “Maybe it holds,” the sergeant says. “Maybe it just means we tried. Some nights that’s the whole of it.”' } },
+  { id:'the_tithe_eater', name:'The Tithe-Eater', qType:'story', type:'Boss', giver:'the truth beneath the Dawn That Lied',
+    monster:{ spr:['brute','#3a2c40','#241a2a'], name:'The Tithe-Eater', emoji:'👹', hp:175, atk:18, regen:4 }, xp:95, g:1300, boss:true,
+    flavor:'It mends as fast as you cut, because it has been fed for a season. Come as a storm, or do not come.',
+    lore:'The dawn Litany named a sickness, blamed the west well, and ordered the town to wall its sick into the Hollow and seal them in "to spare the rest." The town obeyed, dull-eyed, the way it has obeyed every dawn for a thousand years. You could not. So you went down into the Hollow after them, past Choirmaster Vane\'s threats, and found the truth: the Hollow is where the broken door leaks, and a thing crept through it. The corrupted Litany has been feeding it the town\'s sick all season. The dawn command was never protection. It was a sacrifice, and the Tithe-Eater is what the sacrifice fed.<br><br>It is bloated and slow and mends faster than any blade should allow, because it has eaten well. Kill it and the lie is bare for the whole town to see. Some will thank you. Some will be terrified that anyone defied the voice at all.',
+    bossMsg:'The Tithe-Eater falls, and the lie lies open in the daylight. The Vagabond names what you are — a vessel of Gradus. By the next dawn the Litany will speak your name, and far down the Road, something turns to look.',
+    bossLoot:[{id:'door_warded_helm', name:"Door-Warded Helm", emoji:'⛑️', def:5, grade:'E', slot:'helm', g:1300}] },
+  { id:'the_marked', name:'The Marked', qType:'story', kind:'scene', type:'Story', icon:'🕯️',
+    giver:'Maren, who keeps the Inn',
+    desc:'The Hollow is closed and a boy is buried. Maren wants a word — in the back room, where the Choir can’t hear.',
+    xp:60, g:800,
+    scene:{ text:'Maren bars the common-room door and pours two cups you did not ask for. “Tam was mine to keep and I couldn’t, and you went down into that cave when the whole town studied its shoes. So.” She slides a worn coin across the table, a walking man stamped on its face. “We’re not heroes. We’re frightened people who got tired of kneeling, and we rally to the name on the coin because it’s the one word the High Crown swore to unmake. The Footsworn will have you, if you’ll have us.”<br><br>Out back, under the cold, there is a fresh grave with no Choir mark on it. Maren does not mention it. She does not have to.',
+      choices:[
+        { label:'Take the coin. “I’m with you.”', line:'She nods once, the way people do when they have already spent their tears. “Then mind your mouth in that cell, and walk the Road like you mean it. That’s the whole of the oath.”' },
+        { label:'Stand at Tam’s grave first', line:'You stand a while where the boy is buried. No words come that are worth saying. When you go back in, Maren has set the coin beside your cup. You take it.' },
+      ] } },
+  { id:'what_the_well_fed', name:'What the Well Fed', qType:'story', kind:'gather', type:'Story', icon:'🩸',
+    giver:'the Footsworn, who need proof',
+    desc:'The Tithe-Eater is dead, but the machinery that fed it is not. Bring back what the Hollow soaked in, so the town can’t look away.',
+    need:[{ mat:'glowdust', qty:4 }], xp:80, g:1000,
+    scene:{ text:'“Killing the thing is not the same as ending it,” Maren says. “The Choir will call it a beast, a one-off, nothing to do with the dawn. Bring back that wrong light that clings to everything down in the Hollow — four good handfuls. Enough to lay on the chapel steps where the whole square has to see it.”',
+      line:'You spill the glowdust on the worn temple steps at the next dawn. It clings to Vane’s hem and will not brush off, and he keeps reading anyway. But the people in the square are looking at the light now, not at their shoes — and a thing seen cannot be unseen.' } },
+  { id:'the_informer', name:'The Informer', qType:'story', kind:'scene', type:'Story', icon:'📜',
+    giver:'Edrin the baker, who cannot meet your eye',
+    desc:'Edrin has been carrying names to the Choir to keep Wenna off the dawn-list. He wants to stop. There is no clean way to let him.',
+    xp:90, g:1100,
+    scene:{ text:'Edrin’s hands are white with flour and shaking. “They have my Wenna’s name on a list,” he says. “Every week I give them one of yours, and they cross hers off for another seven days. I gave them Col’s mother. I gave them the sexton. I can’t — I can’t keep —” He sets a folded paper on the counter. This week’s name. “Tell me what to do and I’ll do it. Just don’t tell me it’s simple. Nobody who says it’s simple has a daughter.”',
+      choices:[
+        { label:'Take the list to the Footsworn — let the cell decide', line:'You carry it to Maren. The cell will warn the named and feed the Choir a careful lie in Edrin’s own hand, and it holds — until it doesn’t. No one is safe. Everyone is, for now. That is the most you get.' },
+        { label:'Burn the paper. “No more names. We guard Wenna ourselves.”', line:'The paper goes into the oven. The brave choice, and maybe the foolish one; the Choir will notice the silence by the next moon. Edrin weeps with relief and fear at once. You have bought a girl her father. You may have bought her something worse. There was never a clean answer — only the one you can carry.' },
+      ] } },
+  { id:'brand_the_returned', name:'Brand the Returned', qType:'story', type:'Boss', giver:'the figure walking up the lake shore at dawn',
+    monster:{ spr:['wanderer'], name:'Brand, the Returned', emoji:'🚶', hp:220, atk:21, regen:5 }, xp:110, g:1500, boss:true,
+    flavor:'He won\'t stop, and he won\'t fall, and he wears the face the town still keeps a candle for. This is the mercy.',
+    lore:'Years ago Brand walked south to free the dead and was mourned as a martyr. The Iron Hound did not kill him. He sent him home Hollowed, wearing his own face as a weapon, to do the corruption\'s deepest work: to stand in the square and preach the despair, soft and reasonable, that nothing is out there, no one is coming, it is all right to stop. Captain smelled the wrong in him first and fled. Then he walked the woman who loved him out into the cold lake.<br><br>You cannot save the already-stopped, only the still-walking. This is the lesson the whole Road will teach again and harder: company against the dark, and a clean ending for the ones the dark already took. Give Brand the mercy his murderers denied him. Then there is only one thing left to do, which is to leave, so the Road stops coming to this town.',
+    bossMsg:'Brand is at rest, twice buried. There is nothing left in Oppidum but the people you would die to keep, which is exactly why you must go. The Road runs south, toward the Greenwood, and this time you will not walk it alone.',
+    bossLoot:[{id:'brands_shield', name:"Brand's Round-Shield", emoji:'🛡️', def:8, grade:'E', slot:'shield', g:1800}] },
+  { id:'worthy_of_a_name', name:'Worthy of a Name', qType:'story', kind:'milestone', type:'Story', icon:'✦',
+    giver:'the calling, when you have walked far enough',
+    desc:'Brand is at rest. You are no longer the wanderer who walked in six days ago. Walk far enough and a Crown will call you.',
+    xp:120, g:1500,
+    milestone:{ type:'level', value:10, board:'Reach level 10 — the calling', hint:'Grow to level 10 through quests, hunts, and the Road. At ten, a god offers you a calling — Knight, Mage, Archer, or Cleric.' },
+    scene:{ line:'Far enough down the Road, the thing that has watched you since the Tithe-Eater finally speaks. A Crown offers you a calling — each for its own reasons, none of them quite yours. To take a calling is not to kneel. It is to choose whose quarrel you have joined.' } },
+  { id:'the_long_way_out', name:'The Long Way Out', qType:'story', kind:'scene', type:'Story', icon:'🚪',
+    giver:'Edra, waiting at the south gate',
+    desc:'There is nothing left in Oppidum but the people you would die to keep — which is exactly why you must go. The Road runs south.',
+    xp:150, g:2000,
+    scene:{ text:'A woman is leaning on the south gate with a pack already shouldered, as if she has been waiting for you to be done. “Edra,” she says, before you ask. “I go where you go. Don’t make it strange.” Behind you, Col is pretending not to cry and doing it badly. You cannot take him. You cannot stay. The Road keeps sending its dead to this town because you are standing in it — and the kindest thing you will ever do for Oppidum is leave, so it follows you and not them.<br><br>The gate the watch shored up swings open on the grey morning. South, the Greenwood waits, loud with rivers.',
+      choices:[
+        { label:'Say goodbye to Col. Then walk.', line:'“Walking is a thing a person can choose to be,” you tell the boy — the Vagabond’s line, truer than when he said it. Then you turn south, Edra falls into step, and the Road takes you. The way to the Greenwood is open.' },
+        { label:'Don’t look back. Just walk.', line:'You do not trust your face to do goodbye. You shoulder the pack and go, Edra a half-step behind, and you do not look back at the town, the boy, or the grave. The Road runs south into the Greenwood — and for the first time you walk it with company.' },
+      ] } },
   // ---- Zone 2: the Greenwood (D-grade hunting grounds) ----
-  { id:'roots_that_walk', name:'Roots That Walk', qType:'optional', type:'Hunt', giver:'Warden Yvet of the Greenwood marches',
-    monster:{ name:'Sprouting Treant', emoji:'🌱', hp:240, atk:22, regen:4 }, xp:130, g:1800, zone:2,
-    flavor:'The Greenwood\'s saplings pull free of the soil and walk. The wood remembers axes.',
-    lore:'Yvet has warded the forest edge since before the troll came, marking the boundary oaks with iron nails. Now the saplings pull their roots from the soil and walk the marches at dusk, and her nails turn up bent in the grass. “The wood remembers every axe we ever swung,” she says, “and something deep in the Greenwood has been reminding it.” She wants the walking ones cut down before they learn to walk in numbers.' },
+  { id:'the_forest_troll', name:'The Forest Troll', qType:'optional', type:'Hunt', giver:'Warden Yvet of the Greenwood marches',
+    monster:{ spr:['brute','#5a7a3a','#46602e'], name:'Forest Troll', emoji:'👹', hp:240, atk:22, regen:4 }, xp:130, g:1800, zone:2,
+    flavor:'It mends as fast as you cut. The deep Greenwood breeds them big. Strike harder than it heals, or not at all.',
+    lore:'Trolls are why Oppidum\'s grandmothers say the forest is locked, and why no one has walked the Greenwood in a generation. The Litany used to keep them deep in the wood. Now the dawn voice lies, the old wards fail, and the great green things come down to the marches to take the toll-bridge apart stone by stone and eat, the witnesses insist, the mortar.<br><br>Warden Yvet has marked the boundary oaks with iron nails since before her hair went grey; her nails turn up bent in the grass now. Its flesh knits faster than any blade can open it, and half-measures only feed it. Come as a storm.' },
   { id:'tusks_in_the_thicket', name:'Tusks in the Thicket', qType:'optional', type:'Hunt', giver:'Joss, huntsman of the lodge',
-    monster:{ name:'Dire Boar', emoji:'🐗', hp:280, atk:25, frenzy:true }, xp:155, g:2000, zone:2,
+    monster:{ spr:['boar','#5f4326'], name:'Dire Boar', emoji:'🐗', hp:280, atk:25, frenzy:true }, xp:155, g:2000, zone:2,
     flavor:'Wounded boars don\'t run. They remember.',
     lore:'Joss has hunted boar his whole life and wears the scars like a ledger. This one is different, it gored his hunting partner of twenty years, then waited beside the body for the rest of the party to come. “A normal pig kills you because you\'re in the way,” he says, sharpening a spear he no longer trusts. “This one keeps count.” The angrier it gets, the harder it hits. Do not let the bleeding make you bold.' },
   { id:'lights_in_the_mist', name:'Lights in the Mist', qType:'optional', type:'Hunt', giver:'Wenna the charcoal-burner',
-    monster:{ name:'Forest Wisp', emoji:'✨', hp:435, atk:33, swift:true }, xp:175, g:2200, zone:2,
+    monster:{ spr:['wisp'], name:'Forest Wisp', emoji:'✨', hp:435, atk:33, swift:true }, xp:175, g:2200, zone:2,
     flavor:'Follow the lights, lose the path. It strikes before you see it.',
     lore:'Wenna\'s camp sits deeper in the Greenwood than anyone\'s, and she keeps two rules: never whistle after dark, never count the lights. Her apprentice counted. They found his charcoal stacks still smoldering and his boots set neatly side by side at the edge of the mist. No boy. The light that took him still dances over the wet hollows, beautiful and patient, and it will have struck before you know the fight has begun. Wenna pays in coin she had saved for the boy\'s wages.' },
   { id:'the_silken_hollow', name:'The Silken Hollow', qType:'optional', type:'Contract', giver:'Cassia, silk-trader of the southern road',
-    monster:{ name:'Webweaver Queen', emoji:'🕸️', hp:500, atk:40, venom:6 }, xp:200, g:2400, zone:2,
+    monster:{ spr:['spider','#503050'], name:'Webweaver Queen', emoji:'🕸️', hp:500, atk:40, venom:6 }, xp:200, g:2400, zone:2,
     flavor:'Queen of the web-choked hollow. Her venom drips through mail. Stock the satchel.',
     lore:'Cassia built a fortune on spider-silk gathered at the hollow\'s edge, finest thread south of the mountains, and she never asked what spun it. Then her gatherers stopped coming back with silk, and then they stopped coming back at all. The contract is blunt: the Queen dies, the hollow opens, the guild pays grandly. Her venom is the worst in the Greenwood. It works through mail, through skin, through hours. Bring every potion you own. She means it.' },
-  { id:'toll_of_the_greenwood', name:'Toll of the Greenwood', qType:'optional', type:'Contract', giver:'Captain Roderic, late of the merchant escort',
-    monster:{ name:'Bandit Warlord', emoji:'⚔️', hp:545, atk:34, armored:true }, xp:220, g:2600, zone:2,
+  { id:'toll_of_the_greenwood', name:'Toll of the Greenwood', qType:'optional', type:'Contract', giver:'Captain Halden, late of the merchant escort',
+    monster:{ spr:['humanoid','#55555e'], name:'Bandit Warlord', emoji:'⚔️', hp:545, atk:34, armored:true }, xp:220, g:2600, zone:2,
     flavor:'The Warlord wears a dead knight\'s plate. History repeats its tolls.',
-    lore:'Roderic commanded twelve swords escorting the autumn caravan. He walked out of the Greenwood alone. The Warlord who broke them was a toll-bandit once. The Chief\'s own brother, some whisper. And he has done what his brother never dared: killed a knight and pried the plate off the corpse. Roderic\'s wages, his savings, and his sword-oath are yours if you put the Greenwood toll out of business for good.' },
+    lore:'Halden commanded twelve swords escorting the autumn caravan. He walked out of the Greenwood alone. The Warlord who broke them was a toll-bandit once, the Chief\'s own brother, some whisper, and he has done what his brother never dared: killed a knight and pried the plate off the corpse. Halden\'s wages, his savings, and his sword-oath are yours if you put the Greenwood toll out of business for good.' },
   { id:'the_amber_wasps', name:'The Amber Wasps', qType:'optional', type:'Contract', giver:'a guild factor, recently fled from the hollow',
-    monster:{ name:'Amber Wasp Queen', emoji:'🪲', hp:470, atk:37, venom:5, swift:true }, xp:200, g:2600, zone:2,
+    monster:{ spr:['spider','#6a5020'], name:'Amber Wasp Queen', emoji:'🪲', hp:470, atk:37, venom:5, swift:true }, xp:200, g:2600, zone:2,
     flavor:'A new hive in the silk hollow, bigger than any wasp should grow. Her venom moves fast.',
     lore:'The factor did not mention the hive when he hired the last crew of gatherers. He thought it was small. By the time the screaming started it was the size of a barn. The Amber Wasp Queen is not native to the Greenwood — no one is certain where she came from, only that she builds fast, breeds faster, and her guard wasps strike the moment anything enters range.<br><br>Her venom is quick and merciless. Unlike the Queen\'s webs, it gives no warning: one sting, then the burning starts. She moves before you think she\'s seen you. Bring potions. Drink the first one before you enter range.' },
   { id:'the_glass_swordsman', name:'The Glass Swordsman', qType:'optional', type:'Contract', giver:'a dying soldier found on the forest road',
-    monster:{ name:'Glass Swordsman', emoji:'🗡️', hp:520, atk:43, swift:true, armored:true }, xp:225, g:2800, zone:2,
+    monster:{ spr:['humanoid','#8a8090'], name:'Glass Swordsman', emoji:'🗡️', hp:520, atk:43, swift:true, armored:true }, xp:225, g:2800, zone:2,
     flavor:'A warrior ground to perfection. She counters everything. You must be faster.',
     lore:'The dying soldier gave one description before he stopped being able to talk: a woman in pale armour, moving so quietly the leaves didn\'t stir. She wears the glass plate of the old order — ground from forest crystal, harder than steel, lighter than leather. Her blade is the same material. It doesn\'t catch the light. It bends it.<br><br>She has no contract, no employer, no bounty posted by her hand. She simply stands on the road and waits for someone worth fighting. The soldier was not. You may be. She is armored and fast. Your first strike will tell her everything she needs to know about you. Make it count.' },
   { id:'heart_of_the_forest', name:'Heart of the Forest', qType:'story', type:'Boss', giver:'Maelo, last druid of the old circle',
-    monster:{ name:'Ancient Treant', emoji:'🌳', hp:760, atk:48, regen:12 }, xp:350, g:5000, zone:2, boss:true,
+    monster:{ spr:['brute','#4a3a20','#352a13',true], name:'Ancient Treant', emoji:'🌳', hp:760, atk:48, regen:12 }, xp:350, g:5000, zone:2, boss:true,
     flavor:'The eldest tree walks. Bring an elixir and every potion you own.',
     lore:'Maelo remembers when the circle sang to the Eldest and it answered with good harvests. The circle is dead now; the Eldest outlived its keepers, then its patience, then its sanity. It is the thing that woke the saplings, bent Yvet\'s iron, and fattened the Queen. The druid asks not for victory but for mercy: “End the song that is left in it. It will mend faster than you can wound it. Come as a storm, or do not come.”',
     bossMsg:'The Greenwood falls silent… for now.',
     bossLoot:[{id:'verdant_bow', name:"Verdant Bow", emoji:'🏹', atk:18, grade:'D', slot:'weapon', g:4000}] },
   { id:'echo_of_the_first_wanderer', name:'✠ Echo of the First Wanderer', qType:'story', type:'Legend', giver:'a nameless pilgrim, who pays in advance',
-    monster:{ name:'The First Wanderer', emoji:'👁️', hp:780, atk:40, swift:true, frenzy:true }, xp:880, g:20000, zone:2, boss:true,
+    monster:{ spr:['wanderer'], name:'The First Wanderer', emoji:'👁️', hp:780, atk:40, swift:true, frenzy:true }, xp:880, g:20000, zone:2, boss:true,
     flavor:'The first to walk ten thousand steps never stopped. It waits beyond the treeline for those who dare. Enchant your blade.',
     lore:'Before Oppidum, before the Reeve\'s wax and the Bank\'s vaults, there was only the road, and the first one to walk it. Ten thousand steps a day, the old verses say, every day, until the body wore out and the walking didn\'t. What waits beyond the treeline is not a ghost and not a god. It is the stride itself, hungry for someone worth pacing. The pilgrim who posts this bounty leaves the gold up front and does not wait for news. “Either you outwalk the legend,” she says, “or you join it.”',
     bossMsg:'The Echo bows, and walks on. You have surpassed the legend.' },
-  // ── Zone 3: The Ruins (unlock at questsCleared >= 17) ──
+  // ── Zone 3: The Ruins (unlock at questsCleared >= 23) ──
   { id:'hounds_of_ash', name:'Hounds of Ash', qType:'optional', type:'Hunt', zone:3, xp:200, g:1400,
     giver:'a scout posted at the ruins gate',
     flavor:'"They don\'t bark. They don\'t growl. They just come."',
-    monster:{ name:'Ash Hound', emoji:'🐕', hp:320, atk:32, venom:2, swift:true } },
+    monster:{ spr:['wolf','#6a5c50'], name:'Ash Hound', emoji:'🐕', hp:320, atk:32, venom:2, swift:true } },
   { id:'the_tomb_warden', name:'The Tomb Warden', qType:'optional', type:'Hunt', zone:3, xp:230, g:1600,
     giver:'a grave-robber who barely made it back',
     flavor:'"It stood perfectly still — until it didn\'t."',
-    monster:{ name:'Tomb Warden', emoji:'⚰️', hp:420, atk:36, armored:true } },
+    monster:{ spr:['skeleton'], name:'Tomb Warden', emoji:'⚰️', hp:420, atk:36, armored:true } },
   { id:'bone_archers', name:'Bone Archers', qType:'optional', type:'Hunt', zone:3, xp:255, g:1800,
     giver:'Warden Yvet, second dispatch',
     flavor:'"The bolts come from everywhere. Stay moving."',
-    monster:{ name:'Bone Archer', emoji:'🏹', hp:370, atk:40, swift:true } },
+    monster:{ spr:['humanoid', C_BONE], name:'Bone Archer', emoji:'🏹', hp:370, atk:40, swift:true } },
   { id:'the_plague_shade', name:'The Plague Shade', qType:'optional', type:'Contract', zone:3, xp:280, g:2000,
-    giver:'Father Bede, under seal of the chapel',
-    lore:'"Something old woke up in those stones. It taints the air around it. Do not breathe deep." — Father Bede',
-    monster:{ name:'Plague Shade', emoji:'💀', hp:480, atk:42, venom:4, regen:2 } },
+    giver:'the old sexton, against the Choirmaster\'s orders',
+    lore:'"Something old woke up in those stones. It taints the air around it. Do not breathe deep. And don\'t tell the Choir I sent you." — the old sexton',
+    monster:{ spr:['wisp'], name:'Plague Shade', emoji:'💀', hp:480, atk:42, venom:4, regen:2 } },
   { id:'iron_sentinel', name:'Iron Sentinel', qType:'optional', type:'Hunt', zone:3, xp:310, g:2300,
     giver:'a guild factor, by urgent letter',
     flavor:'"It was built to guard. Whatever it was guarding is long gone. It guards still."',
-    monster:{ name:'Iron Sentinel', emoji:'🤖', hp:600, atk:40, armored:true } },
+    monster:{ spr:['brute', C_IRON, C_STEEL], name:'Iron Sentinel', emoji:'🤖', hp:600, atk:40, armored:true } },
   { id:'the_ruinborn_warlord', name:'The Ruinborn Warlord', qType:'optional', type:'Contract', zone:3, xp:340, g:2600,
-    giver:'Captain Roderic, final dispatch',
+    giver:'Captain Halden, final dispatch',
     flavor:'"He remembers nothing of his old life. Only the fighting."',
-    monster:{ name:'Ruinborn Warlord', emoji:'⚔️', hp:550, atk:48, frenzy:true, swift:true } },
+    monster:{ spr:['humanoid','#4a3a28'], name:'Ruinborn Warlord', emoji:'⚔️', hp:550, atk:48, frenzy:true, swift:true } },
   { id:'cursed_colossus', name:'✠ Cursed Colossus', qType:'story', type:'Legend', zone:3, xp:440, g:3500, boss:true,
     giver:'a proclamation nailed to the ruins gate',
     lore:'"Nobody built it. Nobody remembers it being built. It simply was." — The Proclamation',
-    monster:{ name:'Cursed Colossus', emoji:'🗿', hp:750, atk:40, armored:true, regen:5 },
+    monster:{ spr:['brute','#6a6260','#4a4240',true], name:'Cursed Colossus', emoji:'🗿', hp:750, atk:40, armored:true, regen:5 },
     bossMsg:'The Colossus crumbles, stone by stone, into dust.' },
   { id:'the_lich_of_oppidum', name:'✠ The Lich of Oppidum', qType:'story', type:'Legend', zone:3, xp:550, g:4500, boss:true,
     giver:'the town records, a name that should not exist',
-    lore:'"He was the first Reeve of Oppidum, three hundred years before Ostric. He never left." — Town Records, Vol. I',
-    monster:{ name:'The Lich', emoji:'👁️', hp:750, atk:40, venom:2, regen:3, swift:true, armored:true },
+    lore:'"He was the first Warden of Oppidum, three hundred years gone, from before the town had walls. He never left." — Town Records, Vol. I',
+    monster:{ spr:['skeleton'], name:'The Lich', emoji:'👁️', hp:750, atk:40, venom:2, regen:3, swift:true, armored:true },
     bossMsg:'The Lich dissolves. The Ruins grow quiet for the first time in centuries.' },
 ];
+// Computed unlock gates: clearing this many quests opens the next zone.
+const FOREST_UNLOCK = QUESTS.findIndex(q => (q.zone || 1) >= 2);
+const RUINS_UNLOCK  = QUESTS.findIndex(q => (q.zone || 1) >= 3);
+(function validateContent(){
+  try {
+    QUESTS.forEach((q,i)=>{
+      if (q.kind && q.kind !== 'combat') return;   // scene/gather/milestone quests have no monster
+      const m=q.monster;
+      if(!m||!m.spr) return console.warn('[gradus] quest',i,q.id,'missing monster.spr');
+      if(!MON_BUILDERS[m.spr[0]]) console.warn('[gradus] quest',i,q.id,'unknown sprite kind:',m.spr[0]);
+    });
+  } catch(e){ console.warn('[gradus] validateContent error',e); }
+})();
 /* Rumor-locked quests: some hunts only appear after you hear of them
    in the Inn\'s common room (buy a round, hear the tale).
-   questIdx values match QUESTS array (0-16). */
+   rumors reference their quest by id (qid), so they survive reordering. */
 const RUMORS = [
-  { id:'grave', questIdx:4, cost:25, teller:'a gravedigger, deep in his cups',
-    text:'”Why d\'you think the sexton drinks? Every dawn there\'s boot-prints in the frost inside the chapel yard, plate boots, in a yard nobody\'s opened since the old wars. Father Bede knows whose they are. Ask him about the candle he lights.”' },
-  { id:'mist', questIdx:10, cost:50, teller:'Wenna\'s cousin, hauling charcoal to market',
+  { id:'grave', qid:'the_unburied', cost:25, teller:'a gravedigger, deep in his cups',
+    text:'”Why d\'you think the sexton drinks? Every dawn there\'s plate-boot prints in the frost inside the chapel yard, in a yard nobody\'s opened since the old wars. The Choir reads over them and calls it nothing. The dead don\'t stay down since the dawn voice turned. Go lay the poor thing to rest, since the holy men won\'t.”' },
+  { id:'mist', qid:'lights_in_the_mist', cost:50, teller:'Wenna\'s cousin, hauling charcoal to market',
     text:'”My cousin won\'t leave the Greenwood, not even now. Says the lights took her apprentice and left his boots standing side by side, neat as church shoes. She\'s got coin saved and nobody left to spend it on. If a light can be killed, go and see her.”' },
-  { id:'wasps', questIdx:13, cost:60, teller:'a guild factor, recently fled from the hollow',
+  { id:'wasps', qid:'the_amber_wasps', cost:60, teller:'a guild factor, recently fled from the hollow',
     text:'”I lost four good men to something that wasn\'t there last season. The whole silk hollow is sealed. The hive is enormous. Someone needs to deal with the queen before it spreads to the road. I pay in guild script, which is better than coin.”' },
-  { id:'glass', questIdx:14, cost:75, teller:'a limping soldier with a broken sword',
+  { id:'glass', qid:'the_glass_swordsman', cost:75, teller:'a limping soldier with a broken sword',
     text:'”She took my sword at the hilt — just snapped it. Glass plate, glass blade, moves like water. I\'ve been walking since dawn and I still can\'t feel my sword hand. She\'s still out there. She\'s waiting for the next one.”' },
-  { id:'pilgrim', questIdx:16, cost:100, teller:'a hooded pilgrim alone in the corner',
+  { id:'pilgrim', qid:'echo_of_the_first_wanderer', cost:100, teller:'a hooded pilgrim alone in the corner',
     text:'”You silenced the Heart of the Forest? Then you\'re ready to hear it. The first one to walk this road never stopped walking. It\'s still out there past the treeline, keeping pace with nothing. I pay in advance. The ones who could collect afterward are rare.”' },
 ];
 /* Lore chats: flavor conversations at the Inn, no quest attached */
@@ -1735,35 +1932,35 @@ const LORE_CHATS = [
 ];
 /* ─── Inn regulars: rotate daily, flavour the world ─── */
 const INNFOLK = [
-  { name:'Harwick the Trader',  icon:'🧔', lines:[
-    '"Wolves on the East Road again. Third time this month."',
-    '"I\'ve been buying low at the market and selling north. The margin\'s shrinking."',
-    '"Mark my words — something in the Greenwood has been quiet too long."',
+  { name:'Orris the Inkfinger',  icon:'🖋️', lines:[
+    '"Strane. Now there is a name I have written more than once, though never for anyone who looked as poor as you. Sit. I\'ll not charge you for the chair."',
+    '"I write the letters folk cannot, and read them the ones they receive. So I know every secret in three Reaches. I sell to the Footsworn, to the Choir, to you. I serve only the living."',
+    '"Whatever you did in the Hollow, the Litany said your name at dawn. A name said by that voice is a name worth a great deal to the right buyer. I would watch my back, friend, and pay me to watch the rest."',
   ]},
-  { name:'Elara the Herbalist', icon:'🌿', lines:[
-    '"The foxglove\'s coming in strong this season. Good omen, or bad."',
-    '"Elswyth ran dry of stamina draughts again. Wanderers buy faster than she brews."',
-    '"If you\'re headed into the Greenwood, chew some willowbark first. Trust me."',
+  { name:'a frightened Footsworn', icon:'👣', lines:[
+    '"We carry his coin because it\'s the one name the High Crown couldn\'t silence. Every Gradus spent is a small spit in a god\'s eye. Don\'t say I said so."',
+    '"There\'s more of us than the Choir thinks and fewer than we\'d like. We walk the Road as faith and rebellion both. Maren will know you\'re sound, or she won\'t."',
+    '"You felt it too, didn\'t you. The dawn voice gone wrong. Most just kneel and obey like always. You\'re one of the ones who can\'t. That\'s either the best thing about you or the thing that gets you killed."',
   ]},
-  { name:'Brother Anselm',      icon:'📿', lines:[
-    '"Father Bede lit a candle for you last night. He doesn\'t know why. Neither do I."',
-    '"The chapel ledger shows forty souls fell to the Forest Troll since spring. Forty-one tomorrow, perhaps."',
-    '"Pray before you fight. It won\'t help — but it\'ll feel like it did."',
+  { name:'Hesta',               icon:'🪣', lines:[
+    '"We don\'t draw from the east well anymore. Nobody says why. The water went sour the same season the dawn bell did, like milk on the turn, and that\'s all I\'ll say about it."',
+    '"There\'s a chill comes up off the lake at first light that never used to. The old folk feel it worst. It\'s nothing, I tell myself. I tell myself a lot of things now."',
+    '"Buy your bread off Edrin while you can. Good baker, sad eyes lately. Won\'t look you in the face since the spring."',
   ]},
-  { name:'Senna the Scout',     icon:'🏹', lines:[
-    '"I circled the Greenwood three times yesterday. Something\'s moving in it that I won\'t follow."',
-    '"The Glass Swordsman left a dead soldier on the road. She doesn\'t rob. She just fights and walks."',
-    '"Count your steps in the Greenwood. It\'s longer coming out than going in."',
+  { name:'Col, the orphan boy', icon:'🧒', lines:[
+    '"You\'re a wanderer, aren\'t you? A real one. I\'m going to be one too. I can already walk all day, ask anyone."',
+    '"Maren took me in after. She doesn\'t talk about Tam. I don\'t ask. I just carry the water now, so she doesn\'t have to pass the shut door."',
+    '"Captain likes you. The three-legged dog. He doesn\'t like the Choir men at all. Dogs know first, my gran used to say."',
   ]},
-  { name:'Mistress Volke',      icon:'👒', lines:[
-    '"Half of Oppidum owes money to the Bank. Master Aurelius planned it that way."',
-    '"My cart lost a wheel near the toll. The bandits helped fix it, then took my coin. I almost liked them."',
-    '"The market\'s thin since the road trouble. Buy what you need now."',
+  { name:'a pilgrim of the Road', icon:'🧎', lines:[
+    '"I\'ve walked the Road south and back. Every step I take in the waking world earns something here. That\'s the covenant. Miss a day and the streak breaks; walk ten straight and the coin flows."',
+    '"The Milestone in the Keep hums for some and stays dead stone for the rest. It hummed for you, I heard. Pilgrims notice these things."',
+    '"They say the Road runs all the way to where the world ends, and one man once walked off the end of it. We don\'t walk that far. We just walk."',
   ]},
-  { name:'Young Pip',           icon:'🧒', lines:[
-    '"Did you know boars can run faster than horses? The blacksmith told me. He also told me not to test it."',
-    '"I\'m going to be a wanderer when I grow up. Pa says I\'m already wandering too much."',
-    '"The stray dog behind the inn knows something. I can tell by how it looks at you."',
+  { name:'an off-duty gate guard', icon:'⚔️', lines:[
+    '"The regen monsters are the worst. Don\'t trade blows with anything that knits its wounds — you\'ll lose the long war every time. Hit hard, hit fast, don\'t stop. An elixir helps."',
+    '"Bank your coin before you fight anything with a name. The vault remembers you. The grave doesn\'t."',
+    '"Gate closes at dusk. Cold work, colder lately. I keep a soft ember in me and my mouth shut about the Choir."',
   ]},
 ];
 function innFolkToday() {
@@ -1778,48 +1975,49 @@ function innFolkToday() {
 /* ─── Town NPCs: flavor dialog hotspots ─── */
 const TOWN_NPCS = [
   { l:46, t:25, label:'👴 Elder Croft', lines:[
-    '"Walk ten thousand steps today. The road doesn\'t care about excuses."',
-    '"In forty years I\'ve seen three trolls come down from the treeline. No wanderer came back looking the same."',
+    '"Walk while you can, wanderer. The Litany used to tell us when. Now the dawn voice lies, and a man must choose his own miles. Terrifying business, choosing."',
+    '"I\'m old enough to remember when the dawn bell was a comfort. You young ones only ever heard it lie. I don\'t know which of us got the worse deal."',
     '"Bank your Gradus before you fight anything with a name. The vault remembers you. The grave doesn\'t."',
   ]},
   { l:33, t:59, label:'🧑 Tobias\' Boy', lines:[
-    '"Pa says the mill\'s running again! Proper flour at last."',
-    '"I counted forty wolves from the roof last night. Pa says I can\'t count. I say Pa can\'t sleep."',
-    '"The blacksmith lets me pump the bellows sometimes. It\'s very hot. I love it."',
+    '"Pa says the mill\'s running again! Proper flour at last. Mam still won\'t draw from the east well, though."',
+    '"I counted the lights on the lake at dawn. Pa says don\'t count things at dawn. I say Pa can\'t sleep either."',
+    '"The blacksmith lets me pump the bellows. The forge is busy now everyone has to arm themselves. I love it, and I don\'t know why that\'s a sad thing to say."',
   ]},
   { l:35, t:79, label:'🛒 Peddler', lines:[
-    '"Buy something or move along. I\'ve got a quota."',
-    '"Elswyth\'s prices went up again. Everything goes up. My cart wheel went up a ditch last week."',
-    '"Three wanderers came through this morning. None of them came back this afternoon."',
+    '"Buy something or move along. Market\'s thin and my patience thinner."',
+    '"Everything\'s gone up since the dawn voice turned. Even my cart wheel went up a ditch last week."',
+    '"Three wanderers came through this morning. None came back by dusk. The Road takes the bold first. Browse, though, browse."',
   ]},
-  { l:22, t:82, label:'🐕 Stray Dog', lines:[
-    '"..."',
-    '"*wags tail*"',
-    '"*follows you briefly, then sits down and watches*"',
+  { l:22, t:82, label:'🐕 Captain', lines:[
+    '"*Captain, the three-legged dog who belongs to everyone and no one, leans his whole weight on your leg and looks up as if you\'ve already agreed to something.*"',
+    '"*He growls low — not at you. At the Choirman across the square. Then he steals something off a stall and is gone.*"',
+    '"*He wags, circles once, and sits on your foot. The most respected patron of the Foundered Horse has decided you\'ll do.*"',
   ]},
-  // ── Quest-chain NPCs: milestone-aware dialogue ──
-  { l:48, t:68, label:'👨‍⚖️ Reeve Ostric', stages:[
-    { q:0,  text:'"The Greenwood pushes closer every year. The troll hasn\'t shown itself yet. Yet. Do what wanderers do — walk, fight, and don\'t ask the Reeve for anything free."' },
-    { q:4,  text:'"You cleared the Broodmother. The silk-weavers are breathing again. Small mercy, but mercy counts." He stamps a document without looking up.' },
-    { q:8,  text:'"The Forest Troll is dead. Twelve years I\'ve posted a bounty. Twelve years. You did it in an afternoon. I\'ve already paid the steward — find him yourself."' },
-    { q:17, text:'"You walked into the Ruins and came back. I stopped sending men there after the third didn\'t return. Whatever you\'re doing — keep doing it."' },
+  // ── Quest-chain NPCs: milestone-aware dialogue (keyed to the Oppidum arc) ──
+  { l:48, t:68, label:'🛡️ Maren', stages:[
+    { q:0,  text:'"Six days you\'ve been in my town and I\'ve buried someone since. Don\'t expect a warm welcome, wanderer; expect a bed and a shut door. ...And if the dawn voice told you to do a cruel thing this morning and you couldn\'t — come find me after."' },
+    { q:6,  text:'"You did what the Choir swore couldn\'t be done, and lived. The cell will have you now. We\'re not heroes, understand. We\'re frightened people who got tired of kneeling. That\'s all the Footsworn ever were."' },
+    { q:14, text:'"The Road keeps sending its dead to my door because you\'re standing in it. Go. Walk south, so it follows you and not us. I hate that it\'s the right answer. ...Tam would have liked you. That\'s not a kindness. It\'s just true."' },
+    { q:23, text:'"Word comes back down the Road of what you\'re becoming out there. I light a candle some nights. Not for the legend. For the fool who carried a dead boy out of a cave and thought he had to do it alone."' },
   ]},
-  { l:62, t:76, label:'🌿 Mira', stages:[
-    { q:0,  text:'"The venom cultists keep burning my gathering spots. Herb prices are double what they were. If you see them out there — handle it." She does not smile.' },
-    { q:4,  text:'"The Broodmother — that was you, wasn\'t it. I can reach the east slopes again. The good glowdust grows there. Come find me when you need something brewed."' },
-    { q:8,  text:'"The Greenwood is open. I\'ve started the long walk myself, mornings, before the mist clears. Brings back half a satchel of things I haven\'t seen in years."' },
-    { q:17, text:'"Glowdust from the Ruins — I\'ve heard it\'s different. Older. Bring me what you find. I\'ll pay fairly."' },
+  { l:62, t:76, label:'🍞 Edrin the baker', stages:[
+    { q:0,  text:'"Bread\'s fresh. Take it and go, please. I can\'t talk today." He won\'t meet your eye. Flour on his hands, and something worse he won\'t name.' },
+    { q:6,  text:'"You\'re with Maren\'s lot now? Then mind your mouth in that cell. The Choir hears everything said in it. Everything." He stops himself. "Buy a loaf. People watch which doors I talk at."' },
+    { q:14, text:'"You got her out. My Wenna. You could have hung me for what I did and no one would have blamed you, and instead — " His voice breaks. "I have nothing to pay you. Bread for the Road, then. Always bread, as long as I have an oven."' },
+    { q:23, text:'"Wenna asks about you — the wanderer who didn\'t make her an orphan. I tell her you\'re out there walking, and that walking is a thing a person can choose to be. I have you to thank that it\'s true."' },
   ]},
-  { l:55, t:58, label:'⛪ Brother Alden', stages:[
-    { q:0,  text:'"Light your steps. Burn no more than you can carry. The road takes what you give it." He doesn\'t explain further.' },
-    { q:8,  text:'"The Greenwood was a place of pilgrimage before the treants turned. You\'ve cleared the path again. Whatever your faith — or lack of it — the chapel thanks you."' },
-    { q:16, text:'"The Ancient Treant falls. The forest breathes differently. Even from here I can feel it." He touches the chapel wall like he\'s listening.' },
-    { q:17, text:'"The Ruins hold something older than Oppidum. Older than the faith. There are names carved beneath the altar stones that no tongue here can read. Be careful."' },
+  { l:55, t:58, label:'⛪ Choirmaster Vane', stages:[
+    { q:0,  text:'"You did not kneel at the dawn Litany. I saw. The voice named a sickness and a mercy, and you called the mercy cruelty. Pride, wanderer — the same pride that damned the world once already." His smile never reaches his eyes.' },
+    { q:6,  text:'"They say you went down into the Hollow and came back, and they call it a miracle. I call it the old sin in a new coat: a man who thinks himself wiser than the dawn voice. I have prayed for you. I will pray harder."' },
+    { q:14, text:'"Run south, then, and let your defiance rot you the way it rots them all. The voice told us sacrifice was protection. You call that a lie — but the thing the Hollow held is louder now, and it was you who woke it. Sleep on that."' },
+    { q:23, text:'"I am still here. I still read the dawn. You broke one town\'s faith and walked off feeling holy, and the voice goes on, every dawn, in every town down the Road ahead of you. You did not win, wanderer. You left."' },
   ]},
-  { l:70, t:65, label:'⚔️ Warden Cassel', stages:[
-    { q:0,  text:'"Gate closes at dusk. Cold work." He doesn\'t mean it as an invitation.' },
-    { q:8,  text:'"Troll\'s dead. First time in twelve years I\'ve opened the south gate after dark. Still do it quietly." He won\'t say why.' },
-    { q:17, text:'"The Ruins posting. I held it three months before I transferred here. Took me a year before I stopped checking corners. You\'ll understand."' },
+  { l:70, t:65, label:'🧙 the Vagabond', stages:[
+    { q:0,  text:'"I know your name. You haven\'t given it. Don\'t look so startled — I\'ve walked a long way to be unsurprising." He nods at the Keep. "Put your feet on the Milestone. The effort won\'t drain you the way it drains them. That is the whole of it. That is what you are."' },
+    { q:6,  text:'"You carry Gradus: the endurance, the walker who cannot be stopped. Useful. Also exactly how the great ones fall. Don\'t become the legend too quickly. The ones who do end up hollow on a road somewhere, preaching that it is all right to stop."' },
+    { q:14, text:'"South, yes. I\'ll walk with you a while. Hear me plainly: I am not your friend. I serve a war far larger than you or this town, and I will spend you for it if the day comes. ...That said — don\'t walk out alone. Whatever else I am, I am right about that."' },
+    { q:23, text:'"Still walking. Good. The Milestone hummed for you because something older than every god sleeps in that stone, and in the Road, and perhaps in you. No, I won\'t explain. Half of guiding is knowing what to withhold. Keep your feet moving."' },
   ]},
 ];
 let townNpcToday = {};
@@ -1841,8 +2039,10 @@ function showTownNPC(npc) {
   showModal(`<h2>${npc.label}</h2><p class="mt" style="font-style:italic;line-height:1.6">${line}</p>`, [{label:'← Back'}]);
 }
 
+// rumors reference their quest by id (index-independent); resolve to the array index
+function rumorQuestIdx(r) { return QUESTS.findIndex(q => q.id === r.qid); }
 const RUMOR_BY_QUEST = {};
-RUMORS.forEach(r => RUMOR_BY_QUEST[r.questIdx] = r);
+RUMORS.forEach(r => { const i = rumorQuestIdx(r); if (i >= 0) RUMOR_BY_QUEST[i] = r; });
 function rumorLocked(i) {
   const r = RUMOR_BY_QUEST[i];
   return !!(r && !S.rumors[r.id] && i >= S.questsCleared);   // cleared hunts are known by deed
@@ -1856,7 +2056,7 @@ function hearRumor(id) {
   save(); sfx('potion');
   showModal(
     `<h2>🍻 ${r.teller}</h2><p class="dim" style="font-style:italic;line-height:1.5">${r.text}</p>
-     <p class="mt gold">New hunt revealed: ${QUESTS[r.questIdx].name}</p>`,
+     <p class="mt gold">New hunt revealed: ${QUESTS[rumorQuestIdx(r)].name}</p>`,
     [{ label:'🍺 To the quest board', fn:() => showScreen('tavern') }, { label:'Stay a while' }]);
   renderInn(); renderHUD();
 }
@@ -2051,7 +2251,7 @@ function migrate(s) {
   if (!s.materials) s.materials = { fish:0, wood:0, meal:0 };
   if (!s.chapelBought) s.chapelBought = {};
   if (!s.chatsBought) s.chatsBought = {};
-  ['herb','hide','venomsac','glowdust'].forEach(k => { if (s.materials[k] === undefined) s.materials[k] = 0; });
+  ['herb','hide','venomsac','glowdust','rod'].forEach(k => { if (s.materials[k] === undefined) s.materials[k] = 0; });
   // hunts already cleared are known by deed, not rumor
   // new equipment slots
   const _slots = { shields:'no_shield', helms:'no_helm', gloves:'no_gloves', boots:'no_boots', pants:'no_pants' };
@@ -2074,7 +2274,7 @@ function migrate(s) {
   if (s.expedition === undefined) s.expedition = null;
   if (!s.sex) s.sex = 'm';
   if (!s.inventory) s.inventory = [];
-  if (typeof RUMORS !== 'undefined') RUMORS.forEach(r => { if (s.questsCleared > r.questIdx) s.rumors[r.id] = true; });
+  if (typeof RUMORS !== 'undefined') RUMORS.forEach(r => { if (s.questsCleared > rumorQuestIdx(r)) s.rumors[r.id] = true; });
   // Reinject dungeon-loot defs into the gear catalogs. Catalogs are rebuilt
   // from literals every boot, so an equipped/owned loot id would otherwise
   // resolve to undefined and crash heroATK/heroMaxHP after a reload.
@@ -2237,20 +2437,8 @@ function finishCreate() {
   save();
   toast('Welcome to Oppidum, ' + name + '!');
   showScreen('town');
-  // First-time tip: show once after creating a character
-  setTimeout(() => {
-    showModal(
-      '<h2>🏰 Welcome to Oppidum</h2>' +
-      '<p class="mt">Here\'s how to get started:</p>' +
-      '<ol style="margin-top:10px;padding-left:20px;line-height:2">' +
-      '<li>📜 <b>Realm Sync</b> — enter today\'s steps &amp; calories to earn Gradus and Ries.</li>' +
-      '<li>🍺 <b>Tavern</b> — accept a quest and battle a monster.</li>' +
-      '<li>🏦 <b>Bank before bosses</b> — your purse is lost if you fall in battle.</li>' +
-      '</ol>' +
-      '<p class="dim mt" style="font-size:12px">Your class unlocks at level 10. You are a Wanderer until then.</p>',
-      [{ label: 'Let\'s go →', cls: 'btn-g' }]
-    );
-  }, 300);
+  // First-time guided tutorial (replaces the old static welcome modal)
+  setTimeout(() => { startTutorial(false); }, 350);
 }
 function logoutAccount() {
   if (S) save();
@@ -2424,7 +2612,102 @@ function showScreen(name) {
   if (activeId && $(activeId)) $(activeId).classList.add('active');
   // scroll to top on screen change
   window.scrollTo(0, 0);
+  // notify guided tutorial of screen change
+  if (window.Tut && Tut.active) Tut.onScreen(name);
 }
+
+/* ---------------- Guided Tutorial ---------------- */
+const TUT_STEPS = [
+  { title:'Welcome to Gradus', body:'Two realms, one hero. Your real-world <b>steps</b> and <b>calories</b> power your character here. Let me show you the loop — it takes under a minute.', goto:'town', target:null, advance:['next'] },
+  { title:'1. Open Realm Sync', body:'Tap <b>The Keep</b>. This is where your real activity becomes in-game currency.', goto:'town', target:'[data-tut="keep"]', advance:['screen:sync'] },
+  { title:'2. Sync your activity', body:'Enter or simulate today\'s <b>steps</b> and <b>calories</b>, then tap <b>Report</b>. Steps become 🪙 Gradus; calories become ⚡ Ries.', target:null, advance:['event:sync'] },
+  { title:'3. Go to the tavern', body:'Currency earned! Now tap the <b>Foundered Horse</b> to find a quest.', goto:'town', target:'[data-tut="tavern"]', advance:['screen:tavern'] },
+  { title:'4. Take a quest', body:'Accept any quest — don\'t worry about the story yet. The goal is simply to fight a monster.', target:null, advance:['screen:battle'] },
+  { title:'5. Win the fight', body:'Battles are turn-based: <b>Attack</b>, use a <b>Potion</b> if you\'re hurt, or <b>Flee</b> if it goes badly. Beat the monster — then bank your coin before tougher foes!', target:null, advance:['screen:town','screen:death'] },
+  { title:'That\'s the loop!', body:'<b>Walk → Sync → Spend → Grow.</b> Keep moving in real life to power your hero. Stuck any time? Open <b>📖 How to Play</b> in the Library, or replay this from Settings.', target:null, advance:['next'], last:true },
+];
+const Tut = {
+  active:false, idx:0, _nav:false,
+  _ensureEls() {
+    if (document.getElementById('tut-bubble')) return;
+    ['tut-dim','tut-spot','tut-bubble'].forEach(id => {
+      const d = document.createElement('div'); d.id = id; document.body.appendChild(d);
+    });
+    window.addEventListener('resize', () => { if (this.active) this.position(); });
+    window.addEventListener('scroll', () => { if (this.active) this.position(); }, true);
+  },
+  screen() { const a = document.querySelector('.screen.active'); return a ? a.id.replace('screen-','') : null; },
+  start(force) {
+    if (!S) return;
+    if (!force && S.tutorialDone) return;
+    this._ensureEls();
+    this.active = true; this.idx = 0;
+    this.render();
+  },
+  render() {
+    const step = TUT_STEPS[this.idx];
+    if (step.goto && this.screen() !== step.goto) { this._nav = true; showScreen(step.goto); this._nav = false; }
+    requestAnimationFrame(() => this.position());
+  },
+  position() {
+    if (!this.active) return;
+    const step = TUT_STEPS[this.idx];
+    const dim = document.getElementById('tut-dim');
+    const spot = document.getElementById('tut-spot');
+    const bub = document.getElementById('tut-bubble');
+    bub.innerHTML =
+      '<h3>' + step.title + '</h3><p>' + step.body + '</p>' +
+      '<div class="tut-row"><span class="tut-step">Step ' + (this.idx+1) + ' of ' + TUT_STEPS.length + '</span>' +
+      '<span><button class="tut-skip" onclick="Tut.skip()">Skip tutorial</button> ' +
+      (step.advance.includes('next') ? '<button class="tut-next btn-g" onclick="Tut.next()">' + (step.last ? 'Finish ✓' : 'Next →') + '</button>' : '') +
+      '</span></div>';
+    const t = step.target ? document.querySelector(step.target) : null;
+    const visible = t && t.offsetParent !== null && t.getBoundingClientRect().width > 0;
+    bub.style.display = 'block';
+    const bw = Math.min(320, window.innerWidth - 32);
+    if (visible) {
+      const r = t.getBoundingClientRect();
+      dim.style.display = 'none';
+      spot.style.display = 'block';
+      spot.style.left = (r.left - 6) + 'px'; spot.style.top = (r.top - 6) + 'px';
+      spot.style.width = (r.width + 12) + 'px'; spot.style.height = (r.height + 12) + 'px';
+      const bh = bub.offsetHeight || 150;
+      let top = r.bottom + 12;
+      if (top + bh > window.innerHeight - 8) top = Math.max(8, r.top - bh - 12);
+      let left = r.left + r.width/2 - bw/2;
+      left = Math.max(16, Math.min(left, window.innerWidth - bw - 16));
+      bub.style.left = left + 'px'; bub.style.top = top + 'px';
+    } else {
+      spot.style.display = 'none';
+      dim.style.display = 'block';
+      const bh = bub.offsetHeight || 150;
+      bub.style.left = (window.innerWidth/2 - bw/2) + 'px';
+      bub.style.top = Math.max(16, (window.innerHeight/2 - bh/2)) + 'px';
+    }
+  },
+  onScreen(name) {
+    if (!this.active || this._nav) return;
+    const step = TUT_STEPS[this.idx];
+    if (step.advance.includes('screen:' + name)) { this.advance(); return; }
+    requestAnimationFrame(() => this.position());
+  },
+  notify(evt) {
+    if (!this.active) return;
+    const step = TUT_STEPS[this.idx];
+    if (step.advance.includes('event:' + evt)) this.advance();
+  },
+  next() { if (TUT_STEPS[this.idx].advance.includes('next')) this.advance(); },
+  advance() { this.idx++; if (this.idx >= TUT_STEPS.length) { this.finish(); return; } this.render(); },
+  skip() { this.finish(); },
+  finish() {
+    this.active = false;
+    ['tut-dim','tut-spot','tut-bubble'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = 'none'; });
+    if (S && !S.tutorialDone) { S.tutorialDone = true; try { save(); } catch (e) {} }
+  },
+};
+window.Tut = Tut;
+function startTutorial(force) { Tut.start(force); }
+function tutNotify(evt) { if (window.Tut) Tut.notify(evt); }
 
 /* ---------------- HUD ---------------- */
 /* ---- Local clock ---- */
@@ -2482,7 +2765,7 @@ const TOWN_HOTSPOTS = [
   { l:25,   t:2,   w:36,   h:13.5, label:'📜 The Keep — Realm Sync', act:() => showScreen('sync') },
   { l:3,    t:13,  w:30,   h:16,   key:'bank', label:'🏦 Bank',            act:() => showScreen('bank') },
   { l:67,   t:12.5,w:30,   h:15.5, label:'📚 Library',         act:() => showScreen('library') },
-  { l:3,    t:31,  w:31,   h:13,   label:'🍺 Tavern',          act:() => showScreen('tavern') },
+  { l:3,    t:31,  w:31,   h:13,   label:'🍺 Foundered Horse',  act:() => showScreen('tavern') },
   { l:38.5, t:30.5,w:21,   h:13,   key:'chapel', label:'⛪ Chapel',          act:() => showScreen('chapel') },
   { l:63,   t:31,  w:33,   h:12.5, key:'inn', label:'🛏️ Inn',             act:() => showScreen('inn') },
   { l:3,    t:46.5,w:28,   h:11.5, label:'⚒️ Blacksmith',      act:() => openShop('blacksmith') },
@@ -2543,7 +2826,7 @@ function renderDungeonSelect() {
       <p class="dim mt" style="font-size:12px">${dun.desc}</p>
       <p class="dim" style="font-size:11px;margin-top:6px">💡 ${dun.tip}</p>
       <div style="margin-top:8px">${floorPips}</div>
-      <div style="margin-top:6px;font-size:11px;color:var(--dim)">Reward: 🪙${fmt(dun.g)} · ✨${fmt(dun.xp)} XP · ${dun.loot.emoji} ${dun.loot.name}</div>
+      <div style="margin-top:6px;font-size:11px;color:var(--dim)">Reward: <img src="art/coin.png" class="ic-coin" alt="Gradus">${fmt(dun.g)} · ✨${fmt(dun.xp)} XP · ${dun.loot.emoji} ${dun.loot.name}</div>
     </div>`;
   }).join('');
   $('dsel-list').innerHTML = rows;
@@ -2571,30 +2854,59 @@ function launchDungeonFloor() {
   launchBattleWithHP(syntheticQ, false, D.hhp);
 }
 
-// Modified battle launcher that accepts a starting HP override
+// Battle launcher with a starting-HP override (dungeons + caves carry HP).
+// Renders the battle scene itself — the old renderBattle() was never defined,
+// which silently broke dungeon entry; this also gives these fights the combat FX.
 function launchBattleWithHP(q, elixir, startHp) {
   const m = q.monster;
   B = { q, maxH: heroMaxHP(), hhp: startHp || heroMaxHP(), maxM: m.hp, mhp: m.hp,
         elixir: !!elixir, venomed: false, over: false, busy: false,
         cd: 0, shield: false, guardNext: false, psCD: 0 };
-  _monName = m.name;
-  _xpSoFar = 0;
-  showScreen('battle');
-  blog(`<b>Floor ${D.floor + 1}/${D.dungeon.floors.length} — ${D.dungeon.floors[D.floor].name}</b>`);
+  $('battle-title').innerHTML = (q.boss ? PIX.skull : '⚔️ ') + q.name;
+  $('battle-scene').innerHTML = '<span id="b-hero-spr" class="b-spr">' + heroSpriteSVG() + '</span>' +
+    '<span class="vs">⚔</span><span id="b-mon-spr" class="b-spr">' + monSprite(m) + '</span>';
+  const _bw = WEAPONS.find(x => x.id === S.equipped.weapon);
+  const _wIcon = _bw ? (wtype(_bw) === 'bow' ? '🏹' : wtype(_bw) === 'staff' ? '🪄' : wtype(_bw) === 'crossbow' ? '🎯' : '⚔️') : '⚔️';
+  $('b-hero-name').innerHTML = (S.sex === 'f' ? '🧑‍♀️' : '🧍') + ' <b>' + S.name + '</b> <span class="dim" style="font-size:11px">' + _wIcon + ' ' + (_bw ? _bw.name : '') + '</span>';
+  const traits = traitTags(m).join(' ');
+  $('b-mon-name').textContent = `${m.emoji} ${m.name}${traits ? ' · ' + traits : ''}`;
+  $('battle-log').innerHTML = '';
+  $('battle-done').style.display = 'none';
+  setBars(B.hhp / B.maxH, 1);
+  if (D) blog(`<b>Floor ${D.floor + 1}/${D.dungeon.floors.length} — ${D.dungeon.floors[D.floor].name}</b>`);
+  else if (q._cave && C) blog(`<b>${C.cave.name}</b>`);
   blog(`You face the <b>${m.name}</b> ${m.emoji}`);
-  renderBattle();
+  showScreen('battle');
   renderActions();
   updateBars();
+  if (m.swift && S.heroClass !== 'Archer') { blog(`${m.name} moves first!`); B.busy = true; renderActions(); setTimeout(monsterAct, 450); }
 }
 
+/* Between-floor events: a chance of a small choice at the rest point — a
+   cache, a glowdust vein, a wayshrine to heal, or a tripwire to gamble on. */
+const DUNGEON_EVENTS = [
+  { label:'📦 Pry open a half-buried supply cache',
+    resolve() { const id = ['minor','minor','health','stamina'][Math.floor(Math.random()*4)]; S.potions[id] = (S.potions[id]||0)+1; return `You lever the lid off a cache the last delvers never reached — a ${POTIONS.find(p=>p.id===id).name}.`; } },
+  { label:'✨ Work a glowdust vein in the wall',
+    resolve() { const n = 1 + Math.floor(Math.random()*3); S.materials.glowdust = (S.materials.glowdust||0)+n; return `Cold light flakes off the rock — ${n} glowdust.`; } },
+  { label:'🕯️ Kneel at a cracked wayshrine',
+    resolve() { const heal = Math.round(D.maxHp*0.25); D.hhp = Math.min(D.maxHp, D.hhp+heal); return `Someone tended this shrine once, before the dark came. Warmth returns — +${heal} HP.`; } },
+  { label:'⚠️ Disarm a tripwire strung across the passage',
+    resolve() { if (Math.random() < 0.6) { const g = 300 + Math.floor(Math.random()*300); S.gradus += g; return `Steady hands — behind it, a dead delver’s purse. +${fmt(g)} Gradus.`; } const d = Math.round(D.maxHp*0.15); D.hhp = Math.max(1, D.hhp-d); return `The wire snaps. Darts. You take ${d} damage but stagger on.`; } },
+];
+function dungeonResolveEvent() {
+  if (!D || !D.event) return;
+  const ev = D.event; D.event = null;
+  const msg = ev.resolve();
+  save(); renderHUD();
+  showModal(`<h2>🕯️ Between the floors</h2><p class="mt" style="line-height:1.7">${msg}</p>`, [{ label:'Continue', fn: showDungeonRest }]);
+}
 function dungeonFloorWin() {
   D.hhp = B.hhp; // carry over HP
   D.floor++;
-  if (D.floor >= D.dungeon.floors.length) {
-    dungeonComplete();
-  } else {
-    showDungeonRest();
-  }
+  if (D.floor >= D.dungeon.floors.length) { dungeonComplete(); return; }
+  D.event = Math.random() < 0.55 ? DUNGEON_EVENTS[Math.floor(Math.random() * DUNGEON_EVENTS.length)] : null;
+  showDungeonRest();
 }
 
 function showDungeonRest() {
@@ -2610,6 +2922,7 @@ function showDungeonRest() {
   const minor  = S.potions['minor']  || 0;
   const health = S.potions['health'] || 0;
   $('drest-actions').innerHTML =
+    (D.event ? `<button class="mt" onclick="dungeonResolveEvent()">${D.event.label}</button>` : '') +
     `<button class="btn-big btn-g" onclick="dungeonContinue()">⚔️ Advance to floor ${D.floor + 1}</button>` +
     `<button class="mt" onclick="dungeonRetreat()">🏃 Retreat (keep your life)</button>` +
     (minor  ? `<button class="mt" onclick="dungeonPotion('minor')"  >🧪 Use Minor Potion ×${minor} (+30 HP)</button>` : '') +
@@ -2666,6 +2979,150 @@ function dungeonComplete() {
   if (doneBtn) doneBtn.onclick = () => showScreen('dsel');
 }
 
+/* ===================== Cave mode: the Hollow (explorable descent) =====================
+   A choice-driven descent that reuses the combat engine. Rooms offer choices:
+   move, search (risk/reward), rest, or fight. HP carries across rooms; a torch
+   resource makes rest-vs-light a real trade; the chamber holds a boss. First
+   clear → a relic + a lore Account; repeatable for glowdust (feeds the gather
+   quests). Distinct from DUNGEONS (linear fights) by being exploration + choice. */
+const CAVES = [{
+  id:'the_hollow', name:'The Hollow', emoji:'🕳️', minLevel:1,
+  blurb:'A cave beyond the walls where the dawn-named were sealed in. The broken door leaks here. Descend, and bring back what the dark is hiding — if it lets you.',
+  reward:{
+    relic:{ id:'hollow_lantern', name:'Hollow-Light Lantern', emoji:'🏮', def:3, grade:'E', slot:'helm', g:1400 },
+    account:'On the seal-stone, in a Choir hand: “Sealed by the dawn’s mercy.” Beneath it, scratched from the inside by a fingernail: “There was no sickness. We drank from the same well as you.”',
+  },
+  boss:{ spr:['brute','#3a2c40','#241a2a'], name:'The Door’s Leak', emoji:'👁️', hp:140, atk:16, venom:2, regen:2 },
+  start:'mouth',
+  rooms:{
+    mouth:{ scene:'The shaft drops into black. Seal-stones are stacked to your left, scratched all over with fingernail marks. A cold draft pours from straight ahead, carrying a smell like milk on the turn.',
+      choices:[
+        { label:'🔎 Search the seal-stones', risk:{ chance:0.7, give:{ mat:'glowdust', qty:1 }, winMsg:'Glowdust clings to the carved stone — you scrape a handful loose.', failMsg:'Only the scratched words, and a cold that gets into your teeth.' }, to:'fork' },
+        { label:'⬇️ Descend into the dark', to:'fork' },
+      ] },
+    fork:{ scene:'Three ways open. Water drips down the left passage. The right floor is printed with plate-boots, pressed deep. The cold draft pours from the middle, and the dark there is somehow darker.',
+      choices:[
+        { label:'⬅️ Left — toward the water', to:'pool' },
+        { label:'➡️ Right — follow the boot-prints', fight:{ spr:['skeleton'], name:'A Hollowed Wretch', emoji:'🥷', hp:70, atk:11, swift:true }, to:'wretch' },
+        { label:'⏺️ Middle — into the cold', light:-1, to:'deep' },
+      ] },
+    pool:{ scene:'A still black pool, glowdust thick on the rim like frost. Something pale hangs motionless under the surface. It may only be a reflection of you.',
+      choices:[
+        { label:'🪣 Gather the glowdust from the rim', risk:{ chance:0.55, dmg:14, give:{ mat:'glowdust', qty:3 }, winMsg:'Three good handfuls — enough to lay on the chapel steps.', failMsg:'The pale thing moves. You snatch your hand back with one handful and a memory you’ll keep.' }, to:'deep' },
+        { label:'➡️ Leave it. Press on.', to:'deep' },
+      ] },
+    wretch:{ scene:'What is left of the Hollowed lies where it fell — a person once, walled in here for drinking from the wrong well. A worn paper is folded in its hand, dry despite the damp.',
+      choices:[
+        { label:'📜 Take the Account', lore:'A Hollowed’s last letter, half-legible: “tell my girl I wasn’t sick, tell her the voice lied, tell her I waited as long as I—”', give:{ mat:'glowdust', qty:1 }, to:'deep' },
+        { label:'🙏 Leave the poor thing be', to:'deep' },
+      ] },
+    deep:{ scene:'The passage tightens and the air goes wrong. Your torch gutters, bowing toward the cold ahead. A dead brazier stands against the wall, oil still in it.',
+      choices:[
+        { label:'🔥 Light the brazier (it will see by it, too)', light:2, msg:'Warm light floods the passage — and far ahead, something turns to look.', to:'chamber' },
+        { label:'🤫 Crawl past in the dark', light:-1, msg:'You go on hands and knees through the cold, not looking up, and something does not quite touch you.', to:'chamber' },
+        { label:'🛏️ Rest a moment, gather yourself', heal:30, light:-1, msg:'You breathe. The dark presses closer while you do.', to:'deep' },
+      ] },
+    chamber:{ scene:'The broken door. Not a door you could open or close — a wound in the air, weeping cold, and the thing that came through it begins to unfold to meet you.',
+      choices:[
+        { label:'⚔️ Face the Door’s Leak', to:'boss' },
+      ] },
+  },
+}];
+let C = null;
+function caveLightLabel() { const n = Math.max(0, Math.min(3, C.light)); return '🔥'.repeat(n) + '▫️'.repeat(3 - n) + (n === 0 ? ' <span style="color:var(--red)">— the dark presses in</span>' : ''); }
+function enterCave(id) {
+  if (S.wounded) { toast('You are wounded — rest at the Inn first.'); return; }
+  const cave = CAVES.find(c => c.id === id); if (!cave) return;
+  if ((S.level || 1) < (cave.minLevel || 1)) { toast('You are not ready to descend.'); return; }
+  C = { cave, room: cave.start, hhp: heroMaxHP(), maxHp: heroMaxHP(), light: 3, afterFight: null };
+  sfx('quest');
+  renderCaveRoom();
+}
+function renderCaveRoom() {
+  const cave = C.cave, room = cave.rooms[C.room];
+  $('cave-title').innerHTML = cave.emoji + ' ' + cave.name;
+  $('cave-light').innerHTML = 'Torch: ' + caveLightLabel();
+  const pct = Math.round(C.hhp / C.maxHp * 100);
+  const bar = $('cave-hp-bar'); bar.style.width = pct + '%';
+  bar.style.background = pct > 50 ? 'var(--green)' : pct > 25 ? '#c4902c' : 'var(--red)';
+  $('cave-hp-label').textContent = `HP: ${C.hhp} / ${C.maxHp}`;
+  $('cave-scene').innerHTML = room.scene;
+  $('cave-actions').innerHTML = room.choices.map((ch, i) => `<button class="mt" onclick="caveChoice(${i})">${ch.label}</button>`).join('');
+  showScreen('cave');
+}
+function caveChoice(i) {
+  const ch = C.cave.rooms[C.room].choices[i];
+  let out = '';
+  if (ch.light) C.light = Math.max(0, Math.min(3, C.light + ch.light));
+  if (ch.heal) { C.hhp = Math.min(C.maxHp, C.hhp + ch.heal); out += `You recover ${ch.heal} HP. `; }
+  if (ch.give) { S.materials[ch.give.mat] = (S.materials[ch.give.mat] || 0) + ch.give.qty; out += `🎁 ${MATS[ch.give.mat][0]} +${ch.give.qty} ${MATS[ch.give.mat][1]}. `; }
+  if (ch.risk) {
+    const r = ch.risk;
+    if (Math.random() < r.chance) {
+      if (r.give) { S.materials[r.give.mat] = (S.materials[r.give.mat] || 0) + r.give.qty; }
+      out += (r.winMsg || 'You succeed.') + (r.give ? ` 🎁 ${MATS[r.give.mat][0]} +${r.give.qty}` : '');
+    } else {
+      if (r.dmg) C.hhp = Math.max(0, C.hhp - r.dmg);
+      out += (r.failMsg || 'It goes badly.') + (r.dmg ? ` <span style="color:var(--red)">(−${r.dmg} HP)</span>` : '');
+      if (C.hhp <= 0) { save(); caveDeath(); return; }
+    }
+  }
+  if (ch.lore) { S.accounts = S.accounts || []; if (!S.accounts.includes(ch.lore)) S.accounts.push(ch.lore); out += `<br><br>📜 <span class="gold">An Account, found in the dark:</span><br><span style="font-style:italic">${ch.lore}</span>`; }
+  if (ch.msg) out = ch.msg + (out ? '<br><br>' + out : '');
+  save(); renderHUD();
+  const after = () => {
+    if (ch.fight) { C.afterFight = ch.to; caveFight(ch.fight); return; }
+    if (ch.to === 'boss') return caveBossFight();
+    if (ch.to) C.room = ch.to;
+    renderCaveRoom();
+  };
+  if (out) showModal(`<p style="line-height:1.7;text-align:left">${out}</p>`, [{ label: ch.fight ? '⚔️ Onward' : 'Continue →', fn: after }]);
+  else after();
+}
+function caveFight(monster) {
+  launchBattleWithHP({ name: C.cave.name, monster: { ...monster }, xp: 0, g: 0, _cave: true }, false, C.hhp);
+}
+function caveBossFight() {
+  const dark = C.light <= 0;
+  const m = { ...C.cave.boss }; if (dark) m.atk = Math.round(m.atk * 1.25);
+  C.afterFight = 'boss';
+  showModal(`<h2>${C.cave.emoji} The Chamber</h2><p class="mt" style="line-height:1.7">${dark ? 'You came in darkness, and it is stronger for it.' : 'Your light holds it back, a little.'} The thing unfolds to meet you.</p>`,
+    [{ label: '⚔️ Face it', fn: () => launchBattleWithHP({ name: C.cave.name + ' — the Chamber', monster: m, xp: 0, g: 0, _cave: true, boss: true }, false, C.hhp) }]);
+}
+function caveFightWin() {
+  C.hhp = B.hhp;
+  if (C.afterFight === 'boss') { caveComplete(); return; }
+  C.room = C.afterFight; C.afterFight = null;
+  save();
+  renderCaveRoom();
+}
+function caveComplete() {
+  const cave = C.cave;
+  const first = !(S.clearedCaves || []).includes(cave.id);
+  const g = 600, xp = 90;
+  S.gradus += g; gainXP(xp);
+  let msg = `🏆 You climbed back out of <b>${cave.name}</b> alive.`;
+  if (first) {
+    S.clearedCaves = S.clearedCaves || []; S.clearedCaves.push(cave.id);
+    const loot = { ...cave.reward.relic };
+    if (loot.slot === 'helm' && !HELMS.find(h => h.id === loot.id)) HELMS.push(loot);
+    S.inventory.push(loot);
+    S.accounts = S.accounts || []; if (!S.accounts.includes(cave.reward.account)) S.accounts.push(cave.reward.account);
+    msg += `<br><br>🎁 First descent — you carry out the <b class="gold">${loot.emoji} ${loot.name}</b>, and an Account no one was meant to read.`;
+  }
+  C = null;
+  sfx('victory'); save(); checkAch(); renderHUD();
+  showModal(`<h2>🕳️ Out of the Hollow</h2><p class="mt" style="line-height:1.7">${msg}</p><p class="gold mt">+${fmt(g)} Gradus · +${xp} XP</p>` + (first ? `<p class="mt" style="font-style:italic;line-height:1.6">${cave.reward.account}</p>` : ''),
+    [{ label: '← Back to town', fn: () => showScreen('town') }]);
+}
+function caveDeath() {
+  const lost = S.gradus; S.gradus = 0; S.wounded = true; S.diedOnce = true; C = null;
+  sfx('defeat'); save(); checkAch(); renderHUD();
+  showModal(`<h2 style="color:var(--red)">The dark takes you</h2><p class="mt" style="line-height:1.7">Something in the Hollow found you first. You wake at the Inn’s door, wounded, your purse gone — looters work the Hollow’s mouth.</p><p class="dim mt">Lost ${fmt(lost)} Gradus.</p>`,
+    [{ label: '← Back to town', fn: () => showScreen('town') }]);
+}
+function caveFlee() { const n = C ? C.cave.name : 'the Hollow'; C = null; toast(`You climb back out of ${n}.`); showScreen('town'); }
+
 function refreshHotspotLocks() {
   document.querySelectorAll('#town-map .hot').forEach(d => {
     const k = d.dataset.lockKey;
@@ -2712,11 +3169,11 @@ function renderTown() {
 
 /* ---------------- Daily Login Reward ---------------- */
 const DEATH_QUOTES = [
-  '"The road is long. Rest. Return." — Reeve Ostric',
+  '"The road is long. Rest. Return." — the Vagabond',
   '"Every wanderer falls. Not every wanderer gets up." — Elder Croft',
   '"The Bank vault holds. Your legend does not end here." — Master Aurelius',
   '"Come back better." — Senna the Scout',
-  '"The Inn fire is still lit. It will be." — Osgar the keeper',
+  '"Maren\'s fire is still lit. It will be." — Maren, who keeps the Inn',
 ];
 function checkDailyClaim() {
   const today = localDateStr(new Date());
@@ -2741,7 +3198,7 @@ function checkDailyClaim() {
     `<p class="dim mt" style="font-style:italic">"Another day walked. The realm remembers."</p>` +
     `<p class="dim">${tierLabel}</p>` +
     streakTxt +
-    `<p class="mt" style="font-size:20px;letter-spacing:1px">🪙 +${fmt(gradusBase)} Gradus</p>` +
+    `<p class="mt" style="font-size:20px;letter-spacing:1px"><img src="art/coin.png" class="ic-coin" alt="Gradus"> +${fmt(gradusBase)} Gradus</p>` +
     `<p style="font-size:18px">⚡ +${fmt(riesBase)} Ries</p>`,
     [{ label: '✅ Claim reward', cls: 'btn-g', fn: () => {
       S.gradus     += gradusBase;
@@ -2850,7 +3307,7 @@ function renderSync() {
     if (logged) {
       return `<tr>
         <td>${dayLabel(date, i)}</td>
-        <td class="synced">${fmt(logged.steps)} 🪙</td>
+        <td class="synced">${fmt(logged.steps)} <img src="art/coin.png" class="ic-coin" alt="Gradus"></td>
         <td class="synced">${fmt(logged.calories)} 🔥</td>
         <td class="synced">✔ reported</td>
       </tr>`;
@@ -2932,6 +3389,7 @@ async function syncDay(date) {
   checkAch();
   track('sync', { steps: activity.steps, calories: activity.calories });
   renderSync(); renderHUD();
+  tutNotify('sync');
 }
 
 /* ---- device sync (push-based via iPhone Shortcut) ---- */
@@ -3114,7 +3572,7 @@ function renderForge() {
       const riesCost = upgradeCost(it, lvl + 1);
       const goldCost = upgradeGoldCost(it, lvl + 1);
       const canUpgrade = S.ries >= riesCost && S.gradus >= goldCost;
-      action = `<button class="btn-r" onclick="upgradeItem('${it.id}')" ${canUpgrade ? '' : 'disabled'}>+${lvl + 1} — 🪙${fmt(goldCost)} · ⚡${fmt(riesCost)}</button>`;
+      action = `<button class="btn-r" onclick="upgradeItem('${it.id}')" ${canUpgrade ? '' : 'disabled'}>+${lvl + 1} — <img src="art/coin.png" class="ic-coin" alt="Gradus">${fmt(goldCost)} · ⚡${fmt(riesCost)}</button>`;
     }
     return `<tr><td>${dispName(it)}${it.grade ? ` <span class="gold">[${it.grade}]</span>` : ''}${broken ? ' <span style="color:var(--red);font-size:11px">BROKEN</span>' : ''}${durDisplay}<br><span class="dim">${stat}</span></td><td class="r">${action}</td></tr>`;
   }).join('');
@@ -3123,7 +3581,7 @@ function renderForge() {
   const repairRows = repairItems.map(it => {
     const cost = repairCost(it);
     const canRepair = S.gradus >= cost;
-    return `<tr><td>${dispName(it)}${durBar(it.id)}</td><td class="r"><button onclick="repairItem('${it.id}')" ${canRepair?'':'disabled'}>🔨 🪙${fmt(cost)}</button></td></tr>`;
+    return `<tr><td>${dispName(it)}${durBar(it.id)}</td><td class="r"><button onclick="repairItem('${it.id}')" ${canRepair?'':'disabled'}>🔨 <img src="art/coin.png" class="ic-coin" alt="Gradus">${fmt(cost)}</button></td></tr>`;
   }).join('');
   const repairSection = repairItems.length
     ? `<h2 class="mt">🔨 Repairs</h2><table><tbody>${repairRows}</tbody></table>`
@@ -3190,7 +3648,7 @@ function renderSellSection() {
     return;
   }
   const rows = items.map((item, li) =>
-    `<tr><td>${item.label}</td><td class="r"><span class="gold">🪙 ${fmt(item.value)}</span></td>
+    `<tr><td>${item.label}</td><td class="r"><span class="gold"><img src="art/coin.png" class="ic-coin" alt="Gradus"> ${fmt(item.value)}</span></td>
      <td class="r"><button class="btn-r" onclick="sellItem(${li})">Sell</button></td></tr>`
   ).join('');
   const el = $('shop-extra');
@@ -3336,13 +3794,13 @@ function renderInn() {
       `<button class="mt" onclick="doRoom()" ${canRoom ? '' : 'disabled'}>🛏️ Rent a room — ${fmt(rc)} Gradus (+${fmt(rc*2)} ⚡ Ries · +1 quest bonus)</button>`;
   }
   // the common room: rumors that unlock hunts
-  const available = RUMORS.filter(r => S.questsCleared >= r.questIdx);
+  const available = RUMORS.filter(r => S.questsCleared >= rumorQuestIdx(r));
   let common = '<h2 class="mt">🍻 The Common Room</h2>';
   if (!available.length) {
     common += '<p class="dim footer-note">Tonight the talk is all weather and taxes.</p>';
   } else {
     common += available.map(r => S.rumors[r.id]
-      ? `<p class="dim footer-note">✓ You bought a round for ${r.teller} — they spoke of <b>${QUESTS[r.questIdx].name}</b>.</p>`
+      ? `<p class="dim footer-note">✓ You bought a round for ${r.teller} — they spoke of <b>${QUESTS[rumorQuestIdx(r)].name}</b>.</p>`
       : `<button class="mt" onclick="hearRumor('${r.id}')" ${S.gradus < r.cost ? 'disabled' : ''}>🍻 Buy a round for ${r.teller} — ${fmt(r.cost)} Gradus</button>`
     ).join('');
   }
@@ -3400,7 +3858,7 @@ function addDays(dateStr, n) {
 function renderBank() {
   const invested = S.investments.reduce((a, v) => a + v.amount, 0);
   $('bank-rows').innerHTML =
-    `<tr><td class="dim">Purse (carried — looters take this if you fall)</td><td class="r gold">🪙 ${fmt(S.gradus)}</td></tr>` +
+    `<tr><td class="dim">Purse (carried — looters take this if you fall)</td><td class="r gold"><img src="art/coin.png" class="ic-coin" alt="Gradus"> ${fmt(S.gradus)}</td></tr>` +
     `<tr><td class="dim">Vault (safe)</td><td class="r gold">🏦 ${fmt(S.bank)}</td></tr>` +
     (invested ? `<tr><td class="dim">Sealed in ventures</td><td class="r gold">📜 ${fmt(invested)}</td></tr>` : '');
   const today = localDateStr(new Date());
@@ -3465,11 +3923,12 @@ const ACHS = [
   { id:'pathfinder', name:'The Long Road',      title:'Pathfinder',    desc:'Walk 100,000 lifetime steps.',                test:s => s.lifetimeSteps >= 100000 },
   { id:'tireless',   name:'A Million Underfoot',title:'the Tireless',  desc:'Walk 1,000,000 lifetime steps.',              test:s => s.lifetimeSteps >= 1000000 },
   { id:'proven',     name:'The Choosing',       title:'the Proven',    desc:'Reach level 10 and choose your path.',        test:s => !!s.heroClass },
-  { id:'trollsbane', name:'Trollsbane',         title:'Trollsbane',    desc:'Fell the Forest Troll.',                      test:s => s.questsCleared >= 8 },
-  { id:'heartwood',  name:'Silence in the Greenwood',   title:'Heartwood',     desc:'Defeat the Ancient Treant.',                  test:s => s.questsCleared >= 16 },
-  { id:'echo',       name:'Beyond Legend',      title:'Echo-Walker',   desc:'Defeat the Echo of the First Wanderer.',      test:s => s.questsCleared >= 17 },
-  { id:'ruinwalker', name:'Into the Ruins',     title:'Ruinwalker',    desc:'Enter The Ruins and defeat the Ash Hound.',   test:s => s.questsCleared >= 18 },
-  { id:'lich',       name:'Lich King',          title:'Lichbane',      desc:'Slay the Lich of Oppidum.',                   test:s => s.questsCleared >= 25 },
+  { id:'trollsbane', name:'The Dawn That Lied',  title:'the Unhollowed',desc:'Expose the Tithe-Eater beneath the Hollow.',   test:s => s.questsCleared >= 13 },
+  { id:'returned',   name:'The Long Way Out',    title:'the Footsworn', desc:'Lay Brand the Returned to rest and take the Road south.', test:s => s.questsCleared >= 14 },
+  { id:'heartwood',  name:'Silence in the Greenwood',   title:'Heartwood',     desc:'Defeat the Ancient Treant.',                  test:s => s.questsCleared >= 22 },
+  { id:'echo',       name:'Beyond Legend',      title:'Echo-Walker',   desc:'Defeat the Echo of the First Wanderer.',      test:s => s.questsCleared >= 23 },
+  { id:'ruinwalker', name:'Into the Ruins',     title:'Ruinwalker',    desc:'Enter The Ruins and defeat the Ash Hound.',   test:s => s.questsCleared >= 24 },
+  { id:'lich',       name:'Lich King',          title:'Lichbane',      desc:'Slay the Lich in the Ruins.',                 test:s => s.questsCleared >= 31 },
   { id:'goldhand',   name:'Goldhand',           title:'Goldhand',      desc:'Hold 100,000 Gradus across purse and vault.', test:s => s.gradus + (s.bank || 0) >= 100000 },
   { id:'fallen',     name:'Memento Mori',       title:'the Fallen',    desc:'Die. Learn. Return.',                         test:s => !!s.diedOnce },
 ];
@@ -3486,17 +3945,17 @@ const RARE_MOBS = [
 /* ---------------- Chapel quests (lore / information rewards) ---------------- */
 const CHAPEL_QUESTS = [
   { id:'bestiary', name:'Consult the Bestiary', cost:200, xp:30,
-    desc:'Father Bede keeps notes on every creature the chapel has records of.',
-    reward:`<b>From Bede\\'s notes, chapter VII:</b><br><br>"Venomed creatures inject their poison on first contact; potions between turns are the only counter. Armored foes blunt every blow by a quarter — abilities that bypass armor (Mage\\'s Fireball) are invaluable. Frenzied beasts are most dangerous below 30% health; try to burst them down quickly. Regenerating monsters must be defeated faster than they heal — offensive items and elixirs are not luxuries, they are plans."` },
+    desc:'The chapel\'s old records hold notes on every creature anyone has fought and lived to name.',
+    reward:`<b>From the chapel records, chapter VII:</b><br><br>"Venomed creatures inject their poison on first contact; potions between turns are the only counter. Armored foes blunt every blow by a quarter — abilities that bypass armor (Mage\\'s Fireball) are invaluable. Frenzied beasts are most dangerous below 30% health; try to burst them down quickly. Regenerating monsters must be defeated faster than they heal — offensive items and elixirs are not luxuries, they are plans."` },
   { id:'routes', name:'The Old Road Maps', cost:350, xp:50,
     desc:'Pre-war maps might show useful annotations on survival.',
-    reward:`<b>Reeve Ostric\\'s marginal note, found in the chapel deed records:</b><br><br>"The Bank vault survives your death. Carry nothing into a fight you cannot afford to lose. Deposit all Gradus before entering a boss fight. The Bank charges no fee and keeps no ledger of why you came. A soldier who banks before battle is either wise or experienced. Usually both."` },
+    reward:`<b>An old Warden's marginal note, found in the chapel deed records:</b><br><br>"The Bank vault survives your death. Carry nothing into a fight you cannot afford to lose. Deposit all Gradus before entering a boss fight. The Bank charges no fee and keeps no ledger of why you came. A soldier who banks before battle is either wise or experienced. Usually both."` },
   { id:'herbs', name:'The Herb Lore Scroll', cost:500, xp:70,
-    desc:`Medieval folk medicine compiled by three generations of Bede\\'s predecessors.`,
-    reward:`<b>Brother Caedmon\\'s notes on materials:</b><br><br>"Herbs drop most readily from cursed men — bandits, cultists, and their kind. Hides come from animals: wolves, boars, and the great beasts. Venom sacs are harvested from spiders and wasps. Glowdust is the rarest — found on the restless dead and the luminous creatures of the Greenwood\\'s deep reaches. The Gathering life skill practiced at the Commons yields herbs steadily; the Lake yields fish; the Forest Edge yields wood."` },
+    desc:`Folk medicine compiled by three generations of the chapel's keepers.`,
+    reward:`<b>The archivist's notes on materials:</b><br><br>"Herbs drop most readily from cursed men — bandits, cultists, and their kind. Hides come from animals: wolves, boars, and the great beasts. Venom sacs are harvested from spiders and wasps. Glowdust is the rarest — found on the restless dead and the luminous creatures of the Greenwood\\'s deep reaches. The Gathering life skill practiced at the Commons yields herbs steadily; the Lake yields fish; the Forest Edge yields wood."` },
   { id:'history', name:'The Chronicle of Oppidum', cost:800, xp:100,
     desc:`The town\\'s full history, from the founding through the current troubles.`,
-    reward:'<b>Chronicle of Oppidum, vol. III, final page:</b><br><br>"The road south was built by a wanderer who said ten thousand steps were sacred. She walked it herself three times before the town grew up around her resting place. The inn was her house. The bank was her storehouse. The well was her gift. She kept no name — only her steps remain, pressed into the stones where the road begins. Walk them, and you walk with her."' },
+    reward:'<b>Chronicle of Oppidum, vol. III, final page:</b><br><br>"They cannot agree on him, and they never will. The Crownsong names him the damned god-killer who broke the covenant and called the Anathema down on us all. The Footsworn name him the only mortal who ever stood up to a god and was not broken. The heretics swear there was no murder at all, that the god is not dead.<br><br>This much is not disputed: a man once walked this Road to its end and off the edge of the world; the coin in your purse bears his name; and the High Crown swore to unmake that name and failed, because it is in every hand and on every tongue. The dawn voice still tries, every morning. Spend a Gradus, and answer it."' },
 ];
 
 function checkAch() {
@@ -3519,11 +3978,11 @@ function useTitle(id) {
 
 /* ---------------- The Commons: life skills + crafting ---------------- */
 const LS = {
-  fishing:     { name:'Fishing',     emoji:'🎣', energy:20, act:'Cast a line' },
-  woodcutting: { name:'Woodcutting', emoji:'🪓', energy:20, act:'Swing the axe' },
-  gathering:   { name:'Gathering',   emoji:'🌿', energy:15, act:'Search the fields' },
-  cooking:     { name:'Cooking',     emoji:'🍳', energy:10, act:'→ Crafting Bench' },
-  thieving:    { name:'Thieving',    emoji:'🗡️', energy:25, act:'Work the crowd' },
+  fishing:     { name:'Fishing',     emoji:'🎣', energy:60, act:'Cast a line' },
+  woodcutting: { name:'Woodcutting', emoji:'🪓', energy:50, act:'Swing the axe' },
+  gathering:   { name:'Gathering',   emoji:'🌿', energy:40, act:'Search the fields' },
+  cooking:     { name:'Cooking',     emoji:'🍳', energy:25, act:'→ Crafting Bench' },
+  thieving:    { name:'Thieving',    emoji:'🗡️', energy:70, act:'Work the crowd' },
 };
 function lsGain(skill, xp) {
   const s = S.lifeSkills[skill];
@@ -3538,7 +3997,7 @@ function spendEnergy(n, what) {
   if (S.ries < cost) { toast(`Not enough ⚡ Ries for ${what}. Burn calories in the other realm, or eat a meal.`); return false; }
   S.ries -= cost; return true;
 }
-const MATS = { fish:['🐟','fish'], wood:['🪵','timber'], meal:['🍽️','meal'], herb:['🌿','herb'], hide:['🐗','hide'], venomsac:['☠️','venom sac'], glowdust:['✨','glowdust'] };
+const MATS = { fish:['🐟','fish'], wood:['🪵','timber'], meal:['🍽️','meal'], herb:['🌿','herb'], hide:['🐗','hide'], venomsac:['☠️','venom sac'], glowdust:['✨','glowdust'], rod:['🎣','fishing rod'] };
 function satchelLine() { return Object.keys(MATS).map(k => `${MATS[k][0]} ${S.materials[k] || 0}`).join(' · '); }
 const MOB_DROPS = {
   'Giant Rat':[['herb',.3]], 'Dire Wolf':[['hide',.35]], 'Bandit Chief':[['herb',.25]],
@@ -3566,16 +4025,25 @@ const MOB_DROPS = {
   'The Lich':         [['glowdust',.7],['venomsac',.5]],
 };
 function doFish() {
+  if (!(S.materials.rod > 0)) { toast('🎣 You need a fishing rod — craft one at the bench (3 🪵).'); return; }
   if (!spendEnergy(LS.fishing.energy, 'fishing')) return;
   const lvl = S.lifeSkills.fishing.lvl;
-  if (Math.random() < 0.6 + lvl * 0.02) { S.materials.fish++; toast('🎣 A fat lake perch!'); }
-  else toast('🎣 The line comes back bare.');
-  lsGain('fishing', 25); save(); renderLake(); renderHUD();
+  const roll = Math.random();
+  if (roll < 0.65 + lvl * 0.02) {
+    const n = roll < 0.10 + lvl * 0.005 ? 3 : (roll < 0.30 ? 2 : 1);   // rare hauls
+    S.materials.fish += n;
+    toast(n >= 3 ? '🎣✨ A glittering haul — three fish!' : n === 2 ? '🎣 Two on one line!' : '🎣 A fat lake perch!');
+  } else toast('🎣 The line comes back bare.');
+  if (Math.random() < 0.06) { S.materials.rod--; sfx('hurt'); toast('💢 Your rod snaps! Craft another at the bench.'); }
+  lsGain('fishing', 40); save(); renderLake(); renderHUD();
 }
 function renderLake() {
   const s = S.lifeSkills.fishing;
+  const hasRod = (S.materials.rod || 0) > 0;
   $('lake-body').innerHTML =
-    `<p>🎣 <b>Fishing</b> <span class="dim">· level ${s.lvl} · ${s.xp}/${s.lvl * 100} XP · catch chance ${Math.round((0.6 + s.lvl * 0.02) * 100)}%</span></p>` +
+    `<p>🎣 <b>Fishing</b> <span class="dim">· level ${s.lvl} · ${s.xp}/${s.lvl * 100} XP · catch chance ${Math.round((0.65 + s.lvl * 0.02) * 100)}%</span></p>` +
+    `<p class="dim footer-note">${hasRod ? `🎣 Rod in hand (×${S.materials.rod}) — rods snap now and then; keep timber for spares.` : '⚠️ No fishing rod. Craft one at the 🛠 Bench: 3 🪵 timber + ⚡30.'}</p>` +
+    (hasRod ? '' : `<p class="mt"><button onclick="showScreen('craft')">🛠 To the crafting bench</button></p>`) +
     `<button class="mt" onclick="doFish()">Cast a line — ⚡${LS.fishing.energy}</button>` +
     `<p class="mt"><span class="dim">Satchel:</span> ${satchelLine()}</p>`;
 }
@@ -3596,19 +4064,19 @@ function renderChapel() {
     }
     const canBuy = S.gradus >= q.cost;
     return `<div class="mt panel" style="padding:10px;margin:6px 0">
-      <b>${q.name}</b> — <span class="gold">🪙 ${fmt(q.cost)}</span> · +${q.xp} XP<br>
+      <b>${q.name}</b> — <span class="gold"><img src="art/coin.png" class="ic-coin" alt="Gradus"> ${fmt(q.cost)}</span> · +${q.xp} XP<br>
       <span class="dim">${q.desc}</span><br>
       <button class="mt btn-g" onclick="buyChapelQuest('${q.id}')" ${canBuy ? '' : 'disabled'}>📖 Consult</button>
     </div>`;
   }).join('');
-  let chatSection = '<h2 class="mt">🕯️ Contemplation</h2><p class="dim footer-note">Father Bede is available for private counsel on matters of faith and philosophy.</p>';
+  let chatSection = '<h2 class="mt">🕯️ Contemplation</h2><p class="dim footer-note">The old sexton, who tends the chapel and keeps his doubts to himself, is good for a quiet word away from the Choirmaster\'s ear.</p>';
   chatSection += LORE_CHATS.map(c => {
     if (S.chatsBought[c.id]) return `<p class="dim footer-note mt">✔ ${c.icon} ${c.teller} — <em>${c.text.substring(0, 60)}…</em></p>`;
     return `<button class="mt" onclick="buyLoreChat('${c.id}')" ${S.gradus >= c.cost ? '' : 'disabled'}>${c.icon} Buy a word with ${c.teller} — ${fmt(c.cost)} Gradus</button>`;
   }).join('');
   $('chapel-body').innerHTML =
-    `<h2>📜 Father Bede\'s Records</h2>
-     <p class="dim footer-note">Consulting Bede\'s records costs Gradus and grants a small amount of experience.</p>` +
+    `<h2>📜 The Chapel Records</h2>
+     <p class="dim footer-note">Consulting the chapel's old records costs Gradus and grants a small amount of experience.</p>` +
     rows + chatSection;
 }
 function buyChapelQuest(id) {
@@ -3645,7 +4113,8 @@ function renderHunt() {
 }
 /* crafting bench */
 const RECIPES = [
-  { id:'meal',      name:'Grilled Fish',         icon:'🍽️', out:['mat','meal'],     req:{ fish:1, wood:1 },        en:10, gCost:50 },
+  { id:'rod',       name:'Fishing Rod',          icon:'🎣', out:['mat','rod'],      req:{ wood:3 },                en:30, gCost:100 },
+  { id:'meal',      name:'Grilled Fish',         icon:'🍽️', out:['mat','meal'],     req:{ fish:1, wood:1 },        en:25, gCost:50 },
   { id:'minorpot',  name:'Minor Health Potion',  icon:'🧪', out:['pot','minor'],    req:{ herb:2 },                en:10, gCost:100 },
   { id:'healthpot', name:'Health Potion',        icon:'⚗️', out:['pot','health'],   req:{ herb:3, glowdust:1 },    en:15, gCost:250 },
   { id:'elixir',    name:'Strength Elixir',      icon:'💪', out:['pot','strength'], req:{ venomsac:1, herb:1 },    en:15, gCost:400 },
@@ -3668,11 +4137,11 @@ function renderCraft() {
   $('craft-satchel').innerHTML = `<span class="dim">Satchel:</span> ${satchelLine()}`;
   $('craft-rows').innerHTML = RECIPES.map(r => {
     const req = Object.entries(r.req).map(([m, n]) => `${n}× ${MATS[m][0]}`).join(' + ');
-    const costs = `${req} + ⚡${r.en}${r.gCost ? ' + 🪙' + fmt(r.gCost) : ''}`;
+    const costs = `${req} + ⚡${r.en}${r.gCost ? ' + <img src="art/coin.png" class="ic-coin" alt="Gradus">' + fmt(r.gCost) : ''}`;
     return `<tr><td>${r.icon} <b>${r.name}</b><br><span class="dim">${costs}</span></td>
       <td class="r"><button onclick="doCraft('${r.id}')" ${canCraft(r) ? '' : 'disabled'}>🛠 Craft</button></td></tr>`;
   }).join('');
-  $('craft-eat').innerHTML = `<button onclick="eatMeal()" ${S.materials.meal < 1 ? 'disabled' : ''}>🍽️ Eat a meal — +${300 + 10 * S.lifeSkills.cooking.lvl} ⚡ (${S.materials.meal} carried)</button>`;
+  $('craft-eat').innerHTML = `<button onclick="eatMeal()" ${S.materials.meal < 1 ? 'disabled' : ''}>🍽️ Eat a meal — +${500 + 15 * S.lifeSkills.cooking.lvl} ⚡ (${S.materials.meal} carried)</button>`;
 }
 function doChop() {
   if (!spendEnergy(LS.woodcutting.energy, 'woodcutting')) return;
@@ -3702,7 +4171,7 @@ function doThieve() {
 function eatMeal() {
   if (S.materials.meal < 1) { toast('No meals in the satchel.'); return; }
   S.materials.meal--;
-  const gain = 300 + 10 * S.lifeSkills.cooking.lvl;
+  const gain = 500 + 15 * S.lifeSkills.cooking.lvl;
   gainRies(gain);
   sfx('potion'); toast(`🍽️ +${gain} ⚡ Ries.`);
   save(); renderHUD();
@@ -3773,7 +4242,7 @@ function renderStats() {
     row('Quests cleared', `${S.questsCleared} / ${QUESTS.length}`) +
     row('Life skills', Object.keys(LS).map(k => `${LS[k].emoji}${S.lifeSkills[k].lvl}`).join(' · ')) +
     row('Lifetime travel', `${fmt(S.lifetimeSteps)} steps · ${fmt(S.lifetimeCalories)} kcal`) +
-    row('Purse', `<span class="gold">🪙 ${fmt(S.gradus)}</span> · <span class="riescol">🔥 ${fmt(S.ries)}</span>`);
+    row('Purse', `<span class="gold"><img src="art/coin.png" class="ic-coin" alt="Gradus"> ${fmt(S.gradus)}</span> · <span class="riescol">🔥 ${fmt(S.ries)}</span>`);
 }
 
 /* ---------------- Skills window ---------------- */
@@ -3805,7 +4274,7 @@ function renderSkills() {
 
 /* ---- Mu/Diablo-style grid inventory ---- */
 const ICONS = {
-  rusty:'🗡️', dagger:'🔪', ironsword:'⚔️', mace:'🔨', longsword:'🗡️', knight:'⚔️',
+  rusty:'<img src="art/blade.png" class="ic-item" alt="">', dagger:'🔪', ironsword:'⚔️', mace:'🔨', longsword:'🗡️', knight:'⚔️',
   forestblade:'🍃', wolfsbane:'🪓', eldersword:'🌿',
   lightxbow:'🏹', arbalest:'🏹', shortbow:'🏹', huntbow:'🏹', recurve:'🏹',
   oakstaff:'🪄', runestaff:'🪄', heartstaff:'🪄',
@@ -3906,7 +4375,7 @@ function renderEquipAndGrid() {
   if (invSel) {
     if (invSel.type === 'junk') {
       const b = S.bag[invSel.bagIdx];
-      if (b) d = `${b.icon} <b>${b.name}</b> ×${b.qty} — Junk. Sell at the General Store for <span class="gold">🪙 ${fmt(b.value * b.qty)}</span>`;
+      if (b) d = `${b.icon} <b>${b.name}</b> ×${b.qty} — Junk. Sell at the General Store for <span class="gold"><img src="art/coin.png" class="ic-coin" alt="Gradus"> ${fmt(b.value * b.qty)}</span>`;
     } else if (invSel.type === 'inv-loot') {
       const it = (S.inventory || []).find(x => x.id === invSel.id);
       if (it) {
@@ -3978,7 +4447,7 @@ let _sellItems = [];
 function setQuestZone(z) {
   const gwUnlocked = S.questsCleared >= FOREST_UNLOCK;
   const ruinsUnlocked = S.questsCleared >= RUINS_UNLOCK;
-  if (z === 1 && !gwUnlocked) { toast('Defeat the Forest Troll to enter the Greenwood.'); return; }
+  if (z === 1 && !gwUnlocked) { toast('Lay Brand the Returned to rest, then take the Road south to the Greenwood.'); return; }
   if (z === 2 && !ruinsUnlocked) { toast('Defeat the Echo of the First Wanderer to enter The Ruins.'); return; }
   questZoneTab = z;
   renderTavern();
@@ -3991,6 +4460,8 @@ function questBudget() {
 }
 function renderTavern() {
   const budget = questBudget(); // roll day if needed
+  const tv = $('tavern-vignette');
+  if (tv) tv.textContent = tavernScene();
   const stam = S.potions['stamina'] || 0;
   const sr = $('quest-stamina-row');
   if (sr) {
@@ -4006,7 +4477,7 @@ function renderTavern() {
   if (qt1) {
     qt1.classList.toggle('zt-active', questZoneTab === 1);
     qt1.disabled = !gwUnlocked;
-    if (qt1.disabled) qt1.title = 'Defeat the Forest Troll to unlock';
+    if (qt1.disabled) qt1.title = 'Lay Brand the Returned to rest to unlock';
   }
   if (qt2) {
     qt2.classList.toggle('zt-active', questZoneTab === 2);
@@ -4017,8 +4488,8 @@ function renderTavern() {
   if (!ruinsUnlocked && questZoneTab === 2) questZoneTab = 0;
 
   const bonusIdx = dailyBonusIdx();
-  const buckets = { story: [], rep: [], side: [] };
-  const bucketOf = q => q.qType === 'story' ? 'story' : (q.qType === 'repeatable' ? 'rep' : 'side');
+  const buckets = { story: [], side: [] };
+  const bucketOf = q => q.qType === 'story' ? 'story' : 'side';
   QUESTS.forEach((q, i) => {
     const qZone = q.zone || 1;
     if (questZoneTab === 0 && qZone !== 1) return;
@@ -4036,34 +4507,43 @@ function renderTavern() {
     // Check one-time completion for non-repeatable quests
     const isDoneOnce = available && questDoneOnce(q);
     let btn;
+    const nonCombat = q.kind === 'scene' || q.kind === 'gather' || q.kind === 'milestone';
     if (!available) btn = `<button disabled>🔒 Locked</button>`;
-    else if (isDoneOnce && q.qType !== 'repeatable') btn = `<button disabled>✔ Completed</button>`;
-    else if (S.wounded) btn = `<button disabled>🩸 Wounded</button>`;
-    else if (budget <= 0) btn = `<button disabled>😴 Spent</button>`;
-    else btn = `<button onclick="startPrep(${i})">${cleared ? '↻ Repeat' : '⚔️ Take'}</button>`;
+    else if (isDoneOnce && !q.repeatable) btn = `<button disabled>✔ Completed</button>`;
+    else if (!nonCombat && S.wounded) btn = `<button disabled>🩸 Wounded</button>`;
+    else if (!nonCombat && budget <= 0) btn = `<button disabled>😴 Spent</button>`;
+    else {
+      const lbl = q.kind === 'scene' ? '📖 Enter' : q.kind === 'gather' ? '📦 Deliver'
+        : q.kind === 'milestone' ? '🚶 Attempt' : (cleared ? '↻ Repeat' : '⚔️ Take');
+      btn = `<button onclick="startPrep(${i})">${lbl}</button>`;
+    }
     const star = isBonus ? '<span class="gold">★ 3× rewards today!</span> · ' : '';
-    const traits = traitTags(q.monster).join(' ');
+    const traits = q.monster ? traitTags(q.monster).join(' ') : '';
+    const detail = q.monster
+      ? `${star}${q.monster.emoji} ${q.monster.name} · HP ${q.monster.hp} · ATK ${q.monster.atk}${traits ? ' · ' + traits : ''} · ⚡${questEnergy(q)}`
+      : q.kind === 'gather'    ? `${star}📦 Bring: ${(q.need || []).map(n => `${MATS[n.mat][0]} ${n.qty} ${MATS[n.mat][1]}`).join(', ')}`
+      : q.kind === 'milestone' ? `${star}🚶 ${(q.milestone && q.milestone.board) || 'A milestone of the Road'}`
+      : `${star}📖 A scene — no blade, no Ries`;
     const typeTag = q.type === 'Legend' ? '<span class="red" style="color:var(--red)">[LEGEND]</span>'
       : q.type === 'Boss' ? '<span class="gold">[BOSS]</span>'
       : `<span class="dim">[${q.type.toUpperCase()}]</span>`;
-    const badge = {
-      story:      '<span style="background:#5a2a2a;color:#e8b4b8;font-size:10px;padding:1px 5px;border-radius:2px;margin-left:4px">STORY</span>',
-      repeatable: '<span style="background:#1a3a1a;color:#7ec87e;font-size:10px;padding:1px 5px;border-radius:2px;margin-left:4px">REPEATABLE</span>',
-      optional:   '<span style="background:#1a2a3a;color:#7eb4e8;font-size:10px;padding:1px 5px;border-radius:2px;margin-left:4px">OPTIONAL</span>',
-      sidequest:  '<span style="background:#2a1a3a;color:#c4a0e8;font-size:10px;padding:1px 5px;border-radius:2px;margin-left:4px">SIDE</span>',
-    }[q.qType || 'repeatable'] || '';
+    const badge = ({
+      story:     '<span style="background:#5a2a2a;color:#e8b4b8;font-size:10px;padding:1px 5px;border-radius:2px;margin-left:4px">STORY</span>',
+      optional:  '<span style="background:#1a2a3a;color:#7eb4e8;font-size:10px;padding:1px 5px;border-radius:2px;margin-left:4px">OPTIONAL</span>',
+      sidequest: '<span style="background:#2a1a3a;color:#c4a0e8;font-size:10px;padding:1px 5px;border-radius:2px;margin-left:4px">SIDE</span>',
+    }[q.qType] || '')
+      + (q.repeatable ? '<span style="background:#1a3a1a;color:#7ec87e;font-size:10px;padding:1px 5px;border-radius:2px;margin-left:4px">↻ REPEATABLE</span>' : '');
     const loreBtn = q.lore ? `<button class="dim" style="font-size:11px;padding:1px 6px;margin-left:6px" onclick="showQuestLore(${i})">📜 lore</button>` : '';
     buckets[bucketOf(q)].push(`<tr${q.qType === 'story' ? ' style="background:rgba(201,162,39,.06)"' : ''}><td>${cleared ? '✔ ' : ''}${typeTag} ${q.name}${badge}${loreBtn}
       ${q.giver ? `<br><span class="dim" style="font-size:12px">— ${q.giver}</span>` : ''}
       ${q.desc ? `<br><span class="dim" style="font-size:12px;font-style:italic">${q.desc}</span>` : (available && q.flavor ? `<br><span class="dim" style="font-style:italic">"${q.flavor}"</span>` : '')}
-      <br><span class="dim">${star}${q.monster.emoji} ${q.monster.name} · HP ${q.monster.hp} · ATK ${q.monster.atk}${traits ? ' · ' + traits : ''} · ⚡${questEnergy(q)}</span></td>
+      <br><span class="dim">${detail}</span></td>
       <td class="r">${btn}</td></tr>`);
   });
   const sect = (label, arr) => arr.length ? `<tr><td colspan="2" class="gold" style="border-bottom:1px solid #3a2f1c">${label}</td></tr>` + arr.join('') : '';
   $('quest-rows').innerHTML =
     sect('📖 THE STORY OF THE REALM', buckets.story) +
-    sect('⚔️ HUNTS & CONTRACTS <span class="dim" style="font-weight:normal">— repeatable</span>', buckets.rep) +
-    sect('🗺️ SIDE QUESTS <span class="dim" style="font-weight:normal">— once each</span>', buckets.side);
+    sect('🗺️ HUNTS, CONTRACTS & SIDE QUESTS <span class="dim" style="font-weight:normal">— ↻ repeatable ones can be retaken</span>', buckets.side);
 }
 function showQuestLore(i) {
   const q = QUESTS[i];
@@ -4081,11 +4561,88 @@ function drinkStamina() {
   save(); sfx('potion'); renderTavern(); renderHUD(); toast('+50 ⚡ Ries from the draught!');
 }
 
+/* ---------------- Non-combat quests: scene / gather / milestone ----------------
+   These advance the questline (and pay Gradus + XP) without a battle:
+   • scene     — a staged dialogue with one or more choices
+   • gather     — turn in N of a material (from life skills / mob drops)
+   • milestone — a real condition: reach a level, sync a day, hold a streak  */
+function awardQuest(q) {
+  const qi = QUESTS.indexOf(q);
+  const first = qi === S.questsCleared;
+  const isBonus = qi === dailyBonusIdx();
+  let g = 0, xp;
+  if (first) { g = (q.g || 0) * (isBonus ? 3 : 1); xp = q.xp || 0; S.questsCleared++; if (q.id) (S.clearedQuestIds = S.clearedQuestIds || []).push(q.id); }
+  else { xp = Math.round((q.xp || 0) * 0.65); if (isBonus) g = q.g || 0; }
+  S.gradus += g; gainXP(xp);
+  if (q.qType && !q.repeatable && !S.doneOnce.includes(q.name)) S.doneOnce.push(q.name);
+  track('quest_done', { quest: q.name, kind: q.kind, g, xp });
+  save(); renderHUD();
+  return { g, xp, first };
+}
+function questDoneModal(q, line, r) {
+  showModal(`<h2>${q.icon || '📖'} ${q.name}</h2>`
+    + (line ? `<p class="mt" style="font-style:italic;line-height:1.7;text-align:left">${line}</p>` : '')
+    + `<p class="gold mt">${r.first ? '+' + fmt(r.g) + ' Gradus · ' : ''}+${r.xp} XP</p>`,
+    [{ label:'← Back to the board', fn:() => showScreen('tavern') }]);
+}
+function startScene(i) {
+  const q = QUESTS[i], sc = q.scene || {};
+  const choices = (sc.choices || [{ label:'Continue →' }]).map(c =>
+    ({ label: c.label, fn: () => questDoneModal(q, c.line || sc.line, awardQuest(q)) }));
+  showModal(`<h2>${q.icon || '📖'} ${q.name}</h2>`
+    + (q.giver ? `<p class="dim" style="font-size:13px">— ${q.giver}</p>` : '')
+    + `<p class="mt" style="line-height:1.7;text-align:left">${sc.text || q.desc || ''}</p>`, choices);
+}
+function startGather(i) {
+  const q = QUESTS[i], need = q.need || [];
+  const short = need.filter(n => (S.materials[n.mat] || 0) < n.qty);
+  if (short.length) {
+    const have = need.map(n => `${MATS[n.mat][0]} ${S.materials[n.mat] || 0}/${n.qty} ${MATS[n.mat][1]}`).join(' · ');
+    showModal(`<h2>${q.icon || '📦'} ${q.name}</h2>`
+      + (q.giver ? `<p class="dim" style="font-size:13px">— ${q.giver}</p>` : '')
+      + `<p class="mt" style="line-height:1.7;text-align:left">${(q.scene && q.scene.text) || q.desc || ''}</p>`
+      + `<p class="mt">You still need: ${have}</p>`
+      + `<p class="dim footer-note mt">Gather at the Commons and the Lake, or from fallen monsters, then return.</p>`,
+      [{ label:'← Back' }]);
+    return;
+  }
+  need.forEach(n => S.materials[n.mat] -= n.qty);
+  questDoneModal(q, (q.scene && q.scene.line) || 'Delivered.', awardQuest(q));
+}
+function milestoneState(q) {
+  const m = q.milestone || {};
+  if (m.type === 'level')  return { ok: (S.level || 1) >= m.value, label: `level ${S.level || 1}/${m.value}` };
+  if (m.type === 'streak') return { ok: streakDays() >= m.value, label: `${streakDays()}/${m.value}-day streak` };
+  if (m.type === 'sync') {
+    const days = Object.values(S.syncLog || {});
+    if (m.steps) { const best = days.reduce((a, d) => Math.max(a, d.steps || 0), 0); return { ok: best >= m.steps, label: `best day ${fmt(best)}/${fmt(m.steps)} steps` }; }
+    return { ok: days.length >= (m.value || 1), label: `${days.length}/${m.value || 1} day${(m.value || 1) > 1 ? 's' : ''} synced` };
+  }
+  return { ok: false, label: '' };
+}
+function startMilestone(i) {
+  const q = QUESTS[i], st = milestoneState(q);
+  if (!st.ok) {
+    showModal(`<h2>${q.icon || '🚶'} ${q.name}</h2>`
+      + (q.giver ? `<p class="dim" style="font-size:13px">— ${q.giver}</p>` : '')
+      + `<p class="mt" style="line-height:1.7;text-align:left">${(q.scene && q.scene.text) || q.desc || ''}</p>`
+      + `<p class="mt">Not yet — ${st.label}.</p>`
+      + (q.milestone && q.milestone.hint ? `<p class="dim footer-note mt">${q.milestone.hint}</p>` : ''),
+      [{ label:'← Back' }]);
+    return;
+  }
+  questDoneModal(q, (q.scene && q.scene.line) || '', awardQuest(q));
+}
+
 /* ---------------- Quest prep ---------------- */
 let prep = null;
 function startPrep(i) {
-  if (S.wounded) { toast('You are wounded — rest at the Inn first.'); return; }
+  const q = QUESTS[i];
   if (rumorLocked(i)) { toast('You\'ve not heard of this hunt — listen at the Inn.'); return; }
+  if (q.kind === 'scene')     return startScene(i);
+  if (q.kind === 'gather')    return startGather(i);
+  if (q.kind === 'milestone') return startMilestone(i);
+  if (S.wounded) { toast('You are wounded — rest at the Inn first.'); return; }
   if (questBudget() <= 0) return;
   prep = { questIdx: i, elixir: false };
   renderPrep();
@@ -4200,7 +4757,7 @@ function confirmBattle() {
   if (S.gradus > 0) {
     showModal(
       `<h2>⚠️ A Heavy Purse</h2>
-       <p>You carry <b class="gold">🪙 ${fmt(S.gradus)} Gradus</b> into this fight.</p>
+       <p>You carry <b class="gold"><img src="art/coin.png" class="ic-coin" alt="Gradus"> ${fmt(S.gradus)} Gradus</b> into this fight.</p>
        <p class="dim mt">If you fall, looters take every coin you hold. What sits in the Bank\'s vault — or sealed in its ventures — survives you.</p>`,
       [
         { label:'⚔️ Fight anyway', cls:'btn-r', fn:() => beginBattle() },
@@ -4223,8 +4780,9 @@ function launchBattle(q, elixir) {
         guardNext: false,    // player is guarding next hit
         psCD: 0 };           // power strike cooldown (turns)
   $('battle-title').innerHTML = PIX.skull + q.name;
-  $('battle-scene').innerHTML = heroSpriteSVG() + '<span class="vs">⚔</span>' +
-    (q.grind ? pix(16, 90, MON_BUILDERS[m.spr[0]](...m.spr.slice(1))) : monsterSpriteSVG(QUESTS.indexOf(q)));
+  $('battle-scene').innerHTML = '<span id="b-hero-spr" class="b-spr">' + heroSpriteSVG() + '</span>' +
+    '<span class="vs">⚔</span>' +
+    '<span id="b-mon-spr" class="b-spr">' + monSprite(m) + '</span>';
   const _bw = WEAPONS.find(x => x.id === S.equipped.weapon);
   const _ba = ARMOR.find(x => x.id === S.equipped.armor);
   const _wIcon = _bw ? (wtype(_bw)==='bow'?'\uD83C\uDFF9':wtype(_bw)==='staff'?'\uD83E\uDE84':wtype(_bw)==='crossbow'?'\uD83C\uDFAF':'\u2694\uFE0F') : '\u2694\uFE0F';
@@ -4265,7 +4823,38 @@ function renderActions() {
     `<button onclick="actFlee()" ${dis}>🏃 Flee</button>`;
 }
 function tickCd() { if (B.cd > 0) B.cd--; if (B.psCD > 0) B.psCD--; }
-function updateBars() { setBars(B.hhp / B.maxH, B.mhp / B.maxM); }
+function updateBars() {
+  setBars(B.hhp / B.maxH, B.mhp / B.maxM);
+  // central FX hook: every damage/heal routes through here, so infer from the
+  // HP deltas who got hit (flash + shake + damage number) and who lunged.
+  const dm = (B.prevMHP ?? B.maxM) - B.mhp;   // monster HP: lost (+) / regained (−)
+  const dh = (B.prevHHP ?? B.maxH) - B.hhp;   // hero HP: lost (+) / healed (−)
+  if (dm > 0) { battleFX('mon', 'hit', dm); battleFX('hero', 'lunge'); }
+  else if (dm < 0) battleFX('mon', 'heal', -dm);
+  if (dh > 0) { battleFX('hero', 'hit', dh); if (dm <= 0) battleFX('mon', 'lunge'); }
+  else if (dh < 0) battleFX('hero', 'heal', -dh);
+  B.prevMHP = B.mhp; B.prevHHP = B.hhp;
+}
+function bAddAnim(el, cls) {
+  if (!el) return;
+  el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls);
+  el.addEventListener('animationend', () => el.classList.remove(cls), { once: true });
+}
+function bDmgNumber(el, text, color) {
+  const scene = $('battle-scene'); if (!scene || !el) return;
+  const n = document.createElement('span');
+  n.className = 'dmg-num'; n.textContent = text; n.style.color = color;
+  const sr = el.getBoundingClientRect(), pr = scene.getBoundingClientRect();
+  n.style.left = (sr.left - pr.left + sr.width / 2 - 12) + 'px';
+  n.style.top = (sr.top - pr.top + 6) + 'px';
+  scene.appendChild(n); setTimeout(() => n.remove(), 950);
+}
+function battleFX(who, type, amount) {
+  const el = $(who === 'hero' ? 'b-hero-spr' : 'b-mon-spr');
+  if (type === 'lunge') return bAddAnim(el, who === 'hero' ? 'lungeR' : 'lungeL');
+  if (type === 'hit') { bAddAnim(el, 'hit'); bDmgNumber(el, '−' + amount, '#ff6a4a'); }
+  else if (type === 'heal') bDmgNumber(el, '+' + amount, '#86e58a');
+}
 function venomTick() {
   const m = B.q.monster;
   if (m.venom && B.venomed) {
@@ -4427,8 +5016,9 @@ function finishTB(win, fled) {
   const q = B.q;
   let msg;
   if (win) {
-    // ── Dungeon floor win ──
+    // ── Dungeon / cave fight win ──
     if (B.q._dungeon) { dungeonFloorWin(); return; }
+    if (B.q._cave) { caveFightWin(); return; }
     let g = 0, xp, isBonus = false, first = false;
     if (q.grind) {                               // free hunt: flat reward, no quest bookkeeping
       g = q.g; xp = q.xp;
@@ -4442,7 +5032,7 @@ function finishTB(win, fled) {
     S.gradus += g;
     gainXP(xp);
     // Mark one-time quests as done
-    if (!q.grind && q.qType && q.qType !== 'repeatable') {
+    if (!q.grind && q.qType && !q.repeatable) {
       if (!S.doneOnce.includes(q.name)) S.doneOnce.push(q.name);
     }
     // Boss special loot drop
@@ -4505,10 +5095,13 @@ function finishTB(win, fled) {
   } else if (fled) {
     msg = '🏃 You escape with your life — the quest attempt is spent.';
     if (B.q._dungeon) { D = null; }
+    if (B.q._cave) { C = null; }
   } else {
     // Death: looters take every Gradus you carry; you wake wounded.
     const lost = S.gradus;
     S.gradus = 0;
+    if (B.q._dungeon) D = null;
+    if (B.q._cave) C = null;
     S.wounded = true;
     S.diedOnce = true;
     const _monName = q.monster ? q.monster.name : 'the enemy';
