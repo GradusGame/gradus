@@ -1,0 +1,22 @@
+{
+  "name": "gradus-game2d",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Gradus — top-down 16-bit pixel-art world on Phaser 3 (Vite). Phase 0: scaffold + proof of look. Standalone; does not touch the current single-file game or its test suite.",
+  "scripts": {
+    "gen:assets": "sips -s format png ../assets/concept/keep-of-oppidum.jpg --out /tmp/keep_raw.png >/dev/null 2>&1 && node tools/process-keep.cjs /tmp/keep_raw.png && node tools/gen-assets.cjs",
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview --host"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0"
+  },
+  "dependencies": {
+    "phaser": "^3.90.0"
+  },
+  "allowScripts": {
+    "esbuild": true
+  }
+}

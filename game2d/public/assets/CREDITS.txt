@@ -1,0 +1,45 @@
+Gradus /game2d/ — asset licenses & attribution
+================================================
+
+Engine / build (bundled via npm):
+  • Phaser 3 .......... MIT  (https://phaser.io)
+  • Vite .............. MIT  (https://vitejs.dev)
+
+Base tiles — STANDARDIZED ON:
+  • Ninja Adventure Asset Pack — pixel-boy (AAA) — CC0
+      source: https://pixel-boy.itch.io/ninja-adventure-asset-pack
+      repo:   https://github.com/pixel-boy/NinjaAdventure  (content/map/)
+      files:  public/assets/tiles/ninja/tileset_floor.png
+              public/assets/tiles/ninja/tileset_interior_floor.png
+              public/assets/tiles/ninja/tileset_village_abandoned.png
+              public/assets/tiles/ninja/tileset_animated.png
+              public/assets/tiles/ninja/tileset_wall_simple.png
+      use:    ground atlas (oppidum-tiles.png), cropped by tools/gen-assets.cjs:
+                grass (floor 13,12 / 12,12), dirt (floor 1,8),
+                cobble square (interior_floor 4,14), water (floor 1,22).
+              public/assets/buildings/house.png ← village_abandoned (192,97,63x79)
+                timber house — PLACEHOLDER for every non-Keep building, re-tinted
+                per role in src/scenes/TownScene.js until each gets its own art.
+              public/assets/props/tree.png      ← village_abandoned (0,144,54x47)
+              public/assets/char/hero.png       ← character/samurai_blue/sprite.png
+                4-direction animated hero (16x16 frames, 4 cols=dir x 7 rows).
+                PLACEHOLDER player sprite until the hero gets its own art.
+              CC0 — no attribution required, but credited here by preference.
+
+Landmark buildings — Grok-generated concept art (project-original):
+  • public/assets/buildings/keep.png  ← assets/concept/keep-of-oppidum.jpg
+      The Wayward Keep (Realm Sync hub). Cropped + background-keyed by
+      tools/process-keep.cjs. Project-owned art.
+
+Generated / original (CC0):
+  • public/assets/tiles/hero.png       ORIGINAL procedural placeholder (Phase 2 replaces it)
+  • public/assets/maps/oppidum.tmj     ORIGINAL Tiled map (tools/gen-assets.cjs)
+  • icon-192.png / icon-512.png        from the existing Gradus PWA
+
+License posture: strict CC0/permissive only. Ninja Adventure is CC0 (safe).
+Record every added asset here with source URL + license BEFORE use. LPC
+(CC-BY-SA) remains reference-only unless we commit to share-alike.
+
+Open per-asset note (Phase 1): the Ninja palette is bright/saturated and the
+Grok Keep is muted grey — see the brightness-reconciliation flags / GROUND_GRADE
+knob in src/scenes/TownScene.js.

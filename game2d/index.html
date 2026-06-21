@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <!-- mobile-first: fill the screen incl. notches; lock zoom so the canvas owns the gestures -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no, maximum-scale=1" />
+  <meta name="theme-color" content="#06060a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <title>Gradus — Oppidum (Phase 0)</title>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; height: 100%; background: #06060a; overflow: hidden; }
+    #game { position: fixed; inset: 0; width: 100vw; height: 100vh; }
+    /* crisp pixels even if the browser ever upscales the canvas element */
+    #game canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+    #caption {
+      position: fixed; left: 0; right: 0; bottom: env(safe-area-inset-bottom, 0);
+      text-align: center; padding: 8px; pointer-events: none;
+      font: 12px/1.4 ui-monospace, "SF Mono", Menlo, monospace;
+      color: #c9b48a; text-shadow: 0 1px 2px #000; opacity: .8;
+    }
+    #fatal {
+      position: fixed; inset: 0; display: none; place-items: center; padding: 24px;
+      background: #06060a; color: #e7c9a0; font: 14px/1.5 ui-monospace, monospace; white-space: pre-wrap;
+    }
+    /* on-screen D-pad (touch + mouse). Keyboard WASD/arrows also work. */
+    #pad {
+      position: fixed; left: calc(16px + env(safe-area-inset-left, 0));
+      bottom: calc(20px + env(safe-area-inset-bottom, 0));
+      display: grid; grid-template-columns: repeat(3, 56px); grid-template-rows: repeat(3, 56px);
+      gap: 4px; touch-action: none; user-select: none; -webkit-user-select: none; z-index: 10;
+    }
+    #pad button {
+      border: 1px solid #4a4334; border-radius: 10px; background: rgba(28,24,18,.55);
+      color: #e8d4a6; font-size: 22px; line-height: 1; touch-action: none; -webkit-tap-highlight-color: transparent;
+    }
+    #pad button:active, #pad button.on { background: rgba(120,86,40,.8); color: #fff; }
+    #pad .u { grid-area: 1 / 2; } #pad .l { grid-area: 2 / 1; }
+    #pad .r { grid-area: 2 / 3; } #pad .d { grid-area: 3 / 2; }
+    /* "Enter" affordance shown when the hero stands at a building door */
+    #prompt {
+      position: fixed; left: 50%; transform: translateX(-50%);
+      bottom: calc(24px + env(safe-area-inset-bottom, 0)); z-index: 10; display: none;
+      padding: 6px 12px; border: 1px solid #4a4334; border-radius: 8px; background: rgba(20,16,10,.8);
+      color: #f1e2bc; font: 13px/1.2 ui-monospace, monospace; pointer-events: none; text-shadow: 0 1px 2px #000;
+    }
+    #abtn {
+      position: fixed; right: calc(20px + env(safe-area-inset-right, 0));
+      bottom: calc(40px + env(safe-area-inset-bottom, 0)); z-index: 10; display: none;
+      width: 64px; height: 64px; border-radius: 50%; border: 1px solid #6a5a34;
+      background: rgba(120,86,40,.7); color: #fff; font: bold 18px ui-monospace, monospace; touch-action: none;
+    }
+    /* interior overlay = the existing DOM game in an iframe */
+    #interior { position: fixed; inset: 0; z-index: 100; display: none; background: #0c0a07; }
+    #interior-frame { width: 100%; height: 100%; border: 0; }
+    #leave {
+      position: fixed; top: calc(8px + env(safe-area-inset-top, 0)); right: 10px; z-index: 101;
+      padding: 8px 14px; border: 1px solid #6a5a34; border-radius: 8px; background: rgba(20,16,10,.92);
+      color: #f1e2bc; font: 13px ui-monospace, monospace; cursor: pointer;
+    }
+    #toast {
+      position: fixed; left: 50%; top: 16%; transform: translateX(-50%); z-index: 200; display: none;
+      padding: 8px 14px; border: 1px solid #4a4334; border-radius: 8px; background: rgba(20,16,10,.92);
+      color: #f1e2bc; font: 13px ui-monospace, monospace; text-shadow: 0 1px 2px #000;
+    }
+</style>
+</head>
+<body>
+  <div id="game"></div>
+  <div id="caption">Gradus · Oppidum — Phase 3 (walk up to a door · E / A to enter)</div>
+  <nav id="pad" aria-label="movement">
+    <button class="u" data-dir="up" aria-label="up">▲</button>
+    <button class="l" data-dir="left" aria-label="left">◀</button>
+    <button class="r" data-dir="right" aria-label="right">▶</button>
+    <button class="d" data-dir="down" aria-label="down">▼</button>
+  </nav>
+  <div id="prompt"></div>
+  <button id="abtn" aria-label="enter">A</button>
+  <div id="toast"></div>
+  <section id="interior" aria-label="building interior">
+    <button id="leave">✕ Leave</button>
+    <iframe id="interior-frame" title="Gradus interior" src="legacy/index.html"></iframe>
+  </section>
+  <pre id="fatal"></pre>
+  <script>
+    // ---- movement D-pad: shared state read by the Phaser scene each frame ----
+    window.__pad = { up: false, down: false, left: false, right: false };
+    for (const btn of document.querySelectorAll('#pad button')) {
+      const dir = btn.dataset.dir;
+      const set = (v) => { window.__pad[dir] = v; btn.classList.toggle('on', v); };
+      btn.addEventListener('pointerdown', (e) => { e.preventDefault(); btn.setPointerCapture?.(e.pointerId); set(true); });
+      for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) btn.addEventListener(ev, (e) => { e.preventDefault(); set(false); });
+      btn.addEventListener('contextmenu', (e) => e.preventDefault());
+    }
+
+    // ---- toast (shown by the scene for locked-building hints, etc.) ----
+    let toastTimer = 0;
+    window.__toast = (msg) => {
+      const el = document.getElementById('toast');
+      el.textContent = msg; el.style.display = 'block';
+      clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.style.display = 'none'; }, 2200);
+    };
+
+    // ---- "Enter" affordance: the scene sets the prompt; A-button / scene fire onEnter ----
+    const prompt = document.getElementById('prompt'), abtn = document.getElementById('abtn');
+    window.__onEnter = null;                 // scene assigns this
+    window.__setPrompt = (text) => {
+      const on = !!text && !window.__interiorOpen;
+      prompt.style.display = on ? 'block' : 'none';
+      abtn.style.display = on ? 'block' : 'none';
+      if (on) prompt.textContent = text;
+    };
+    abtn.addEventListener('pointerdown', (e) => { e.preventDefault(); window.__onEnter && window.__onEnter(); });
+
+    // ---- interior overlay: drive the embedded real game to a building screen ----
+    const overlay = document.getElementById('interior'), frame = document.getElementById('interior-frame');
+    window.__interiorOpen = false;
+    window.__interior = {
+      open(b) { // b = { screen?, shop?, lockKey?, label }
+        const cw = frame.contentWindow;
+        if (b.lockKey && cw && cw.S && typeof cw.isLocked === 'function' && cw.isLocked(b.lockKey)) {
+          window.__toast('🔒 ' + (cw.UNLOCKS?.[b.lockKey]?.hint || (b.label + ' is not open yet.')));
+          return false;
+        }
+        window.__interiorOpen = true; window.__setPrompt(null); overlay.style.display = 'block';
+        try {
+          if (cw && cw.S) { if (b.shop && cw.openShop) cw.openShop(b.shop); else if (b.screen && cw.showScreen) cw.showScreen(b.screen); }
+        } catch (err) { /* game still booting / on title — show it as-is */ }
+        return true;
+      },
+      close() { window.__interiorOpen = false; overlay.style.display = 'none'; },
+    };
+    document.getElementById('leave').addEventListener('click', () => window.__interior.close());
+    window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && window.__interiorOpen) window.__interior.close(); });
+  </script>
+  <script type="module">
+    // Surface any boot error on-screen instead of a silent black canvas (esp. on phones).
+    const fatal = (e) => {
+      const el = document.getElementById('fatal');
+      el.style.display = 'grid';
+      el.textContent = 'Could not start the scene:\n\n' + (e && (e.stack || e.message || e)) + '';
+    };
+    window.addEventListener('error', (ev) => fatal(ev.error || ev.message));
+    window.addEventListener('unhandledrejection', (ev) => fatal(ev.reason));
+    import('./src/main.js').catch(fatal);
+  </script>
+</body>
+</html>
