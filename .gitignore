@@ -3,3 +3,17 @@ open-api-tokens.command
 open-chrome-tokens.command
 .DS_Store
 .wrangler/
+
+# Dependencies & build output (regenerable)
+node_modules/
+dist/
+
+# Local editor / agent settings
+.claude/
+
+# Local file backups
+*.bak-*
+index.html.bak-*
+
+# Ruled-out 3D/voxel exploration — kept locally, not committed (large binary asset packs)
+spike/
